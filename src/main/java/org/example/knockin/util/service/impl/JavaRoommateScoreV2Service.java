@@ -128,7 +128,7 @@ public class JavaRoommateScoreV2Service implements RoommateScoreService {
             }
         }
 
-        return Compatibility.builder().totalScore((int) totalScore).lifeStyleInfo(lifeStyleInfoList).build();
+        return Compatibility.builder().totalScore((int) Math.round(totalScore)).lifeStyleInfo(lifeStyleInfoList).build();
     }
 
     public Compatibility.LifeStyleInfo calculateScores(LifePatternInformation me, LifePatternInformation target, LifePattern lifePattern) {
