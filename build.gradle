@@ -109,6 +109,10 @@ tasks.named('test') {
     useJUnitPlatform {
         excludeTags 'concurrency', 'performance'
     }
+
+    maxHeapSize = "2g"
+    maxParallelForks = 1
+
     finalizedBy jacocoTestReport
     finalizedBy jacocoTestCoverageVerification
 }
