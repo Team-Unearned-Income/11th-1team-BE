@@ -54,7 +54,7 @@ jobs:
 
       # 이미 위에서 테스트했으므로 여기서는 test 제외
       - name: Build with Gradle
-        run: ./gradlew build -x test
+        run: ./gradlew bootJar
 
       - name: Copy JAR to EC2
         uses: appleboy/scp-action@v0.1.7
