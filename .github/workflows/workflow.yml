@@ -42,7 +42,7 @@ jobs:
 
       # 테스트 + JaCoCo report + 60% 검증
       - name: Test and generate JaCoCo coverage
-        run: ./gradlew clean test
+        run: ./gradlew clean test -Dseed.load-test.records-per-entity=10
 
       # Codecov 업로드
       - name: Upload coverage to Codecov
