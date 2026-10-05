@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Install git-crypt
         run: sudo apt-get install -y git-crypt
@@ -38,8 +40,21 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
+      # 테스트 + JaCoCo report + 60% 검증
+      - name: Test and generate JaCoCo coverage
+        run: ./gradlew clean test
+
+      # Codecov 업로드
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: build/reports/jacoco/test/jacocoTestReport.xml
+          fail_ci_if_error: true
+
+      # 이미 위에서 테스트했으므로 여기서는 test 제외
       - name: Build with Gradle
-        run: ./gradlew clean build -x test
+        run: ./gradlew build -x test
 
       - name: Copy JAR to EC2
         uses: appleboy/scp-action@v0.1.7
@@ -60,9 +75,9 @@ jobs:
           script: |
             REPOSITORY=/home/ubuntu/app/11th-1team-BE
             cd $REPOSITORY
-            
+
             CURRENT_PID=$(ps -ef | grep java | grep "11th-1team-BE" | grep -v grep | awk '{print $2}')
-            
+
             if [ -z "$CURRENT_PID" ]; then
               echo "> 현재 구동중인 애플리케이션이 없으므로 종료하지 않습니다."
             else
@@ -70,14 +85,17 @@ jobs:
               sudo kill -15 $CURRENT_PID || true
               sleep 10
             fi
-            
+
             JAR_NAME=$(ls -t *.jar | grep 'SNAPSHOT.jar' | head -n 1)
             JAR_PATH="${REPOSITORY}/${JAR_NAME}"
-            
+
             if [ -z "${JAR_NAME}" ]; then
               echo "> 에러: 배포할 JAR 파일을 찾을 수 없습니다."
               exit 1
             fi
-            
+
             echo "> 새 애플리케이션 배포: ${JAR_PATH}"
-            sudo nohup java -Dspring.profiles.active=prod -jar "${JAR_PATH}" > "${REPOSITORY}/nohup.out" 2>&1 < /dev/null &
+            sudo nohup java \
+              -Dspring.profiles.active=prod \
+              -jar "${JAR_PATH}" \
+              > "${REPOSITORY}/nohup.out" 2>&1 < /dev/null &
