@@ -79,6 +79,8 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -179,16 +181,16 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
 
     @Override
     @Transactional
-    public Page<BoardListDto.Response> getBoardList(BoardListDto.Request request, Pageable pageable, @Nullable Long requesterId) {
+    public Slice<BoardListDto.Response> getBoardList(BoardListDto.Request request, Pageable pageable, @Nullable Long requesterId) {
         validateLikedOnlyRequest(request.getLikedOnly(), requesterId);
         saveSearchKeyword(requesterId, request.getKeyword());
 
         LocalDateTime endDate = LocalDateTime.now()
                 .minusDays(roommateBoardPolicy.getComeableDateVisibleGraceDays());
-        Page<BoardBaseRow> baseRows = roommateBoardRepository.search(request, pageable, endDate, requesterId);
+        Slice<BoardBaseRow> baseRows = roommateBoardRepository.search(request, pageable, endDate, requesterId);
 
         if (baseRows.isEmpty()) {
-            return new PageImpl<>(List.of(), pageable, baseRows.getTotalElements());
+            return new SliceImpl<>(List.of(), pageable, baseRows.hasNext());
         }
 
         List<Long> boardIds = baseRows.stream()
