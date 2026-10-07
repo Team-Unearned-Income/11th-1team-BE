@@ -6,6 +6,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import jakarta.persistence.EntityManager;
 import org.example.knockin.board.dto.BoardDetailDto;
@@ -60,11 +61,15 @@ import org.example.knockin.life.repository.row.MatchingPreferenceConditionRow;
 import org.example.knockin.life.repository.row.MatchingPreferenceConditionWeightRow;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -119,10 +124,10 @@ class RoommateBoardRepositoryTest {
         PageRequest pageable = PageRequest.of(0, 20);
 
         // When
-        Page<BoardBaseRow> result = roommateBoardRepository.search(request, pageable, visibleEndDate, null);
+        Slice<BoardBaseRow> result = roommateBoardRepository.search(request, pageable, visibleEndDate, null);
 
         // Then
-        assertThat(result.getTotalElements()).isEqualTo(2);
+        assertThat(result.getContent()).hasSize(2);
         assertThat(result.getContent())
                 .extracting(BoardBaseRow::title)
                 .containsExactlyInAnyOrder("기준일 게시글", "미래 게시글")
@@ -147,21 +152,21 @@ class RoommateBoardRepositoryTest {
         PageRequest pageable = PageRequest.of(0, 20);
 
         // When
-        Page<BoardBaseRow> result = roommateBoardRepository.search(request, pageable, visibleEndDate, null);
+        Slice<BoardBaseRow> result = roommateBoardRepository.search(request, pageable, visibleEndDate, null);
 
         // Then
         assertThat(result.getContent())
                 .extracting(BoardBaseRow::title)
                 .containsExactly("협의 가능 게시글");
-        assertThat(result.getTotalElements()).isEqualTo(1);
+        assertThat(result.hasNext()).isFalse();
     }
 
     @Test
-    @DisplayName("조회 페이지에 게시글이 없어도 전체 게시글 수는 유지한다")
-    void searchKeepsTotalElementsWhenRequestedPageIsEmpty() {
+    @DisplayName("조회 페이지에 게시글이 없으면 다음 페이지가 없는 빈 Slice를 반환한다")
+    void searchReturnsEmptySliceWhenRequestedPageIsEmpty() {
         // Given
         LocalDateTime visibleEndDate = LocalDateTime.of(2026, 6, 1, 12, 0);
-        Member member = persistMember("provider-total");
+        Member member = persistMember("provider-empty-slice");
         RoomType roomType = persistRoomType("투룸");
         Region region = persistRegion("역삼동", 3, null);
         persistBoard("첫 번째 게시글", member, roomType, region, visibleEndDate.plusDays(1));
@@ -173,11 +178,78 @@ class RoommateBoardRepositoryTest {
         PageRequest pageable = PageRequest.of(1, 20);
 
         // When
-        Page<BoardBaseRow> result = roommateBoardRepository.search(request, pageable, visibleEndDate, null);
+        Slice<BoardBaseRow> result = roommateBoardRepository.search(request, pageable, visibleEndDate, null);
 
         // Then
         assertThat(result.getContent()).isEmpty();
-        assertThat(result.getTotalElements()).isEqualTo(2);
+        assertThat(result.hasNext()).isFalse();
+        assertThat(result.isLast()).isTrue();
+        assertThat(result.getPageable()).isEqualTo(pageable);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"0, 0, false", "19, 19, false", "20, 20, false", "21, 20, true"})
+    @DisplayName("목록은 페이지 크기까지만 반환하고 추가 게시글이 있을 때만 다음 페이지가 있다")
+    void searchDeterminesHasNextAtPageSizeBoundary(int boardCount, int expectedSize, boolean expectedHasNext) {
+        // Given
+        LocalDateTime visibleEndDate = LocalDateTime.of(2026, 6, 1, 12, 0);
+        Member member = persistMember("provider-slice-boundary");
+        RoomType roomType = persistRoomType("원룸");
+        Region region = persistRegion("역삼동", 3, null);
+        for (int i = 0; i < boardCount; i++) {
+            persistBoard("게시글 " + i, member, roomType, region, visibleEndDate.plusDays(1));
+        }
+        entityManager.flush();
+        entityManager.clear();
+        PageRequest pageable = PageRequest.of(0, 20);
+
+        // When
+        Slice<BoardBaseRow> result = roommateBoardRepository.search(
+                defaultRequest(), pageable, visibleEndDate, null);
+
+        // Then
+        assertThat(result.getContent()).hasSize(expectedSize);
+        assertThat(result.hasNext()).isEqualTo(expectedHasNext);
+        assertThat(result.isLast()).isEqualTo(!expectedHasNext);
+        assertThat(result.getPageable()).isEqualTo(pageable);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"createdAt", "hits"})
+    @DisplayName("정렬 값이 같은 게시글도 ID 내림차순으로 이어 조회하고 추가 조회한 행을 누락하지 않는다")
+    void searchReturnsConsecutiveSlicesWithoutLosingLookaheadRow(String sortProperty) {
+        // Given
+        LocalDateTime visibleEndDate = LocalDateTime.of(2026, 6, 1, 12, 0);
+        Member member = persistMember("provider-consecutive-slices");
+        RoomType roomType = persistRoomType("원룸");
+        Region region = persistRegion("역삼동", 3, null);
+        List<Long> boardIds = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            boardIds.add(persistBoard("게시글 " + i, member, roomType, region, visibleEndDate.plusDays(1)).getId());
+        }
+        entityManager.flush();
+        entityManager.createNativeQuery("update roommate_board set created_at = :createdAt")
+                .setParameter("createdAt", visibleEndDate)
+                .executeUpdate();
+        entityManager.clear();
+        PageRequest firstPage = PageRequest.of(0, 2, Sort.by(Sort.Direction.DESC, sortProperty));
+        BoardListDto.Request request = defaultRequest();
+
+        // When
+        Slice<BoardBaseRow> first = roommateBoardRepository.search(request, firstPage, visibleEndDate, null);
+        Slice<BoardBaseRow> second = roommateBoardRepository.search(request, firstPage.next(), visibleEndDate, null);
+        Slice<BoardBaseRow> third = roommateBoardRepository.search(request, firstPage.next().next(), visibleEndDate, null);
+
+        // Then
+        assertThat(first.getContent()).extracting(BoardBaseRow::boardId)
+                .containsExactly(boardIds.get(4), boardIds.get(3));
+        assertThat(second.getContent()).extracting(BoardBaseRow::boardId)
+                .containsExactly(boardIds.get(2), boardIds.get(1));
+        assertThat(third.getContent()).extracting(BoardBaseRow::boardId)
+                .containsExactly(boardIds.get(0));
+        assertThat(first.hasNext()).isTrue();
+        assertThat(second.hasNext()).isTrue();
+        assertThat(third.hasNext()).isFalse();
     }
 
     @Test
@@ -221,8 +293,8 @@ class RoommateBoardRepositoryTest {
         PageRequest pageable = PageRequest.of(0, 20);
 
         // When
-        Page<BoardBaseRow> femaleResult = roommateBoardRepository.search(femaleRequest, pageable, visibleEndDate, null);
-        Page<BoardBaseRow> maleResult = roommateBoardRepository.search(maleRequest, pageable, visibleEndDate, null);
+        Slice<BoardBaseRow> femaleResult = roommateBoardRepository.search(femaleRequest, pageable, visibleEndDate, null);
+        Slice<BoardBaseRow> maleResult = roommateBoardRepository.search(maleRequest, pageable, visibleEndDate, null);
 
         // Then
         assertThat(femaleResult.getContent())
@@ -281,8 +353,9 @@ class RoommateBoardRepositoryTest {
                 .containsExactly("조용한 방");
 
         request.setKeyword("   ");
-        assertThat(roommateBoardRepository.search(request, pageable, visibleEndDate, null).getTotalElements())
-                .isEqualTo(2);
+        assertThat(roommateBoardRepository.search(request, pageable, visibleEndDate, null).getContent())
+                .extracting(BoardBaseRow::title)
+                .containsExactlyInAnyOrder("햇살 좋은 집", "조용한 방");
     }
 
     @Test
@@ -316,7 +389,7 @@ class RoommateBoardRepositoryTest {
         request.setLikedOnly(true);
 
         // When
-        Page<BoardBaseRow> result = roommateBoardRepository.search(
+        Slice<BoardBaseRow> result = roommateBoardRepository.search(
                 request,
                 PageRequest.of(0, 20),
                 visibleEndDate,
@@ -324,7 +397,7 @@ class RoommateBoardRepositoryTest {
         );
 
         // Then
-        assertThat(result.getTotalElements()).isEqualTo(1);
+        assertThat(result.hasNext()).isFalse();
         assertThat(result.getContent())
                 .extracting(BoardBaseRow::title)
                 .containsExactly("활성 관심 게시글");
@@ -378,34 +451,67 @@ class RoommateBoardRepositoryTest {
         Member requester = persistMember("provider-block-requester");
         Member blockedByRequester = persistMember("provider-blocked-by-requester");
         Member requesterBlockedBy = persistMember("provider-requester-blocked-by");
-        Member deletedBlockOwner = persistMember("provider-deleted-block-owner");
+        Member deletedOutgoingBlockOwner = persistMember("provider-deleted-outgoing-block-owner");
+        Member deletedIncomingBlockOwner = persistMember("provider-deleted-incoming-block-owner");
         Member visibleOwner = persistMember("provider-visible-owner");
         RoomType roomType = persistRoomType("원룸");
         Region region = persistRegion("역삼동", 3, null);
         persistBoard("내가 차단한 작성자 게시글", blockedByRequester, roomType, region, visibleEndDate.plusDays(1));
         persistBoard("나를 차단한 작성자 게시글", requesterBlockedBy, roomType, region, visibleEndDate.plusDays(2));
-        persistBoard("차단 해제 작성자 게시글", deletedBlockOwner, roomType, region, visibleEndDate.plusDays(3));
+        persistBoard("내가 차단 해제한 작성자 게시글", deletedOutgoingBlockOwner, roomType, region, visibleEndDate.plusDays(3));
+        persistBoard("나를 차단 해제한 작성자 게시글", deletedIncomingBlockOwner, roomType, region, visibleEndDate.plusDays(3));
         persistBoard("노출 작성자 게시글", visibleOwner, roomType, region, visibleEndDate.plusDays(4));
         persistBlock(requester, blockedByRequester, false);
         persistBlock(requesterBlockedBy, requester, false);
-        persistBlock(requester, deletedBlockOwner, true);
+        persistBlock(blockedByRequester, requester, true);
+        persistBlock(requester, requesterBlockedBy, true);
+        persistBlock(requester, deletedOutgoingBlockOwner, true);
+        persistBlock(deletedIncomingBlockOwner, requester, true);
+        persistBlock(visibleOwner, blockedByRequester, false);
+        persistBlock(requesterBlockedBy, visibleOwner, false);
         entityManager.flush();
         entityManager.clear();
 
         // When
-        Page<BoardBaseRow> result = roommateBoardRepository.search(
+        Slice<BoardBaseRow> result = roommateBoardRepository.search(
                 defaultRequest(),
-                PageRequest.of(0, 20),
+                PageRequest.of(0, 3),
                 visibleEndDate,
                 requester.getId()
         );
 
         // Then
-        assertThat(result.getTotalElements()).isEqualTo(2);
+        assertThat(result.hasNext()).isFalse();
         assertThat(result.getContent())
                 .extracting(BoardBaseRow::title)
-                .containsExactlyInAnyOrder("차단 해제 작성자 게시글", "노출 작성자 게시글")
+                .containsExactlyInAnyOrder("내가 차단 해제한 작성자 게시글", "나를 차단 해제한 작성자 게시글", "노출 작성자 게시글")
                 .doesNotContain("내가 차단한 작성자 게시글", "나를 차단한 작성자 게시글");
+    }
+
+    @Test
+    @DisplayName("비로그인 목록 조회는 회원 사이에 활성 차단이 있어도 게시글을 제외하지 않는다")
+    void searchDoesNotFilterBlockedMembersForAnonymousRequester() {
+        // Given
+        LocalDateTime visibleEndDate = LocalDateTime.of(2026, 6, 1, 12, 0);
+        Member firstMember = persistMember("provider-anonymous-first");
+        Member secondMember = persistMember("provider-anonymous-second");
+        RoomType roomType = persistRoomType("원룸");
+        Region region = persistRegion("역삼동", 3, null);
+        persistBoard("첫 회원 게시글", firstMember, roomType, region, visibleEndDate.plusDays(1));
+        persistBoard("두 번째 회원 게시글", secondMember, roomType, region, visibleEndDate.plusDays(1));
+        persistBlock(firstMember, secondMember, false);
+        persistBlock(secondMember, firstMember, false);
+        entityManager.flush();
+        entityManager.clear();
+
+        // When
+        Slice<BoardBaseRow> result = roommateBoardRepository.search(
+                defaultRequest(), PageRequest.of(0, 20), visibleEndDate, null);
+
+        // Then
+        assertThat(result.getContent()).extracting(BoardBaseRow::title)
+                .containsExactlyInAnyOrder("첫 회원 게시글", "두 번째 회원 게시글");
+        assertThat(result.hasNext()).isFalse();
     }
 
     @Test
@@ -423,7 +529,7 @@ class RoommateBoardRepositoryTest {
         entityManager.clear();
 
         // When
-        Page<BoardBaseRow> result = roommateBoardRepository.search(
+        Slice<BoardBaseRow> result = roommateBoardRepository.search(
                 defaultRequest(),
                 PageRequest.of(0, 20),
                 visibleEndDate,
@@ -431,7 +537,7 @@ class RoommateBoardRepositoryTest {
         );
 
         // Then
-        assertThat(result.getTotalElements()).isEqualTo(1);
+        assertThat(result.hasNext()).isFalse();
         assertThat(result.getContent())
                 .extracting(BoardBaseRow::title)
                 .containsExactly("활성 회원 게시글")

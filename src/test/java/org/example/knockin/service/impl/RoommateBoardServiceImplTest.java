@@ -90,6 +90,8 @@ import org.example.knockin.util.service.RoommateScoreService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.example.knockin.declaration.service.impl.DeclarationServiceImpl;
 import org.example.knockin.declaration.repository.MemberDeclarationRepository;
 import org.example.knockin.room.service.impl.RoomExtraOptionServiceImpl;
@@ -99,10 +101,10 @@ import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
 import org.springframework.web.multipart.MultipartFile;
 
 @ExtendWith(MockitoExtension.class)
@@ -813,14 +815,17 @@ class RoommateBoardServiceImplTest {
         LocalDateTime beforeEndDate = LocalDateTime.now()
                 .minusDays(roommateBoardPolicy.getComeableDateVisibleGraceDays());
         when(roommateBoardRepository.search(eq(request), eq(pageable), any(LocalDateTime.class), eq(null)))
-                .thenReturn(new PageImpl<>(List.of(), pageable, 0));
+                .thenReturn(new SliceImpl<>(List.of(), pageable, false));
 
-        roommateBoardService.getBoardList(request, pageable, null);
+        Slice<BoardListDto.Response> result = roommateBoardService.getBoardList(request, pageable, null);
 
         LocalDateTime afterEndDate = LocalDateTime.now()
                 .minusDays(roommateBoardPolicy.getComeableDateVisibleGraceDays());
         verify(roommateBoardRepository).search(eq(request), eq(pageable), endDateCaptor.capture(), eq(null));
         assertThat(endDateCaptor.getValue()).isBetween(beforeEndDate, afterEndDate);
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.hasNext()).isFalse();
+        assertThat(result.getPageable()).isEqualTo(pageable);
         verifyNoInteractions(roommateBoardFileService, authenticationService);
     }
 
@@ -835,7 +840,7 @@ class RoommateBoardServiceImplTest {
         Pageable pageable = PageRequest.of(0, 20);
         when(memberService.findByIdOrThrow(requesterId)).thenReturn(member);
         when(roommateBoardRepository.search(eq(request), eq(pageable), any(LocalDateTime.class), eq(requesterId)))
-                .thenReturn(new PageImpl<>(List.of(), pageable, 0));
+                .thenReturn(new SliceImpl<>(List.of(), pageable, false));
 
         // When
         roommateBoardService.getBoardList(request, pageable, requesterId);
@@ -853,7 +858,7 @@ class RoommateBoardServiceImplTest {
         request.setKeyword("원룸");
         Pageable pageable = PageRequest.of(0, 20);
         when(roommateBoardRepository.search(eq(request), eq(pageable), any(LocalDateTime.class), eq(null)))
-                .thenReturn(new PageImpl<>(List.of(), pageable, 0));
+                .thenReturn(new SliceImpl<>(List.of(), pageable, false));
 
         // When
         roommateBoardService.getBoardList(request, pageable, null);
@@ -870,7 +875,7 @@ class RoommateBoardServiceImplTest {
         BoardListDto.Request request = new BoardListDto.Request();
         Pageable pageable = PageRequest.of(0, 20);
         when(roommateBoardRepository.search(eq(request), eq(pageable), any(LocalDateTime.class), eq(requesterId)))
-                .thenReturn(new PageImpl<>(List.of(), pageable, 0));
+                .thenReturn(new SliceImpl<>(List.of(), pageable, false));
 
         // When
         request.setKeyword(null);
@@ -882,12 +887,13 @@ class RoommateBoardServiceImplTest {
         verifyNoInteractions(memberService, searchServiceImpl);
     }
 
-    @Test
-    @DisplayName("목록 조회는 게시글 기본 행에 썸네일과 인증 정보를 조합해 응답한다")
-    void getBoardListComposesResponseInService() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    @DisplayName("목록 조회는 게시글 응답을 조합하면서 Slice의 다음 페이지 여부와 조회 정보를 유지한다")
+    void getBoardListComposesResponseInService(boolean hasNext) {
         // Given
         BoardListDto.Request request = new BoardListDto.Request();
-        Pageable pageable = PageRequest.of(0, 20);
+        Pageable pageable = PageRequest.of(1, 1);
         LocalDateTime comeableDate = LocalDateTime.of(2026, 8, 1, 9, 0);
         LocalDateTime createdAt = LocalDateTime.of(2026, 7, 25, 9, 0);
         LocalDate memberBirth = LocalDate.of(1998, 4, 15);
@@ -911,7 +917,7 @@ class RoommateBoardServiceImplTest {
                 createdAt
         );
         when(roommateBoardRepository.search(eq(request), eq(pageable), any(LocalDateTime.class), eq(null)))
-                .thenReturn(new PageImpl<>(List.of(baseRow), pageable, 1));
+                .thenReturn(new SliceImpl<>(List.of(baseRow), pageable, hasNext));
         when(roommateBoardFileService.findThumbnailsByBoardIds(List.of(1L)))
                 .thenReturn(List.of(new BoardThumbnailRow(1L, "thumbnail.jpg")));
         when(authenticationService.findAcceptedByMemberIds(List.of(11L)))
@@ -921,10 +927,12 @@ class RoommateBoardServiceImplTest {
                 ));
 
         // When
-        Page<BoardListDto.Response> result = roommateBoardService.getBoardList(request, pageable, null);
+        Slice<BoardListDto.Response> result = roommateBoardService.getBoardList(request, pageable, null);
 
         // Then
-        assertThat(result.getTotalElements()).isEqualTo(1);
+        assertThat(result.hasNext()).isEqualTo(hasNext);
+        assertThat(result.isLast()).isEqualTo(!hasNext);
+        assertThat(result.getPageable()).isEqualTo(pageable);
         assertThat(result.getContent()).singleElement().satisfies(response -> {
             assertThat(response.getId()).isEqualTo(1L);
             assertThat(response.getImageUrl()).isEqualTo("thumbnail.jpg");
@@ -969,7 +977,7 @@ class RoommateBoardServiceImplTest {
         );
         when(roommateBoardRepository.search(
                 eq(request), eq(pageable), any(LocalDateTime.class), eq(requesterId)))
-                .thenReturn(new PageImpl<>(List.of(firstRow, secondRow), pageable, 2));
+                .thenReturn(new SliceImpl<>(List.of(firstRow, secondRow), pageable, false));
         when(roommateBoardFileService.findThumbnailsByBoardIds(List.of(1L, 2L)))
                 .thenReturn(List.of(
                         new BoardThumbnailRow(1L, "first.jpg"),
@@ -985,7 +993,7 @@ class RoommateBoardServiceImplTest {
                 .thenReturn(List.of(2L));
 
         // When
-        Page<BoardListDto.Response> result = roommateBoardService.getBoardList(request, pageable, requesterId);
+        Slice<BoardListDto.Response> result = roommateBoardService.getBoardList(request, pageable, requesterId);
 
         // Then
         assertThat(result.getContent())
@@ -1013,12 +1021,12 @@ class RoommateBoardServiceImplTest {
                 null, null, Gender.FEMALE, createdAt
         );
         when(roommateBoardRepository.search(eq(request), eq(pageable), any(LocalDateTime.class), eq(null)))
-                .thenReturn(new PageImpl<>(List.of(baseRow), pageable, 1));
+                .thenReturn(new SliceImpl<>(List.of(baseRow), pageable, false));
         when(roommateBoardInterestService.findActiveInterestCountsByBoardIds(List.of(1L)))
                 .thenReturn(List.of(new BoardInterestCountRow(1L, 10L)));
 
         // When
-        Page<BoardListDto.Response> result = roommateBoardService.getBoardList(request, pageable, null);
+        Slice<BoardListDto.Response> result = roommateBoardService.getBoardList(request, pageable, null);
 
         // Then
         assertThat(result.getContent()).singleElement().satisfies(response -> {
