@@ -14,14 +14,10 @@ import org.example.knockin.member.entity.Member;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 
 public interface RoommateBoardRepositoryCustom {
-    Page<BoardBaseRow> search(
-            BoardListDto.Request request,
-            Pageable pageable,
-            LocalDateTime endDate,
-            @Nullable Long requesterId
-    );
+    Slice<BoardBaseRow> search(BoardListDto.Request request, Pageable pageable, LocalDateTime endDate, @Nullable Long requesterId);
     Optional<BasicInfoRow> getBasicInfo(Long boardId);
     Page<MyRoommateBoardRow> findMyBoardList(Pageable page, Member member);
     Optional<EditFormRow> getEditRow(Long boardId);

@@ -44,6 +44,8 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
@@ -54,7 +56,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
     private final JPAQueryFactory jpaQueryFactory;
 
     @Override
-    public Page<BoardBaseRow> search(BoardListDto.Request request, Pageable pageable, LocalDateTime endDate, @Nullable Long requesterId) {
+    public Slice<BoardBaseRow> search(BoardListDto.Request request, Pageable pageable, LocalDateTime endDate, @Nullable Long requesterId) {
         QRegion boardRegion = new QRegion("searchBoardRegion");
         QRegion parentRegion = new QRegion("searchParentRegion");
         QRegion grandParentRegion = new QRegion("searchGrandParentRegion");
@@ -117,20 +119,16 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 .where(searchCondition)
                 .orderBy(toBoardOrderSpecifiers(pageable.getSort()))
                 .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
+                .limit(pageable.getPageSize() + 1)
                 .fetch();
 
-        Long total = jpaQueryFactory
-                .select(roommateBoard.count())
-                .from(roommateBoard)
-                .join(roommateBoard.roomType, roomType)
-                .join(roommateBoard.region, boardRegion)
-                .leftJoin(boardRegion.parent, parentRegion)
-                .leftJoin(parentRegion.parent, grandParentRegion)
-                .where(searchCondition)
-                .fetchOne();
+        boolean hasNext = content.size() > pageable.getPageSize();
 
-        return new PageImpl<>(content, pageable, total == null ? 0 : total);
+        if (hasNext) {
+            content.remove(pageable.getPageSize());
+        }
+
+        return new SliceImpl<>(content, pageable, hasNext);
     }
 
     private BooleanExpression likedOnly(Boolean likedOnly, Long requesterId) {
