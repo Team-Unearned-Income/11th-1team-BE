@@ -150,17 +150,27 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
     private BooleanExpression notBlockedBetween(@Nullable Long requesterId) {
         if (requesterId == null) return null;
 
-        return JPAExpressions
+        BooleanExpression requesterBlock = JPAExpressions
                 .selectOne()
                 .from(block)
                 .where(
                         block.isDeleted.isFalse(),
-                        block.blocker.id.eq(requesterId)
-                                .and(block.blocked.id.eq(roommateBoard.member.id))
-                                .or(block.blocker.id.eq(roommateBoard.member.id)
-                                        .and(block.blocked.id.eq(requesterId)))
+                        block.blocker.id.eq(requesterId),
+                        block.blocked.id.eq(roommateBoard.member.id)
                 )
                 .notExists();
+
+        BooleanExpression requesterBlocked = JPAExpressions
+                .selectOne()
+                .from(block)
+                .where(
+                        block.isDeleted.isFalse(),
+                        block.blocked.id.eq(requesterId),
+                        block.blocker.id.eq(roommateBoard.member.id)
+                )
+                .notExists();
+
+        return requesterBlocked.and(requesterBlock);
     }
 
     private OrderSpecifier<?>[] toBoardOrderSpecifiers(Sort sort) {
