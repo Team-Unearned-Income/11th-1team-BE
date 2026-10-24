@@ -9,6 +9,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.FileErrorCode;
+import org.example.knockin.meta.dto.PresignedUrlDto;
 import org.example.knockin.meta.service.FileUploadService;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
@@ -57,5 +58,14 @@ public class LocalFileUploadServiceImpl implements FileUploadService {
         }
 
         Files.deleteIfExists(filePath);
+    }
+
+    @Override
+    public PresignedUrlDto.Response presignedUploadUrl(PresignedUrlDto.Request request, Long memberId) {
+        throw new BusinessException(FileErrorCode.FILE_UPLOAD_UNAVAILABLE);
+    }
+    @Override
+    public String getUploadedImageUrl(String fileKey, Long memberId) {
+        throw new BusinessException(FileErrorCode.FILE_UPLOAD_UNAVAILABLE);
     }
 }

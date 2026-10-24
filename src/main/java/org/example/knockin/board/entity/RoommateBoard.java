@@ -16,6 +16,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.knockin.board.dto.BoardModifyDto;
+import org.example.knockin.board.dto.BoardPreSignedModifyDto;
 import org.example.knockin.member.entity.Member;
 import org.example.knockin.meta.entity.Region;
 import org.example.knockin.room.entity.RoomType;
@@ -83,6 +84,16 @@ public class RoommateBoard extends BaseEntity {
     private String rejectReason;
 
     public void modifyBasicInfo(BoardModifyDto.Request request) {
+        title = request.getTitle();
+        contents = request.getContents();
+        deposit = request.getDeposit();
+        monthlyRent = request.getMonthlyRent();
+        managementCost = request.getManagementCost();
+        comeableDateNegotiable = request.getComeableDateNegotiable();
+        comeableDate = request.getComeableDate();
+    }
+
+    public void modifyBasicInfo(BoardPreSignedModifyDto.Request request) {
         title = request.getTitle();
         contents = request.getContents();
         deposit = request.getDeposit();

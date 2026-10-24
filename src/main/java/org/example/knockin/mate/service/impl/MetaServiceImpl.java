@@ -12,7 +12,9 @@ import org.example.knockin.life.entity.LifePattern;
 import org.example.knockin.life.entity.LifePatternInformation;
 import org.example.knockin.meta.dto.MetaRegionsDto;
 import org.example.knockin.meta.dto.PopularSearchDto;
+import org.example.knockin.meta.dto.PresignedUrlDto;
 import org.example.knockin.meta.entity.Region;
+import org.example.knockin.meta.service.FileService;
 import org.example.knockin.meta.service.impl.RegionServiceImpl;
 import org.example.knockin.meta.service.impl.SearchServiceImpl;
 import org.example.knockin.room.dto.MetaRoomAddOptionsDto;
@@ -39,6 +41,7 @@ public class MetaServiceImpl {
     private final RoomExtraOptionServiceImpl roomExtraOptionService;
     private final AgreementServiceImpl agreementService;
     private final SearchServiceImpl searchService;
+    private final FileService fileService;
 
     public List<AgreementLog> findByAgreementLogIsCurrent(List<Long> agreementIds) {
         return agreementService.findByAgreementLogIsCurrent(agreementIds);
@@ -113,5 +116,9 @@ public class MetaServiceImpl {
     public MetaRoomAddOptionsDto.Response findRoomAddOptions() {
         return MetaRoomAddOptionsDto.Response.builder()
                 .roomAddOption(roomExtraOptionService.findAllByIsDeleted(false)).build();
+    }
+
+    public PresignedUrlDto.Response presignedUploadUrl(PresignedUrlDto.Request request, Long memberId) {
+        return fileService.presignedUploadUrl(request, memberId);
     }
 }

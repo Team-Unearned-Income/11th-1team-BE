@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.example.knockin.board.dto.BoardPreSignedDto;
 import org.example.knockin.board.dto.BoardDetailDto.Response.FileDetailDto;
+import org.example.knockin.board.dto.BoardPreSignedModifyDto;
 import org.example.knockin.board.entity.RoommateBoard;
 import org.example.knockin.board.entity.RoommateBoardFile;
 import org.example.knockin.meta.entity.File;
@@ -48,6 +50,20 @@ public class RoommateBoardFileServiceImpl {
                 .build();
 
         return roommateBoardFileRepository.save(roommateBoardFile);
+    }
+
+    public void saveAllPreSigned(RoommateBoard board, List<BoardPreSignedDto.Request.FileDto> images, Long memberId) {
+        for (BoardPreSignedDto.Request.FileDto image : images) {
+            File file = fileService.savePresigned(image.getFileKey(), image.getOriginalFilename(), memberId, FileType.ROOMMATE_BOARD_IMAGE);
+            saveRoommateBoardFile(board, file, image.isThumbnail());
+        }
+    }
+
+    public void saveAllModifyPreSigned(RoommateBoard board, List<BoardPreSignedModifyDto.Request.FileDto> images, Long memberId) {
+        for (BoardPreSignedModifyDto.Request.FileDto image : images) {
+            File file = fileService.savePresigned(image.getFileKey(), image.getOriginalFilename(), memberId, FileType.ROOMMATE_BOARD_IMAGE);
+            saveRoommateBoardFile(board, file, image.isThumbnail());
+        }
     }
 
     public List<FileDetailDto> findFileDetailDtoByBoardId(Long boardId) {

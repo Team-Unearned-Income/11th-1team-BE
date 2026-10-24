@@ -1,5 +1,8 @@
 package org.example.knockin.meta.controller;
 
+import jakarta.validation.Valid;
+import org.example.knockin.global.auth.dto.PrincipalDetails;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -7,13 +10,7 @@ import org.example.knockin.agreement.dto.TermsDetailDto;
 import org.example.knockin.agreement.dto.TermsListDto;
 import org.example.knockin.global.api.CommonResponse;
 import org.example.knockin.life.dto.MetaLifestylePatternsDto;
-import org.example.knockin.meta.dto.AppVersionDto;
-import org.example.knockin.meta.dto.AuthEmailListDto;
-import org.example.knockin.meta.dto.FaqAllListDto;
-import org.example.knockin.meta.dto.FaqDto;
-import org.example.knockin.meta.dto.FaqListDto;
-import org.example.knockin.meta.dto.MetaRegionsDto;
-import org.example.knockin.meta.dto.PopularSearchDto;
+import org.example.knockin.meta.dto.*;
 import org.example.knockin.room.dto.MetaRoomAddOptionsDto;
 import org.example.knockin.room.dto.MetaRoomTypesDto;
 import org.example.knockin.meta.service.impl.AppVersionServiceImpl;
@@ -24,9 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -118,6 +113,13 @@ public class UtilsController {
     @GetMapping("/auth/success")
     public CommonResponse<String> authSuccess() {
         return CommonResponse.status(HttpStatus.OK).body("로그인에 성공하였습니다.");
+    }
+
+    @PostMapping("/presigned-url")
+    @Operation(summary = "R2 PreSigned Url 호출")
+    public CommonResponse<PresignedUrlDto.Response> presignedUploadUrl(@Valid @RequestBody PresignedUrlDto.Request request, @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        Long memberId = principalDetails.getMember().getId();
+        return CommonResponse.status(HttpStatus.OK).body(metaService.presignedUploadUrl(request, memberId));
     }
 }
 

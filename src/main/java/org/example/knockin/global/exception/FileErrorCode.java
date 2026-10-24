@@ -13,6 +13,8 @@ public enum FileErrorCode implements ErrorCode {
     FILE_UPLOAD_FAILED(6003, HttpStatus.INTERNAL_SERVER_ERROR, "파일 업로드에 실패했습니다."),
     FILE_DELETE_FAILED(6004, HttpStatus.INTERNAL_SERVER_ERROR, "파일 삭제에 실패했습니다."),
     FILE_NOT_FOUND(6005, HttpStatus.NOT_FOUND, "파일 조회에 실패했습니다."),
+    FILE_UPLOAD_INVALID(6006, HttpStatus.BAD_REQUEST, "업로드 파일 정보가 유효하지 않습니다."),
+    FILE_UPLOAD_UNAVAILABLE(6007, HttpStatus.SERVICE_UNAVAILABLE, "현재 환경에서는 R2 직접 업로드를 사용할 수 없습니다."),
     ;
 
     private final Integer no;

@@ -3,14 +3,7 @@ package org.example.knockin.board.service;
 import java.io.IOException;
 import java.util.List;
 
-import org.example.knockin.board.dto.BoBoardDetailDto;
-import org.example.knockin.board.dto.BoBoardListDto;
-import org.example.knockin.board.dto.BoardDetailDto;
-import org.example.knockin.board.dto.BoardDto;
-import org.example.knockin.board.dto.BoardEditDto;
-import org.example.knockin.board.dto.BoardListDto;
-import org.example.knockin.board.dto.BoardModifyDto;
-import org.example.knockin.board.dto.MyBoardListDto;
+import org.example.knockin.board.dto.*;
 import org.example.knockin.declaration.dto.ReportDto;
 import org.example.knockin.board.dto.BoardListDto.Response;
 import org.example.knockin.board.entity.RoommateBoard;
@@ -24,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface RoommateBoardService {
     BoardDto.Response save(BoardDto.Request request, Long memberId, @Nullable List<MultipartFile> files);
+    BoardPreSignedDto.Response saveBoardPreSigned(BoardPreSignedDto.Request request, Long memberId);
     Slice<Response> getBoardList(BoardListDto.Request request, Pageable pageable, @Nullable Long requesterId);
     BoardDetailDto.Response getBoardDetail(Long boardId, Long memberId);
     Page<MyBoardListDto.Response.BoardItem> getMyBoardList(Pageable page, Member member);
@@ -31,6 +25,8 @@ public interface RoommateBoardService {
 
     @Transactional(rollbackFor = IOException.class)
     BoardModifyDto.Response modify(Long memberId, Long boardId, BoardModifyDto.Request request, @Nullable List<MultipartFile> files);
+
+    BoardPreSignedModifyDto.Response modifyBoardPreSigned(Long memberId, Long boardId, BoardPreSignedModifyDto.Request request);
 
     BoardDto.Response likeBoard(Long boardId, Long memberId);
 

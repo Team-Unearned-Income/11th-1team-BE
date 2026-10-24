@@ -29,6 +29,7 @@ import org.example.knockin.meta.service.impl.PushNotificationServiceImpl;
 import org.example.knockin.verification.service.impl.AuthenticationServiceImpl;
 import org.example.knockin.board.dto.BoardDetailDto;
 import org.example.knockin.board.dto.BoardDto;
+import org.example.knockin.board.dto.BoardPreSignedDto;
 import org.example.knockin.board.dto.BoardEditDto;
 import org.example.knockin.board.dto.BoardListDto;
 import org.example.knockin.board.dto.BoardModifyDto;
@@ -1977,5 +1978,56 @@ class RoommateBoardServiceImplTest {
         assertThatThrownBy(() -> roommateBoardService.deleteBackOfficeBoard(boardId, rejectReason))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", RoommateBoardErrorCode.ROOMMATE_BOARD_NOT_FOUND);
+    }
+
+    @Test
+    void presignedSaveUsesUploadedFileAndAssociatesAuthenticatedMember() {
+        var request = presignedRequest();
+        request.setImages(List.of(new BoardPreSignedDto.Request.FileDto("owned-key", "room.jpg", true)));
+        var member = Member.builder().id(42L).build();
+        when(memberService.findById(42L)).thenReturn(Optional.of(member));
+        when(metaService.findByRoomTypeId(1L)).thenReturn(RoomType.builder().id(1L).build());
+        when(metaService.findByRegionId(2L)).thenReturn(Optional.of(Region.builder().id(2L).build()));
+        when(roommateBoardRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        var file = File.builder().savedFileName("https://images.example.com/owned-key").build();
+        when(fileService.savePresigned("owned-key", "room.jpg", 42L, FileType.ROOMMATE_BOARD_IMAGE)).thenReturn(file);
+        roommateBoardService.saveBoardPreSigned(request, 42L);
+        verify(roommateBoardFileRepository).save(boardFileCaptor.capture());
+        assertThat(boardFileCaptor.getValue().getFile()).isSameAs(file);
+        assertThat(boardFileCaptor.getValue().getIsThumbnail()).isTrue();
+        assertThat(boardFileCaptor.getValue().getRoommateBoard().getMember()).isSameAs(member);
+        assertThat(boardFileCaptor.getValue().getRoommateBoard().getMonthlyRent()).isEqualTo(50);
+    }
+
+    @Test
+    void presignedDuplicateKeysFailBeforeSavingBoard() {
+        var request = presignedRequest();
+        request.setImages(List.of(new BoardPreSignedDto.Request.FileDto("same", "room.jpg", true),
+                new BoardPreSignedDto.Request.FileDto("same", "room.jpg", false)));
+        assertThatThrownBy(() -> roommateBoardService.saveBoardPreSigned(request, 42L)).isInstanceOf(BusinessException.class);
+        verifyNoInteractions(roommateBoardRepository, fileService);
+    }
+
+    @Test
+    void presignedInvalidThumbnailCountFailsBeforeSavingBoard() {
+        var request = presignedRequest();
+        request.setImages(List.of(new BoardPreSignedDto.Request.FileDto("key", "room.jpg", false)));
+        assertThatThrownBy(() -> roommateBoardService.saveBoardPreSigned(request, 42L)).isInstanceOf(BusinessException.class);
+        verifyNoInteractions(roommateBoardRepository, fileService);
+    }
+
+    @Test
+    void presignedTooManyImagesFailBeforeSavingBoard() {
+        var request = presignedRequest();
+        request.setImages(java.util.Collections.nCopies(11, new BoardPreSignedDto.Request.FileDto("key", "room.jpg", true)));
+        assertThatThrownBy(() -> roommateBoardService.saveBoardPreSigned(request, 42L)).isInstanceOf(BusinessException.class);
+        verifyNoInteractions(roommateBoardRepository, fileService);
+    }
+
+    private BoardPreSignedDto.Request presignedRequest() {
+        var request = new BoardPreSignedDto.Request();
+        request.setTitle("제목"); request.setContents("내용"); request.setDeposit(1000);
+        request.setMountlyRent(50); request.setManagementCost(5); request.setRoomTypeId(1L); request.setRegionId(2L);
+        return request;
     }
 }

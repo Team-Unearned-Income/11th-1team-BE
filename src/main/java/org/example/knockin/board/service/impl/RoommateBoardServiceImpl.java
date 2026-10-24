@@ -11,15 +11,9 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.board.dto.BoBoardDetailDto;
-import org.example.knockin.board.dto.BoBoardListDto;
+import org.example.knockin.board.dto.*;
 import org.example.knockin.meta.service.impl.AlarmServiceImpl;
 import org.example.knockin.meta.service.impl.PushNotificationServiceImpl;
-import org.example.knockin.board.dto.BoardDetailDto;
-import org.example.knockin.board.dto.BoardDto;
-import org.example.knockin.board.dto.BoardEditDto;
-import org.example.knockin.board.dto.BoardListDto;
-import org.example.knockin.board.dto.BoardModifyDto;
 import org.example.knockin.board.service.RoommateBoardService;
 import org.example.knockin.global.config.RoommateBoardPolicy;
 import org.example.knockin.board.dto.BoardDetailDto.Response.Condition;
@@ -34,7 +28,6 @@ import org.example.knockin.board.dto.BoardEditDto.Response.RoomTypeInfo;
 import org.example.knockin.board.dto.BoardModifyDto.Request.ExistingFileDto;
 import org.example.knockin.board.dto.BoardModifyDto.Request.NewFileDto;
 import org.example.knockin.util.dto.Compatibility;
-import org.example.knockin.board.dto.MyBoardListDto;
 import org.example.knockin.declaration.dto.ReportDto;
 import org.example.knockin.meta.entity.Alarm;
 import org.example.knockin.meta.entity.AlarmSettingType;
@@ -137,6 +130,36 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
         roommateBoardOptionService.saveByExtraOptionsIds(savedRoommateBoard, request.getExtraOptionIds());
 
         return new BoardDto.Response(savedRoommateBoard.getUpdatedAt());
+    }
+
+    @Override
+    @Transactional
+    public BoardPreSignedDto.Response saveBoardPreSigned(BoardPreSignedDto.Request request, Long memberId) {
+        List<BoardPreSignedDto.Request.FileDto> images = request.getImages() == null ? List.of() : request.getImages();
+
+        if (!images.isEmpty()) {
+            validateImageMaxCount(images.size());
+            Set<String> keys = new HashSet<>();
+            for (BoardPreSignedDto.Request.FileDto image : images) {
+                if (image == null || !keys.add(image.getFileKey())) {
+                    throw new BusinessException(FileErrorCode.FILE_UPLOAD_INVALID);
+                }
+            }
+            validateThumbnailCount(images.stream().filter(BoardPreSignedDto.Request.FileDto::isThumbnail).count());
+        }
+
+        Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
+        RoomType roomType = metaService.findByRoomTypeId(request.getRoomTypeId());
+        Region region = metaService.findByRegionId(request.getRegionId()).orElseThrow(() -> new BusinessException(MetaErrorCode.REGION_NOT_FOUND));
+        RoommateBoard board = roommateBoardRepository.save(RoommateBoard.builder()
+                .member(member).title(request.getTitle()).contents(request.getContents())
+                .deposit(request.getDeposit()).monthlyRent(request.getMountlyRent()).managementCost(request.getManagementCost())
+                .roomType(roomType).region(region).comeableDateNegotiable(request.getComeableDateNegotiable())
+                .comeableDate(request.getComeableDate()).build());
+        roommateBoardOptionService.saveByExtraOptionsIds(board, request.getExtraOptionIds());
+        roommateBoardFileService.saveAllPreSigned(board, images, memberId);
+
+        return new BoardPreSignedDto.Response(board.getUpdatedAt());
     }
 
     private void validateImageMaxCount(long imageCount) {
@@ -505,6 +528,52 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
         validateBoardFileResult(roommateBoard);
 
         return new BoardModifyDto.Response(LocalDateTime.now());
+    }
+
+    @Override
+    @Transactional
+    public BoardPreSignedModifyDto.Response modifyBoardPreSigned(Long memberId, Long boardId, BoardPreSignedModifyDto.Request request) {
+        RoommateBoard board = roommateBoardRepository.findByIdForUpdate(boardId).orElseThrow(() -> new BusinessException(RoommateBoardErrorCode.ROOMMATE_BOARD_NOT_FOUND));
+        checkingIsOwner(board, memberId);
+
+        List<RoommateBoardFile> currentFiles = roommateBoardFileService.findAllByRoommateBoard(board);
+        List<ExistingFileDto> existingImages = request.getExistingImages() == null ? List.of() : request.getExistingImages();
+        List<BoardPreSignedModifyDto.Request.FileDto> newImages = request.getNewImages() == null ? List.of() : request.getNewImages();
+        Set<Long> currentFileIds = currentFiles.stream().map(RoommateBoardFile::getId).collect(Collectors.toSet());
+        Set<Long> retainedIds = new HashSet<>();
+
+        for (ExistingFileDto image : existingImages) {
+            if (image == null || image.getBoardFileId() == null || !currentFileIds.contains(image.getBoardFileId()) || !retainedIds.add(image.getBoardFileId())) {
+                throw new BusinessException(FileErrorCode.FILE_UPLOAD_INVALID);
+            }
+        }
+
+        Set<String> newKeys = new HashSet<>();
+        for (BoardPreSignedModifyDto.Request.FileDto image : newImages) {
+            if (image == null || image.getFileKey() == null || image.getFileKey().isBlank() || !newKeys.add(image.getFileKey()) || currentFiles.stream().anyMatch(file -> file.getFile().getSavedFileName().endsWith("/" + image.getFileKey()))) {
+                throw new BusinessException(FileErrorCode.FILE_UPLOAD_INVALID);
+            }
+        }
+
+        int imageCount = existingImages.size() + newImages.size();
+        validateImageMaxCount(imageCount);
+        if (imageCount > 0) {
+            validateThumbnailCount(existingImages.stream().filter(ExistingFileDto::isThumbnail).count() + newImages.stream().filter(BoardPreSignedModifyDto.Request.FileDto::isThumbnail).count());
+        }
+
+        RoomType roomType = metaService.findByRoomTypeId(request.getRoomTypeId());
+        Region region = metaService.findByRegionId(request.getRegionId()).orElseThrow(() -> new BusinessException(MetaErrorCode.REGION_NOT_FOUND));
+        board.modifyBasicInfo(request);
+        board.modifyRoomType(roomType);
+        board.modifyRegion(region);
+
+        List<RoommateBoardOption> existingOptions = roommateBoardOptionService.findWithRoomExtraOptionByBoardId(boardId);
+        roommateBoardOptionService.deleteByExtraOptionIds(existingOptions, request.getDeleteExtraOptionIds());
+        roommateBoardOptionService.saveByExtraOptionsIds(board, request.getNewExtraOptionIds());
+        syncExistingImages(currentFiles, toExistingImageMap(existingImages));
+        roommateBoardFileService.saveAllModifyPreSigned(board, newImages, memberId);
+
+        return new BoardPreSignedModifyDto.Response(LocalDateTime.now());
     }
 
     private void checkingIsOwner(RoommateBoard roommateBoard, Long memberId) {
