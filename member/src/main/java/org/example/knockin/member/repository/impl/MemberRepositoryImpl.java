@@ -415,7 +415,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                         state.states.as("state"),
                         ExpressionUtils.as(JPAExpressions
                                 .select(memberDeclaration.count().intValue())
-                                .from(memberDeclaration).where(memberDeclaration.reported.id.eq(member.id)), "reportCount"),
+                                .from(memberDeclaration).where(memberDeclaration.reportedId.eq(member.id)), "reportCount"),
                         list(Projections.fields(BoMemberDetailDto.Response.AuthenticationInfo.class,
                                 authentication.type.as("authenticationType"),
                                 authentication.email.as("authenticationEmail"))).as("authenticationInfoList")))).get(id);

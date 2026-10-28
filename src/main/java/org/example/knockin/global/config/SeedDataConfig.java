@@ -531,7 +531,7 @@ public class SeedDataConfig implements CommandLineRunner {
         // 6. 회원 관심 상대 (MemberInterest) & 차단 (Block) & 회원 신고 (MemberDeclaration)
         memberInterestRepository.save(MemberInterest.builder().sender(user1).receiver(user2).isDeleted(false).build());
         blockRepository.save(Block.builder().blocker(user1).blocked(user2).isDeleted(false).build());
-        memberDeclarationRepository.save(MemberDeclaration.builder().reporter(user1).reported(user2).reason("불쾌한 채팅 메세지").declarationType(DeclarationType.PENDING).build());
+        memberDeclarationRepository.save(MemberDeclaration.builder().reporterId(user1.getId()).reportedId(user2.getId()).reason("불쾌한 채팅 메세지").declarationType(DeclarationType.PENDING).build());
 
         // 7. 자주 묻는 질문 (FAQ)
         Faq faq1 = Faq.builder()
@@ -691,7 +691,7 @@ public class SeedDataConfig implements CommandLineRunner {
 
         roommateBoardFileRepository.save(RoommateBoardFile.builder().roommateBoard(board1).file(boardPic).isThumbnail(true).build());
         roommateBoardInterestRepository.save(RoommateBoardInterest.builder().member(user2).roommateBoard(board1).isDeleted(false).build());
-        roommateBoardDeclarationRepository.save(RoommateBoardDeclaration.builder().member(user2).roommateBoard(board1).reason("허위 매물 등록 의심").declarationType(DeclarationType.PENDING).build());
+        roommateBoardDeclarationRepository.save(RoommateBoardDeclaration.builder().memberId(user2.getId()).roommateBoardId(board1.getId()).reason("허위 매물 등록 의심").declarationType(DeclarationType.PENDING).build());
 
         // 12-1. 추가 테스트용
         RoommateBoard board2 = RoommateBoard.builder()
@@ -720,7 +720,7 @@ public class SeedDataConfig implements CommandLineRunner {
                 .build();
 
         roommateBoardOptionRepository.saveAll(List.of(boardOption3, boardOption4));
-        roommateBoardDeclarationRepository.save(RoommateBoardDeclaration.builder().member(user2).roommateBoard(board2).reason("허위 매물 등록 의심").declarationType(DeclarationType.PENDING).build());
+        roommateBoardDeclarationRepository.save(RoommateBoardDeclaration.builder().memberId(user2.getId()).roommateBoardId(board2.getId()).reason("허위 매물 등록 의심").declarationType(DeclarationType.PENDING).build());
 
         // 13. 1:1 문의 및 답변 (Inquiry & InquiryComment)
         Inquiry inquiry1 = Inquiry.builder()
@@ -1221,10 +1221,10 @@ public class SeedDataConfig implements CommandLineRunner {
             interests.add(MemberInterest.builder().sender(member).receiver(supportMember).isDeleted(false).build());
             blocks.add(Block.builder().blocker(member).blocked(supportMember).isDeleted(false).build());
             memberDeclarations.add(MemberDeclaration.builder()
-                    .reporter(member).reported(supportMember).reason("부하 테스트 신고 " + (i + 1))
+                    .reporterId(member.getId()).reportedId(supportMember.getId()).reason("부하 테스트 신고 " + (i + 1))
                     .declarationType(DeclarationType.PENDING).build());
             boardDeclarations.add(RoommateBoardDeclaration.builder()
-                    .member(supportMember).roommateBoard(board).reason("부하 테스트 게시글 신고 " + (i + 1))
+                    .memberId(supportMember.getId()).roommateBoardId(board.getId()).reason("부하 테스트 게시글 신고 " + (i + 1))
                     .declarationType(DeclarationType.PENDING).build());
             faqs.add(Faq.builder()
                     .title("부하 테스트 FAQ " + (i + 1))

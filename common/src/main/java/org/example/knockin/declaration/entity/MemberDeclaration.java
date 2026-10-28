@@ -7,9 +7,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.knockin.global.entity.CreatedAtEntity;
-import org.example.knockin.member.entity.Member;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
 @Getter
 @Entity
@@ -23,15 +20,11 @@ public class MemberDeclaration extends CreatedAtEntity {
     @Column(name = "id")
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reporter_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    private Member reporter;
+    @Column(name = "reporter_id", nullable = false)
+    private Long reporterId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reported_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    private Member reported;
+    @Column(name = "reported_id", nullable = false)
+    private Long reportedId;
 
     @Column(name = "reason", length = 500)
     private String reason;

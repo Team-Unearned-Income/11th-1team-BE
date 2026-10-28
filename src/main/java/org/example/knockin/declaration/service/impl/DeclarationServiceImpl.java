@@ -47,13 +47,13 @@ public class DeclarationServiceImpl {
 
     @Transactional
     public MemberDeclaration reportMember(Member reporter, Member reported, String reason) {
-        if (memberDeclarationRepository.existsByReporterAndReported(reporter, reported)) {
+        if (memberDeclarationRepository.existsByReporterIdAndReportedId(reporter.getId(), reported.getId())) {
             throw new BusinessException(MemberErrorCode.DECLARATION_DUPLICATE);
         }
 
         MemberDeclaration memberDeclaration = MemberDeclaration.builder()
-                .reporter(reporter)
-                .reported(reported)
+                .reporterId(reporter.getId())
+                .reportedId(reported.getId())
                 .reason(reason)
                 .declarationType(DeclarationType.PENDING)
                 .build();
@@ -63,14 +63,14 @@ public class DeclarationServiceImpl {
 
     @Transactional
     public void reportBoard(RoommateBoard roommateBoard, Member member, String reason) {
-        roommateBoardDeclarationRepository.findByRoommateBoardAndMember(roommateBoard, member)
+        roommateBoardDeclarationRepository.findByRoommateBoardIdAndMemberId(roommateBoard.getId(), member.getId())
                 .ifPresent(declaration -> {
                     throw new BusinessException(RoommateBoardErrorCode.ROOMMATE_BOARD_DECLARATION_DUPLICATE);
                 });
 
         RoommateBoardDeclaration roommateBoardDeclaration = RoommateBoardDeclaration.builder()
-                .member(member)
-                .roommateBoard(roommateBoard)
+                .memberId(member.getId())
+                .roommateBoardId(roommateBoard.getId())
                 .reason(reason)
                 .declarationType(DeclarationType.PENDING)
                 .build();
