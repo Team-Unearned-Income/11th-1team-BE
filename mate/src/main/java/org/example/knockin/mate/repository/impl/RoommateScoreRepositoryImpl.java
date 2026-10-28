@@ -30,7 +30,7 @@ public class RoommateScoreRepositoryImpl implements RoommateScoreRepositoryCusto
                                                 evaluatorLog.memberLifePatternLogDegree.eq(
                                                         roommateScore.chattingScore.memberLifePatternLogDegree
                                                 ),
-                                                evaluatorLog.member.id.eq(memberId)
+                                                evaluatorLog.memberId.eq(memberId)
                                         )
                                         .exists()
                         )

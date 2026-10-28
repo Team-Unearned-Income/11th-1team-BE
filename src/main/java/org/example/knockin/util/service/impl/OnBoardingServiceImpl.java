@@ -159,19 +159,19 @@ public class OnBoardingServiceImpl {
 
     @Transactional
     public List<MemberLifePattern> saveMemberLifeStyle(SaveProfileLifeStyleDto.Request request, Member member) {
-        List<MemberLifePattern> existing = memberLifePatternService.findByMember(member);
+        List<MemberLifePattern> existing = memberLifePatternService.findByMemberId(member.getId());
         if (!existing.isEmpty()) {
             memberLifePatternService.deleteMemberLifePatternAll(existing);
         }
         List<MemberLifePattern> memberLifePatternList = new ArrayList<>();
         List<MemberLifePatternLog> memberLifePatternLogList = new ArrayList<>();
-        Long maxDegree = memberLifePatternService.findMaxmemberLifePatternLogDegree(member);
+        Long maxDegree = memberLifePatternService.findMaxmemberLifePatternLogDegree(member.getId());
         Long degree = maxDegree != null ? maxDegree + 1 : 1L;
         MemberLifePatternLogDegree memberLifePatternLogDegree = memberLifePatternService.memberLifePatternLogDegreeSave(degree);
 
         metaService.findByLifeStyle(request.getLifestyles()).forEach(item -> {
-            memberLifePatternList.add(MemberLifePattern.builder().member(member).lifePatternInformation(item).build());
-            memberLifePatternLogList.add(MemberLifePatternLog.builder().member(member).lifePatternInformation(item).memberLifePatternLogDegree(memberLifePatternLogDegree).build());
+            memberLifePatternList.add(MemberLifePattern.builder().memberId(member.getId()).lifePatternInformation(item).build());
+            memberLifePatternLogList.add(MemberLifePatternLog.builder().memberId(member.getId()).lifePatternInformation(item).memberLifePatternLogDegree(memberLifePatternLogDegree).build());
         });
 
 
@@ -416,7 +416,7 @@ public class OnBoardingServiceImpl {
         Map<Long, LifePatternInformation> newInfoMap = lifeStyleService.findLifePatternInformationAllById(newLifestyleIds).stream()
                 .collect(Collectors.toMap(LifePatternInformation::getId, info -> info));
 
-        List<MemberLifePattern> memberLifePatternList = memberLifePatternService.findByMember(member);
+        List<MemberLifePattern> memberLifePatternList = memberLifePatternService.findByMemberId(member.getId());
         List<MemberLifePattern> modifyMemberLifePatternList = memberLifePatternList.stream()
                 .filter(item -> memberLifePatternIds.contains(item.getId()))
                 .toList();
@@ -438,12 +438,12 @@ public class OnBoardingServiceImpl {
 
     @Transactional
     public void modifyLifeStyleLog(Member member) {
-        Long maxDegree = memberLifePatternService.findMaxmemberLifePatternLogDegree(member);
+        Long maxDegree = memberLifePatternService.findMaxmemberLifePatternLogDegree(member.getId());
         Long degree = maxDegree != null ? maxDegree + 1 : 1L;
         MemberLifePatternLogDegree memberLifePatternLogDegree = memberLifePatternService.memberLifePatternLogDegreeSave(degree);
-        List<MemberLifePattern> memberLifePatternList = memberLifePatternService.findByMember(member);
+        List<MemberLifePattern> memberLifePatternList = memberLifePatternService.findByMemberId(member.getId());
         List<MemberLifePatternLog> logList = memberLifePatternList.stream().map(pattern ->
-                MemberLifePatternLog.builder().member(member).lifePatternInformation(pattern.getLifePatternInformation()).memberLifePatternLogDegree(memberLifePatternLogDegree).build()).toList();
+                MemberLifePatternLog.builder().memberId(member.getId()).lifePatternInformation(pattern.getLifePatternInformation()).memberLifePatternLogDegree(memberLifePatternLogDegree).build()).toList();
 
         if (!logList.isEmpty()) {
             memberLifePatternService.saveMemberLifePatternLogAll(logList);
@@ -591,21 +591,21 @@ public class OnBoardingServiceImpl {
 
     @Transactional
     public List<PreferenceCondition> savePreferenceLifeStyle(SavePreferencesLifeStyleDto.Request request, Member member) {
-        preferenceConditionService.deletePreferenceConditionByMember(member);
+        preferenceConditionService.deletePreferenceConditionByMemberId(member.getId());
         List<PreferenceCondition> preferenceConditionList = new ArrayList<>();
         metaService.findByLifeStyle(request.getLifestyles()).forEach(item ->
-                preferenceConditionList.add(PreferenceCondition.builder().member(member).lifePatternInformation(item).build()));
+                preferenceConditionList.add(PreferenceCondition.builder().memberId(member.getId()).lifePatternInformation(item).build()));
         return preferenceConditionService.preferenceConditionSaveAll(preferenceConditionList);
     }
 
     @Transactional
     public List<PreferenceConditionLog> savePreferenceLifeStyleLog(SavePreferencesLifeStyleDto.Request request, Member member) {
         List<PreferenceConditionLog> preferenceConditionLogList = new ArrayList<>();
-        Long maxDegree = preferenceConditionService.findMaxPreferenceConditionLogDegree(member);
+        Long maxDegree = preferenceConditionService.findMaxPreferenceConditionLogDegree(member.getId());
         Long degree = maxDegree != null ? maxDegree + 1 : 1L;
         PreferenceConditionLogDegree preferenceConditionLogDegree = preferenceConditionService.preferenceConditionLogDegreeSave(degree);
         metaService.findByLifeStyle(request.getLifestyles()).forEach(item ->
-                preferenceConditionLogList.add(PreferenceConditionLog.builder().member(member).lifePatternInformation(item).preferenceConditionLogDegree(preferenceConditionLogDegree).build()));
+                preferenceConditionLogList.add(PreferenceConditionLog.builder().memberId(member.getId()).lifePatternInformation(item).preferenceConditionLogDegree(preferenceConditionLogDegree).build()));
         return preferenceConditionService.preferenceConditionLogSaveAll(preferenceConditionLogList);
     }
 
@@ -621,21 +621,21 @@ public class OnBoardingServiceImpl {
 
     @Transactional
     public List<PreferenceConditionWeight>  savePreferenceCondition(SavePreferencesConditionsDto.Request request, Member member) {
-        preferenceConditionService.deletePreferenceConditionWeightByMember(member);
+        preferenceConditionService.deletePreferenceConditionWeightByMemberId(member.getId());
         List<PreferenceConditionWeight> preferenceConditionWeightList = new ArrayList<>();
         metaService.findLifePatternByLifeStyle(request.getConditions()).forEach(item ->
-                preferenceConditionWeightList.add(PreferenceConditionWeight.builder().member(member).lifePattern(item).build()));
+                preferenceConditionWeightList.add(PreferenceConditionWeight.builder().memberId(member.getId()).lifePattern(item).build()));
         return preferenceConditionService.preferenceConditionWeightSaveAll(preferenceConditionWeightList);
     }
 
     @Transactional
     public List<PreferenceConditionWeightLog>  savePreferenceConditionLog(SavePreferencesConditionsDto.Request request, Member member) {
         List<PreferenceConditionWeightLog> preferenceConditionWeightLogList = new ArrayList<>();
-        Long maxDegree = preferenceConditionService.findMaxPreferenceConditionWeightLogDegree(member);
+        Long maxDegree = preferenceConditionService.findMaxPreferenceConditionWeightLogDegree(member.getId());
         Long degree = maxDegree != null ? maxDegree + 1 : 1L;
         PreferenceConditionWeightLogDegree preferenceConditionWeightLogDegree = preferenceConditionService.preferenceConditionWeightLogDegreeSave(degree);
         metaService.findLifePatternByLifeStyle(request.getConditions()).forEach(item ->
-                preferenceConditionWeightLogList.add(PreferenceConditionWeightLog.builder().member(member).lifePattern(item).preferenceConditionWeightLogDegree(preferenceConditionWeightLogDegree).build()));
+                preferenceConditionWeightLogList.add(PreferenceConditionWeightLog.builder().memberId(member.getId()).lifePattern(item).preferenceConditionWeightLogDegree(preferenceConditionWeightLogDegree).build()));
         return preferenceConditionService.preferenceConditionWeightLogSaveAll(preferenceConditionWeightLogList);
     }
 
@@ -667,7 +667,7 @@ public class OnBoardingServiceImpl {
     @Transactional
     public void modifyPreferenceLifeStyle(ModifyPreferencesLifeStyleDto.Request request, Member member) {
         Map<Long, LifePatternInformation> newInfoMap = request.getLifestyles().stream().collect(Collectors.toMap(ModifyPreferencesLifeStyleDto.Request.LifeStyleInfo::getId, item -> lifeStyleService.findLifePatternInformationById(item.getLifestyleId())));
-        preferenceConditionService.findPreferenceConditionByMember(member).forEach(item -> {
+        preferenceConditionService.findPreferenceConditionByMemberId(member.getId()).forEach(item -> {
             request.getLifestyles().forEach(data -> {
                 if(Objects.equals(data.getId(), item.getId())) {
                     LifePatternInformation newInfo = newInfoMap.get(data.getId());
@@ -684,12 +684,12 @@ public class OnBoardingServiceImpl {
 
     @Transactional
     public void modifyPreferenceLifeStyleLog(Member member) {
-        Long maxDegree = preferenceConditionService.findMaxPreferenceConditionLogDegree(member);
+        Long maxDegree = preferenceConditionService.findMaxPreferenceConditionLogDegree(member.getId());
         Long degree = maxDegree != null ? maxDegree + 1 : 1L;
         PreferenceConditionLogDegree preferenceConditionLogDegree = preferenceConditionService.preferenceConditionLogDegreeSave(degree);
-        List<PreferenceCondition> preferenceConditionList = preferenceConditionService.findPreferenceConditionByMember(member);
+        List<PreferenceCondition> preferenceConditionList = preferenceConditionService.findPreferenceConditionByMemberId(member.getId());
         List<PreferenceConditionLog> logList = preferenceConditionList.stream().map(pattern ->
-                PreferenceConditionLog.builder().member(member).lifePatternInformation(pattern.getLifePatternInformation()).preferenceConditionLogDegree(preferenceConditionLogDegree).build()).toList();
+                PreferenceConditionLog.builder().memberId(member.getId()).lifePatternInformation(pattern.getLifePatternInformation()).preferenceConditionLogDegree(preferenceConditionLogDegree).build()).toList();
 
         if (!logList.isEmpty()) {
             preferenceConditionService.preferenceConditionLogSaveAll(logList);
@@ -708,21 +708,21 @@ public class OnBoardingServiceImpl {
 
     @Transactional
     public void modifyPreCondition(ModifyPreferencesConditionsDto.Request request, Member member) {
-        preferenceConditionService.deletePreferenceConditionWeightByMember(member);
+        preferenceConditionService.deletePreferenceConditionWeightByMemberId(member.getId());
 
         List<PreferenceConditionWeight> preferenceConditionWeightList = new ArrayList<>();
-        lifeStyleService.findAllById(request.getConditions()).forEach(item -> preferenceConditionWeightList.add(PreferenceConditionWeight.builder().member(member).lifePattern(item).build()));
+        lifeStyleService.findAllById(request.getConditions()).forEach(item -> preferenceConditionWeightList.add(PreferenceConditionWeight.builder().memberId(member.getId()).lifePattern(item).build()));
         preferenceConditionService.preferenceConditionWeightSaveAll(preferenceConditionWeightList);
     }
 
     @Transactional
     public void modifyPreConditionLog(Member member) {
-        Long maxDegree = preferenceConditionService.findMaxPreferenceConditionWeightLogDegree(member);
+        Long maxDegree = preferenceConditionService.findMaxPreferenceConditionWeightLogDegree(member.getId());
         Long degree = maxDegree != null ? maxDegree + 1 : 1L;
         PreferenceConditionWeightLogDegree preferenceConditionWeightLogDegree = preferenceConditionService.preferenceConditionWeightLogDegreeSave(degree);
-        List<PreferenceConditionWeight> preferenceConditionWeightList = preferenceConditionService.findPreferenceConditionWeightByMember(member);
+        List<PreferenceConditionWeight> preferenceConditionWeightList = preferenceConditionService.findPreferenceConditionWeightByMemberId(member.getId());
         List<PreferenceConditionWeightLog> logList = preferenceConditionWeightList.stream().map(patternWeight ->
-                PreferenceConditionWeightLog.builder().member(member).lifePattern(patternWeight.getLifePattern()).preferenceConditionWeightLogDegree(preferenceConditionWeightLogDegree).build()).toList();
+                PreferenceConditionWeightLog.builder().memberId(member.getId()).lifePattern(patternWeight.getLifePattern()).preferenceConditionWeightLogDegree(preferenceConditionWeightLogDegree).build()).toList();
 
         if (!logList.isEmpty()) {
             preferenceConditionService.preferenceConditionWeightLogSaveAll(logList);

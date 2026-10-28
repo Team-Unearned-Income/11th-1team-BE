@@ -231,7 +231,7 @@ public class MemberServiceImpl {
     }
 
     public boolean isOnBoarding(Member member) {
-        return roomProfileRepository.isExsitRoomProfile(member) && memberLifePatternRepository.isExsitLifeStyle(member) && basicInformationRepository.isExsitBasicInformation(member);
+        return roomProfileRepository.isExsitRoomProfile(member) && memberLifePatternRepository.isExsitLifeStyle(member.getId()) && basicInformationRepository.isExsitBasicInformation(member);
     }
 
     private String getFullRegionName(Region regionEntity) {

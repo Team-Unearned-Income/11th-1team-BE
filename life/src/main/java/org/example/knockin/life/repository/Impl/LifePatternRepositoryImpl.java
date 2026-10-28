@@ -30,7 +30,7 @@ public class LifePatternRepositoryImpl implements LifePatternRepositoryCustom {
                 .from(lifePattern)
                 .leftJoin(lifePatternInformation).on(lifePatternInformation.lifePattern.id.eq(lifePattern.id))
                 .leftJoin(lifePatternFile).on(lifePatternFile.lifePattern.eq(lifePattern))
-                .leftJoin(file).on(lifePatternFile.file.eq(file))
+                .leftJoin(file).on(lifePatternFile.fileId.eq(file.id))
                 .where(lifePattern.isDeleted.eq(false))
                 .orderBy(lifePattern.sort.asc())
                 .transform(groupBy(lifePattern.id).list(Projections.fields(MetaLifestylePatternsDto.Response.PatternItem.class,
@@ -72,7 +72,7 @@ public class LifePatternRepositoryImpl implements LifePatternRepositoryCustom {
                 .from(lifePattern)
                 .leftJoin(lifePatternInformation).on(lifePatternInformation.lifePattern.id.eq(lifePattern.id))
                 .leftJoin(lifePatternFile).on(lifePatternFile.lifePattern.eq(lifePattern))
-                .leftJoin(file).on(lifePatternFile.file.eq(file))
+                .leftJoin(file).on(lifePatternFile.fileId.eq(file.id))
                 .where(lifePattern.id.eq(patternId), lifePattern.isDeleted.eq(false))
                 .transform(groupBy(lifePattern.id).as(Projections.fields(
                                         BoLifeStylePatternDetailDto.Response.class,

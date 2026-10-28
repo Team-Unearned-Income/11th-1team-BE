@@ -513,18 +513,18 @@ public class SeedDataConfig implements CommandLineRunner {
         // 5. 회원 생활패턴 (MemberLifePattern) & 선호조건 (PreferenceCondition & Weight)
         if (!lifePatternInformationList.isEmpty()) {
             memberLifePatternRepository.saveAll(List.of(
-                    MemberLifePattern.builder().member(user1).lifePatternInformation(lifePatternInformationList.get(0)).build(),
-                    MemberLifePattern.builder().member(user2).lifePatternInformation(lifePatternInformationList.get(0)).build()
+                    MemberLifePattern.builder().memberId(user1.getId()).lifePatternInformation(lifePatternInformationList.get(0)).build(),
+                    MemberLifePattern.builder().memberId(user2.getId()).lifePatternInformation(lifePatternInformationList.get(0)).build()
             ));
 
             preferenceConditionRepository.saveAll(List.of(
-                    PreferenceCondition.builder().member(user1).lifePatternInformation(lifePatternInformationList.get(0)).build(),
-                    PreferenceCondition.builder().member(user2).lifePatternInformation(lifePatternInformationList.get(0)).build()
+                    PreferenceCondition.builder().memberId(user1.getId()).lifePatternInformation(lifePatternInformationList.get(0)).build(),
+                    PreferenceCondition.builder().memberId(user2.getId()).lifePatternInformation(lifePatternInformationList.get(0)).build()
             ));
 
             preferenceConditionWeightRepository.saveAll(List.of(
-                    PreferenceConditionWeight.builder().member(user1).lifePattern(bedtime).build(),
-                    PreferenceConditionWeight.builder().member(user2).lifePattern(cleanlinessSensitivity).build()
+                    PreferenceConditionWeight.builder().memberId(user1.getId()).lifePattern(bedtime).build(),
+                    PreferenceConditionWeight.builder().memberId(user2.getId()).lifePattern(cleanlinessSensitivity).build()
             ));
         }
 
@@ -626,7 +626,7 @@ public class SeedDataConfig implements CommandLineRunner {
 
         roomTypeFileRepository.save(RoomTypeFile.builder().roomType(oneRoom).file(roomTypePic).build());
         roomExtraOptionFileRepository.save(RoomExtraOptionFile.builder().roomExtraOption(fullOption).file(extraOptionPic).build());
-        lifePatternFileRepository.save(LifePatternFile.builder().lifePattern(bedtime).file(lifePatternPic).build());
+        lifePatternFileRepository.save(LifePatternFile.builder().lifePattern(bedtime).fileId(lifePatternPic.getId()).build());
 
         // 10. 방 프로필 (RoomOfferProfile, RoomSeekerProfile, OfferRoomType, SeekerRoomType, SeekerProfileRegion)
         RoomOfferProfile offerProfile = RoomOfferProfile.builder()
@@ -781,11 +781,11 @@ public class SeedDataConfig implements CommandLineRunner {
                 MemberLifePatternLogDegree.builder().degree(1L).build());
         PreferenceConditionWeightLogDegree preferenceConditionWeightLogDegree = preferenceConditionWeightLogDegreeRepository.save(PreferenceConditionWeightLogDegree.builder().degree(1L).build());
         MemberLifePatternLog mlpLog = memberLifePatternLogRepository.save(
-                MemberLifePatternLog.builder().member(user1).lifePatternInformation(lifePatternInformationList.get(0)).memberLifePatternLogDegree(memberLifePatternLogDegree).build());
+                MemberLifePatternLog.builder().memberId(user1.getId()).lifePatternInformation(lifePatternInformationList.get(0)).memberLifePatternLogDegree(memberLifePatternLogDegree).build());
         PreferenceConditionLog pcLog = preferenceConditionLogRepository.save(
-                PreferenceConditionLog.builder().member(user1).lifePatternInformation(lifePatternInformationList.get(0)).preferenceConditionLogDegree(preferenceConditionLogDegree).build());
+                PreferenceConditionLog.builder().memberId(user1.getId()).lifePatternInformation(lifePatternInformationList.get(0)).preferenceConditionLogDegree(preferenceConditionLogDegree).build());
         PreferenceConditionWeightLog pcwLog = preferenceConditionWeightLogRepository.save(
-                PreferenceConditionWeightLog.builder().member(user1).lifePattern(bedtime).preferenceConditionWeightLogDegree(preferenceConditionWeightLogDegree).build());
+                PreferenceConditionWeightLog.builder().memberId(user1.getId()).lifePattern(bedtime).preferenceConditionWeightLogDegree(preferenceConditionWeightLogDegree).build());
 
         chatRoomFileRepository.save(ChatRoomFile.builder().chatRoomMessage(msg1).file(chatRoomPic).build());
         ChattingScore chattingScore = chattingScoreRepository.save(ChattingScore.builder().chattingRequired(chatReq).memberLifePatternLogDegree(memberLifePatternLogDegree).preferenceConditionLogDegree(preferenceConditionLogDegree).preferenceConditionWeightLogDegree(preferenceConditionWeightLogDegree).score(90).build());
@@ -1254,20 +1254,20 @@ public class SeedDataConfig implements CommandLineRunner {
             seekerRoomTypes.add(SeekerRoomType.builder().roomSeekerProfile(seekerProfile).roomType(roomType).build());
             seekerProfileRegions.add(RoomSeekerProfileRegion.builder().roomSeekerProfile(seekerProfile).region(region).build());
 
-            memberLifePatterns.add(MemberLifePattern.builder().member(member).lifePatternInformation(patternInformation).build());
-            preferenceConditions.add(PreferenceCondition.builder().member(member).lifePatternInformation(patternInformation).build());
-            preferenceWeights.add(PreferenceConditionWeight.builder().member(member).lifePattern(lifePattern).build());
+            memberLifePatterns.add(MemberLifePattern.builder().memberId(member.getId()).lifePatternInformation(patternInformation).build());
+            preferenceConditions.add(PreferenceCondition.builder().memberId(member.getId()).lifePatternInformation(patternInformation).build());
+            preferenceWeights.add(PreferenceConditionWeight.builder().memberId(member.getId()).lifePattern(lifePattern).build());
             MemberLifePatternLogDegree memberDegree = MemberLifePatternLogDegree.builder().degree((long) i + 1).build();
             PreferenceConditionLogDegree preferenceDegree = PreferenceConditionLogDegree.builder().degree((long) i + 1).build();
             PreferenceConditionWeightLogDegree weightDegree = PreferenceConditionWeightLogDegree.builder().degree((long) i + 1).build();
             memberLogDegrees.add(memberDegree);
             preferenceLogDegrees.add(preferenceDegree);
             weightLogDegrees.add(weightDegree);
-            memberLifePatternLogs.add(MemberLifePatternLog.builder().member(member)
+            memberLifePatternLogs.add(MemberLifePatternLog.builder().memberId(member.getId())
                     .lifePatternInformation(patternInformation).memberLifePatternLogDegree(memberDegree).build());
-            preferenceConditionLogs.add(PreferenceConditionLog.builder().member(member)
+            preferenceConditionLogs.add(PreferenceConditionLog.builder().memberId(member.getId())
                     .lifePatternInformation(patternInformation).preferenceConditionLogDegree(preferenceDegree).build());
-            preferenceWeightLogs.add(PreferenceConditionWeightLog.builder().member(member)
+            preferenceWeightLogs.add(PreferenceConditionWeightLog.builder().memberId(member.getId())
                     .lifePattern(lifePattern).preferenceConditionWeightLogDegree(weightDegree).build());
             ChattingScore chattingScore = ChattingScore.builder().chattingRequired(chattingRequired)
                     .memberLifePatternLogDegree(memberDegree).preferenceConditionLogDegree(preferenceDegree)
@@ -1419,7 +1419,7 @@ public class SeedDataConfig implements CommandLineRunner {
             File file = files.get(i);
             roomTypeFiles.add(RoomTypeFile.builder().roomType(roomTypes.get(i)).file(file).build());
             roomExtraOptionFiles.add(RoomExtraOptionFile.builder().roomExtraOption(roomExtraOptions.get(i)).file(file).build());
-            lifePatternFiles.add(LifePatternFile.builder().lifePattern(lifePatterns.get(i)).file(file).build());
+            lifePatternFiles.add(LifePatternFile.builder().lifePattern(lifePatterns.get(i)).fileId(file.getId()).build());
         }
         roomTypeFileRepository.saveAll(roomTypeFiles);
         roomExtraOptionFileRepository.saveAll(roomExtraOptionFiles);

@@ -198,7 +198,7 @@ public class BackOfficeServiceImpl {
 
             if (file != null && !file.isEmpty()) {
                 File fileEntity = fileService.save(file, FileType.ETC);
-                lifeStyleService.saveLifePatternFile(LifePatternFile.builder().lifePattern(lifePattern).file(fileEntity).build());
+                lifeStyleService.saveLifePatternFile(LifePatternFile.builder().lifePattern(lifePattern).fileId(fileEntity.getId()).build());
             }
         } catch (IOException e) {
             throw new BusinessException(FileErrorCode.FILE_UPLOAD_FAILED);
@@ -247,9 +247,9 @@ public class BackOfficeServiceImpl {
                 File fileEntity = fileService.save(file, FileType.ETC);
                 LifePatternFile lifePatternFile = lifeStyleService.findLifeStyleFile(lifePattern);
                 if(lifePatternFile != null) {
-                    lifePatternFile.modifyFile(fileEntity);
+                    lifePatternFile.modifyFileId(fileEntity.getId());
                 } else {
-                    lifeStyleService.saveLifePatternFile(LifePatternFile.builder().file(fileEntity).lifePattern(lifePattern).build());
+                    lifeStyleService.saveLifePatternFile(LifePatternFile.builder().fileId(fileEntity.getId()).lifePattern(lifePattern).build());
                 }
             }
         } catch (IOException e) {

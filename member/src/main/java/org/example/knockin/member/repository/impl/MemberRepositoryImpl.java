@@ -91,7 +91,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                         basicInformation.name.as("name"),
                         JPAExpressions.selectOne()
                                 .from(memberLifePattern)
-                                .where(memberLifePattern.member.eq(member))
+                                .where(memberLifePattern.memberId.eq(member.id))
                                 .exists()
                                 .and(JPAExpressions.selectOne()
                                         .from(basicInformation)
@@ -104,11 +104,11 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                                 .as("basicInfo"),
                         JPAExpressions.selectOne()
                                 .from(preferenceCondition)
-                                .where(preferenceCondition.member.eq(member))
+                                .where(preferenceCondition.memberId.eq(member.id))
                                 .exists()
                                 .and(JPAExpressions.selectOne()
                                                 .from(preferenceConditionWeight)
-                                                .where(preferenceConditionWeight.member.eq(member))
+                                                .where(preferenceConditionWeight.memberId.eq(member.id))
                                                 .exists())
                                 .as("preferenceInfo"),
                         Projections.fields(AuthResponse.DeleteInfo.class,
@@ -162,7 +162,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                 .from(memberLifePattern)
                 .leftJoin(memberLifePattern.lifePatternInformation, lifePatternInformation)
                 .leftJoin(lifePatternInformation.lifePattern, lifePattern)
-                .where(memberLifePattern.member.eq(memberEntity)).fetch();
+                .where(memberLifePattern.memberId.eq(memberEntity.getId())).fetch();
     }
 
     @Override
@@ -223,7 +223,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                 .from(preferenceCondition)
                 .join(preferenceCondition.lifePatternInformation, lifePatternInformation)
                 .join(lifePatternInformation.lifePattern, lifePattern)
-                .where(preferenceCondition.member.eq(memberEntity))
+                .where(preferenceCondition.memberId.eq(memberEntity.getId()))
                 .fetch();
     }
 
@@ -233,7 +233,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                         lifePattern.name.as("name")))
                 .from(preferenceConditionWeight)
                 .join(preferenceConditionWeight.lifePattern, lifePattern)
-                .where(preferenceConditionWeight.member.eq(memberEntity))
+                .where(preferenceConditionWeight.memberId.eq(memberEntity.getId()))
                 .fetch();
     }
 

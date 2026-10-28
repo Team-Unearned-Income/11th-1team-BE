@@ -1,15 +1,14 @@
 package org.example.knockin.life.repository;
 
 import org.example.knockin.life.entity.PreferenceConditionWeight;
-import org.example.knockin.member.entity.Member;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
 public interface PreferenceConditionWeightRepository extends JpaRepository<PreferenceConditionWeight, Long>, PreferenceConditionWeightRepositoryCustom {
-    void deleteByMember(Member member);
+    void deleteByMemberId(Long memberId);
 
-    List<PreferenceConditionWeight> findByMember(Member member);
+    List<PreferenceConditionWeight> findByMemberId(Long memberId);
 
-    List<PreferenceConditionWeight> findAllByMember(Member member);
+    List<PreferenceConditionWeight> findAllByMemberId(Long memberId);
 }
