@@ -59,12 +59,12 @@ class MemberAgreementServiceImplTest {
     void findByMemberTest() {
         Member member = mock(Member.class);
         MemberAgreement agreement = mock(MemberAgreement.class);
-        given(memberAgreementRepository.findByMember(member)).willReturn(List.of(agreement));
+        given(memberAgreementRepository.findByMemberId(member.getId())).willReturn(List.of(agreement));
  
-        List<MemberAgreement> result = memberAgreementService.findByMember(member);
+        List<MemberAgreement> result = memberAgreementService.findByMemberId(member.getId());
  
         assertThat(result).hasSize(1);
-        verify(memberAgreementRepository).findByMember(member);
+        verify(memberAgreementRepository).findByMemberId(member.getId());
     }
  
     @Test
@@ -74,11 +74,11 @@ class MemberAgreementServiceImplTest {
         AgreementLog log = mock(AgreementLog.class);
         List<AgreementLog> skipList = List.of(log);
         MemberAgreement agreement = mock(MemberAgreement.class);
-        given(memberAgreementRepository.findByMemberAndAgreementLogNotIn(member, skipList)).willReturn(List.of(agreement));
+        given(memberAgreementRepository.findByMemberAndAgreementLogNotIn(member.getId(), skipList)).willReturn(List.of(agreement));
  
-        List<MemberAgreement> result = memberAgreementService.findByMemberAndAgreementLogNotIn(member, skipList);
+        List<MemberAgreement> result = memberAgreementService.findByMemberIdAndAgreementLogNotIn(member.getId(), skipList);
  
         assertThat(result).hasSize(1);
-        verify(memberAgreementRepository).findByMemberAndAgreementLogNotIn(member, skipList);
+        verify(memberAgreementRepository).findByMemberAndAgreementLogNotIn(member.getId(), skipList);
     }
 }

@@ -133,15 +133,16 @@ public class OnBoardingServiceImpl {
 
     @Transactional
     public List<MemberAgreement> saveMemberAgreement(SaveProfileBasicDto.Request request, Member member) {
-        List<MemberAgreement> existing = memberAgreementService.findByMember(member);
+        Long memberId = member.getId();
+        List<MemberAgreement> existing = memberAgreementService.findByMemberId(memberId);
         if (!existing.isEmpty()) {
             modifyAgreementForSave(request, member);
-            return memberAgreementService.findByMember(member);
+            return memberAgreementService.findByMemberId(memberId);
         }
         List<MemberAgreement> memberAgreementList = new ArrayList<>();
 
         metaService.findByAgreementLogIsCurrent(request.getTerms()).forEach(item -> {
-            memberAgreementList.add(MemberAgreement.builder().member(member).agreementLog(item).isAgreed(true).build());
+            memberAgreementList.add(MemberAgreement.builder().memberId(member.getId()).agreementLog(item).isAgreed(true).build());
         });
 
         return memberAgreementService.saveAll(memberAgreementList);
@@ -337,16 +338,18 @@ public class OnBoardingServiceImpl {
 
     @Transactional
     public void modifyAgreement(ModifyProfileBasicDto.Request request, Member member) {
+        Long memberId = member.getId();
+
         List<AgreementLog> requestAgreementList = metaService.findByAgreementLogIsCurrent(request.getTerms());
-        List<AgreementLog> memberAgreementList = memberAgreementService.findByMember(member).stream().map(MemberAgreement::getAgreementLog).toList();
+        List<AgreementLog> memberAgreementList = memberAgreementService.findByMemberId(memberId).stream().map(MemberAgreement::getAgreementLog).toList();
 
         Set<Long> memberAgreementIds = memberAgreementList.stream().map(AgreementLog::getId).collect(Collectors.toSet());
         List<AgreementLog> skipList = requestAgreementList.stream().filter(reqLog -> memberAgreementIds.contains(reqLog.getId())).toList();
 
         if (skipList.isEmpty()) {
-            memberAgreementService.findByMember(member).forEach(MemberAgreement::disableAgree);
+            memberAgreementService.findByMemberId(memberId).forEach(MemberAgreement::disableAgree);
         } else {
-            memberAgreementService.findByMemberAndAgreementLogNotIn(member, skipList).forEach(MemberAgreement::disableAgree);
+            memberAgreementService.findByMemberIdAndAgreementLogNotIn(memberId, skipList).forEach(MemberAgreement::disableAgree);
         }
 
         requestAgreementList.forEach(item -> {
@@ -354,7 +357,7 @@ public class OnBoardingServiceImpl {
 
             if (isNotInSkipList) {
                 memberAgreementService.save(MemberAgreement.builder()
-                        .member(member)
+                        .memberId(member.getId())
                         .agreementLog(item)
                         .isAgreed(true)
                         .build());
@@ -364,16 +367,18 @@ public class OnBoardingServiceImpl {
 
     @Transactional
     public void modifyAgreementForSave(SaveProfileBasicDto.Request request, Member member) {
+        Long memberId = member.getId();
+
         List<AgreementLog> requestAgreementList = metaService.findByAgreementLogIsCurrent(request.getTerms());
-        List<AgreementLog> memberAgreementList = memberAgreementService.findByMember(member).stream().map(MemberAgreement::getAgreementLog).toList();
+        List<AgreementLog> memberAgreementList = memberAgreementService.findByMemberId(memberId).stream().map(MemberAgreement::getAgreementLog).toList();
 
         Set<Long> memberAgreementIds = memberAgreementList.stream().map(AgreementLog::getId).collect(Collectors.toSet());
         List<AgreementLog> skipList = requestAgreementList.stream().filter(reqLog -> memberAgreementIds.contains(reqLog.getId())).toList();
 
         if (skipList.isEmpty()) {
-            memberAgreementService.findByMember(member).forEach(MemberAgreement::disableAgree);
+            memberAgreementService.findByMemberId(memberId).forEach(MemberAgreement::disableAgree);
         } else {
-            memberAgreementService.findByMemberAndAgreementLogNotIn(member, skipList).forEach(MemberAgreement::disableAgree);
+            memberAgreementService.findByMemberIdAndAgreementLogNotIn(memberId, skipList).forEach(MemberAgreement::disableAgree);
         }
 
         requestAgreementList.forEach(item -> {
@@ -381,7 +386,7 @@ public class OnBoardingServiceImpl {
 
             if (isNotInSkipList) {
                 memberAgreementService.save(MemberAgreement.builder()
-                        .member(member)
+                        .memberId(member.getId())
                         .agreementLog(item)
                         .isAgreed(true)
                         .build());

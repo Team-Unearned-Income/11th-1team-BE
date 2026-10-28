@@ -504,10 +504,10 @@ public class SeedDataConfig implements CommandLineRunner {
 
         // 4. 회원 약관 동의 (MemberAgreement)
         memberAgreementRepository.saveAll(List.of(
-                MemberAgreement.builder().member(user1).agreementLog(termsLog1).isAgreed(true).build(),
-                MemberAgreement.builder().member(user1).agreementLog(privacyLog).isAgreed(true).build(),
-                MemberAgreement.builder().member(user2).agreementLog(termsLog1).isAgreed(true).build(),
-                MemberAgreement.builder().member(user2).agreementLog(privacyLog).isAgreed(true).build()
+                MemberAgreement.builder().memberId(user1.getId()).agreementLog(termsLog1).isAgreed(true).build(),
+                MemberAgreement.builder().memberId(user1.getId()).agreementLog(privacyLog).isAgreed(true).build(),
+                MemberAgreement.builder().memberId(user2.getId()).agreementLog(termsLog1).isAgreed(true).build(),
+                MemberAgreement.builder().memberId(user2.getId()).agreementLog(privacyLog).isAgreed(true).build()
         ));
 
         // 5. 회원 생활패턴 (MemberLifePattern) & 선호조건 (PreferenceCondition & Weight)
@@ -1006,7 +1006,7 @@ public class SeedDataConfig implements CommandLineRunner {
                     .build();
             agreements.add(agreement);
             agreementLogs.add(AgreementLog.builder().agreement(agreement).isCurrent(true).build());
-            memberAgreements.add(MemberAgreement.builder().member(member).agreementLog(agreementLogs.get(i)).isAgreed(true).build());
+            memberAgreements.add(MemberAgreement.builder().memberId(member.getId()).agreementLog(agreementLogs.get(i)).isAgreed(true).build());
 
             RoommateBoard board = RoommateBoard.builder()
                     .member(member)

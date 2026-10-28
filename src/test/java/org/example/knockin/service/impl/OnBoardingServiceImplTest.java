@@ -127,7 +127,7 @@ class OnBoardingServiceImplTest {
         given(memberAgreement.getAgreementLog()).willReturn(agreementLog);
         given(agreementLog.getId()).willReturn(1L);
         
-        given(memberAgreementService.findByMember(any())).willReturn(List.of(memberAgreement));
+        given(memberAgreementService.findByMemberId(any())).willReturn(List.of(memberAgreement));
         given(metaService.findByAgreementLogIsCurrent(any())).willReturn(List.of(agreementLog));
 
         SaveProfileBasicDto.Response response = onBoardingService.saveBasicInfoLogic(request, memberId);

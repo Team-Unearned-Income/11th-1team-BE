@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import org.example.knockin.agreement.entity.AgreementLog;
 import org.example.knockin.agreement.entity.MemberAgreement;
 import org.example.knockin.agreement.repository.MemberAgreementRepositoryCustom;
-import org.example.knockin.member.entity.Member;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -17,7 +16,7 @@ public class MemberAgreementRepositoryImpl implements MemberAgreementRepositoryC
     private final JPAQueryFactory jpaQueryFactory;
 
     @Override
-    public List<MemberAgreement> findByMemberAndAgreementLogNotIn(Member member, List<AgreementLog> skipList) {
-        return jpaQueryFactory.selectFrom(memberAgreement).where(memberAgreement.member.eq(member), memberAgreement.agreementLog.notIn(skipList)).fetch();
+    public List<MemberAgreement> findByMemberAndAgreementLogNotIn(Long memberId, List<AgreementLog> skipList) {
+        return jpaQueryFactory.selectFrom(memberAgreement).where(memberAgreement.memberId.eq(memberId), memberAgreement.agreementLog.notIn(skipList)).fetch();
     }
 }
