@@ -800,6 +800,6 @@ public class OnBoardingServiceImpl {
 
     public MyVerificationListDto.Response findVerificationList(Pageable pageable, Long memberId) {
         Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
-        return authenticationService.findVerificationList(pageable, member);
+        return authenticationService.findVerificationList(pageable, member.getId());
     }
 }

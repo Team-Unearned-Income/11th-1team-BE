@@ -552,14 +552,14 @@ public class SeedDataConfig implements CommandLineRunner {
 
         // 8. 학생/직장인 신원 인증 (Authentication & AuthenticationApprove)
         Authentication authUser1 = Authentication.builder()
-                .member(user1)
+                .memberId(user1.getId())
                 .type(AuthenticationType.STUDENT)
                 .email("user1@univ.ac.kr")
                 .code("123456")
                 .isAccepted(true)
                 .build();
         Authentication authUser2 = Authentication.builder()
-                .member(user2)
+                .memberId(user2.getId())
                 .type(AuthenticationType.COMPANY)
                 .email("user2@company.com")
                 .code("654321")
@@ -1232,7 +1232,7 @@ public class SeedDataConfig implements CommandLineRunner {
                     .member(adminMember).sort(i + 1).isDeleted(false).build());
 
             Authentication authentication = Authentication.builder()
-                    .member(member).type(AuthenticationType.STUDENT)
+                    .memberId(member.getId()).type(AuthenticationType.STUDENT)
                     .email("loadtest" + (i + 1) + "@univ.ac.kr")
                     .code(String.format("%06d", (i + 1) % 1_000_000)).isAccepted(true).build();
             authentications.add(authentication);

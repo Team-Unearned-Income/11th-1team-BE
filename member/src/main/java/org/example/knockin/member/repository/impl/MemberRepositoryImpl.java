@@ -390,7 +390,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                 )).from(member)
                 .leftJoin(basicInformation).on(basicInformation.member.eq(member))
                 .leftJoin(state).on(state.member.eq(member))
-                .leftJoin(authentication).on(authentication.member.eq(member))
+                .leftJoin(authentication).on(authentication.memberId.eq(member.id))
                 .leftJoin(authenticationApprove).on(authenticationApprove.authentication.eq(authentication))
                 .where(searchName(request.getSearchName()), searchState(request.getSearchState()), searchApproveType(request.getSearchApproveType()))
                 .offset(pageable.getOffset()).limit(pageable.getPageSize()).fetch();
@@ -402,7 +402,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                 .from(member)
                 .leftJoin(basicInformation).on(basicInformation.member.eq(member))
                 .leftJoin(state).on(state.member.eq(member))
-                .leftJoin(authentication).on(authentication.member.eq(member))
+                .leftJoin(authentication).on(authentication.memberId.eq(member.id))
                 .where(member.id.eq(id))
                 .transform(groupBy(member.id).as(Projections.fields(BoMemberDetailDto.Response.class,
                         member.id,
