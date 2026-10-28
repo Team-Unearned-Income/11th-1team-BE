@@ -34,6 +34,12 @@
 - **API Documentation**: Springdoc OpenAPI 3.x (Swagger UI)
 - **CI/CD**: GitHub Actions, AWS EC2, `git-crypt`
 
+### APM & Monitoring
+- **Metrics**: Spring Boot Actuator, Micrometer Prometheus Registry, Prometheus
+- **Logs**: Grafana Alloy, Loki
+- **Dashboard**: Grafana
+- **Monitoring Infrastructure**: 가정용 NAS, Docker Compose
+
 ---
 
 ## 📌 Key Features (주요 기능)
@@ -68,44 +74,116 @@
 
 KnockIn 백엔드 시스템은 **AWS EC2 상의 Spring Boot 애플리케이션**을 중심으로, **Supabase(PostgreSQL)** 와 **Cloudflare R2** 를 데이터 및 파일 저장소로 활용하며 실시간 통신과 푸시 알림 등을 위한 다양한 외부 API와 연동되어 있습니다.
 
-![](docs/images/knockin-backend-architecture.svg)
+성능 지표와 로그는 **가정용 NAS의 Docker 컨테이너로 운영하는 별도 모니터링 환경**에서 수집·조회합니다. 아래 구성도는 서비스·배포·모니터링 흐름을 함께 나타내며, 세부 수집 설정은 다음 **APM & Monitoring** 항목에서 설명합니다.
+
+![KnockIn 서비스·배포 및 NAS 기반 APM 인프라 구성도](docs/images/knockin-backend-architecture.svg)
 
 <details>
 <summary><b>⚙️ 시스템 구성 요소 다이어그램 (Mermaid) 펼쳐보기</b></summary>
 
 ```mermaid
 flowchart LR
-    %% Clients
-    CLIENT["📱 Client (Mobile)"]
+    CLIENT["Mobile App"]
+    DNS["Cloudflare DNS"]
 
-    %% Application Server
-    subgraph AWS_EC2 ["☁️ AWS EC2 (Application Server)"]
-        SPRING_BOOT["🍃 Spring Boot API\n(REST, WebSocket, SSE)"]
+    subgraph CI_CD ["소스 관리 및 배포"]
+        DEVELOPER["Developer"] -->|"Git Push"| GITHUB["GitHub"]
+        GITHUB --> ACTIONS["GitHub Actions / Gradle"]
     end
 
-    %% Core Data & Storage
-    subgraph DATA_STORAGE ["🗄️ Data & Storage"]
-        DB[("🐘 Supabase\n(PostgreSQL)")]
-        STORAGE["☁️ Cloudflare R2\n(S3 호환 Storage)"]
+    subgraph AWS_EC2 ["AWS EC2 · Application Server"]
+        SPRING_BOOT["Spring Boot API<br/>REST / WebSocket / SSE"]
+        ACTUATOR["Actuator / Micrometer<br/>/actuator/prometheus"]
+        LOG_FILE["nohup.out"]
+        ALLOY["Grafana Alloy"]
+        SPRING_BOOT -->|"메트릭 제공"| ACTUATOR
+        SPRING_BOOT -->|"로그 기록"| LOG_FILE
+        LOG_FILE -->|"파일 수집"| ALLOY
     end
 
-    %% External Services
-    subgraph EXTERNAL ["🌐 3rd Party APIs"]
-        FCM["🔔 Firebase (FCM)\n(Push Notification)"]
-        OAUTH["🔑 Kakao / Apple\n(OAuth2 Login)"]
-        EMAIL["📧 Resend API\n(Email Auth)"]
+    subgraph DATA_EXTERNAL ["Data / External Services"]
+        DB[("Supabase · PostgreSQL")]
+        STORAGE["Cloudflare R2"]
+        FCM["Firebase Cloud Messaging"]
+        EMAIL["Resend"]
+        OAUTH["Kakao / Apple"]
     end
 
-    %% Connections
+    subgraph HOME_NAS ["가정용 NAS · Docker Compose"]
+        PROMETHEUS["Prometheus"]
+        LOKI["Loki"]
+        GRAFANA["Grafana Dashboard"]
+    end
+
+    CLIENT -.->|"도메인 조회"| DNS
     CLIENT <-->|"HTTPS / STOMP / SSE"| SPRING_BOOT
-    
-    SPRING_BOOT <-->|"Spring Data JPA"| DB
-    SPRING_BOOT <-->|"AWS S3 SDK"| STORAGE
-    SPRING_BOOT -->|"FCM SDK"| FCM
-    SPRING_BOOT -->|"Email Send"| EMAIL
-    SPRING_BOOT <-->|"OAuth2 Token"| OAUTH
+    ACTIONS -->|"SSH 배포"| SPRING_BOOT
+    ACTIONS -.->|"수집 설정 및 재시작"| ALLOY
+    SPRING_BOOT <-->|"JPA / QueryDSL"| DB
+    SPRING_BOOT <-->|"S3 호환 SDK"| STORAGE
+    SPRING_BOOT -->|"푸시 알림"| FCM
+    SPRING_BOOT -->|"이메일 발송"| EMAIL
+    SPRING_BOOT <-->|"OAuth2"| OAUTH
+    PROMETHEUS -->|"HTTPS · 5초마다 수집"| ACTUATOR
+    ALLOY -->|"HTTPS · 로그 전송"| LOKI
+    GRAFANA -->|"PromQL 조회"| PROMETHEUS
+    GRAFANA -->|"LogQL 조회"| LOKI
 ```
 </details>
+
+---
+
+## 📈 APM & Monitoring (성능 및 로그 모니터링)
+
+[APM 저장소](https://github.com/Team-Unearned-Income/APM)의 모니터링 구성을 KnockIn 백엔드에 연동했습니다. **Prometheus·Grafana·Loki는 가정용 NAS에서 Docker Compose로 실행**하고, **Grafana Alloy는 애플리케이션이 실행되는 AWS EC2에 설치**하여 로그를 수집합니다.
+
+### 운영 구성
+
+| 구성 요소 | 실행 위치 | 역할 |
+| --- | --- | --- |
+| Spring Boot Actuator / Micrometer | AWS EC2 · 백엔드 애플리케이션 | HTTP 요청 및 JVM 메트릭을 `/actuator/prometheus`로 제공 |
+| Grafana Alloy | AWS EC2 | 애플리케이션의 `nohup.out` 로그를 읽어 Loki로 전송 |
+| Prometheus | NAS · Docker 컨테이너 | 백엔드의 메트릭을 주기적으로 수집·저장 |
+| Loki | NAS · Docker 컨테이너 | Alloy가 전송한 로그를 저장하고 검색 기능 제공 |
+| Grafana | NAS · Docker 컨테이너 | Prometheus와 Loki를 데이터 소스로 연결해 지표와 로그 조회 |
+
+### 메트릭·로그 수집 흐름
+
+```mermaid
+flowchart LR
+    subgraph EC2_MONITORING ["AWS EC2 · 애플리케이션 서버"]
+        APP["KnockIn Spring Boot"]
+        ACTUATOR["Actuator / Micrometer<br/>/actuator/prometheus"]
+        LOG_FILE["nohup.out"]
+        ALLOY["Grafana Alloy"]
+
+        APP -->|"메트릭 제공"| ACTUATOR
+        APP -->|"로그 기록"| LOG_FILE
+        LOG_FILE -->|"파일 수집"| ALLOY
+    end
+
+    subgraph NAS_MONITORING ["가정용 NAS · Docker Compose"]
+        PROMETHEUS["Prometheus"]
+        LOKI["Loki"]
+        GRAFANA["Grafana Dashboard"]
+    end
+
+    PROMETHEUS -->|"HTTPS · 5초마다 메트릭 수집"| ACTUATOR
+    ALLOY -->|"HTTPS · 로그 전송"| LOKI
+    GRAFANA -->|"메트릭 조회"| PROMETHEUS
+    GRAFANA -->|"로그 조회"| LOKI
+```
+
+### 주요 모니터링 항목
+
+- **요청 처리량**: 전체 및 API별 TPS/RPS, 호출량 상위 API
+- **응답 시간**: API별 평균 응답 시간과 시간대별 변화
+- **JVM 상태**: JVM 및 메모리 사용 지표
+- **애플리케이션 로그**: ERROR·WARN·Exception·SQL Query 로그와 애플리케이션·환경·서버별 필터링
+
+Prometheus는 [수집 설정](https://github.com/Team-Unearned-Income/APM/blob/main/prometheus.yml)에 따라 `https://api.knock-in.com/actuator/prometheus`를 **5초 간격**으로 조회합니다. 로그는 EC2의 Alloy가 수집해 NAS의 Loki로 전달하며, Grafana에서 성능 지표와 로그를 함께 확인하여 지연이나 오류가 발생한 구간을 조사할 수 있습니다.
+
+백엔드의 [배포 워크플로](.github/workflows/workflow.yml)에는 Alloy 설치, 로그 수집 설정 생성·검증, 서비스 재시작 과정이 포함되어 있습니다. NAS 컨테이너 구성은 [Docker Compose 설정](https://github.com/Team-Unearned-Income/APM/blob/main/docker-compose.yml)으로 관리하며, 대시보드 및 로그 조회 방법은 [APM 운영 가이드](https://github.com/Team-Unearned-Income/APM#readme)를 참고합니다.
 
 ---
 
@@ -298,3 +376,4 @@ openssl pkcs12 -export -out keystore.p12 -inkey ssl/key.pem -in ssl/cert.pem -na
 
 - **Swagger API Docs**: `http://localhost:8080/swagger-ui/index.html`
 - **H2 Console (Local)**: `http://localhost:8080/h2-console`
+- **APM Repository**: [Team-Unearned-Income/APM](https://github.com/Team-Unearned-Income/APM) — NAS의 Docker Compose 구성, Prometheus·Loki 설정 및 Grafana 대시보드 운영 가이드
