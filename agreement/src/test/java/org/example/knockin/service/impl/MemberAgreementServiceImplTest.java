@@ -74,11 +74,11 @@ class MemberAgreementServiceImplTest {
         AgreementLog log = mock(AgreementLog.class);
         List<AgreementLog> skipList = List.of(log);
         MemberAgreement agreement = mock(MemberAgreement.class);
-        given(memberAgreementRepository.findByMemberAndAgreementLogNotIn(member.getId(), skipList)).willReturn(List.of(agreement));
+        given(memberAgreementRepository.findByMemberIdAndAgreementLogNotIn(member.getId(), skipList)).willReturn(List.of(agreement));
  
         List<MemberAgreement> result = memberAgreementService.findByMemberIdAndAgreementLogNotIn(member.getId(), skipList);
  
         assertThat(result).hasSize(1);
-        verify(memberAgreementRepository).findByMemberAndAgreementLogNotIn(member.getId(), skipList);
+        verify(memberAgreementRepository).findByMemberIdAndAgreementLogNotIn(member.getId(), skipList);
     }
 }

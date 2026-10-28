@@ -1099,7 +1099,7 @@ class RoommateBoardRepositoryTest {
     private LifePatternFile persistLifePatternFile(LifePattern lifePattern, File file) {
         LifePatternFile lifePatternFile = LifePatternFile.builder()
                 .lifePattern(lifePattern)
-                .file(file)
+                .fileId(file.getId())
                 .build();
         entityManager.persist(lifePatternFile);
         return lifePatternFile;
@@ -1108,7 +1108,7 @@ class RoommateBoardRepositoryTest {
     private BasicInformationFile persistBasicInformationFile(BasicInformation basicInformation, File file) {
         BasicInformationFile basicInformationFile = newInstance(BasicInformationFile.class);
         ReflectionTestUtils.setField(basicInformationFile, "basicInformation", basicInformation);
-        ReflectionTestUtils.setField(basicInformationFile, "file", file);
+        ReflectionTestUtils.setField(basicInformationFile, "fileId", file.getId());
         entityManager.persist(basicInformationFile);
         return basicInformationFile;
     }
@@ -1166,7 +1166,7 @@ class RoommateBoardRepositoryTest {
 
     private MemberLifePattern persistMemberLifePattern(Member member, LifePatternInformation information) {
         MemberLifePattern memberLifePattern = MemberLifePattern.builder()
-                .member(member)
+                .memberId(member.getId())
                 .lifePatternInformation(information)
                 .build();
         entityManager.persist(memberLifePattern);
@@ -1175,7 +1175,7 @@ class RoommateBoardRepositoryTest {
 
     private PreferenceCondition persistPreferenceCondition(Member member, LifePatternInformation information) {
         PreferenceCondition preferenceCondition = newInstance(PreferenceCondition.class);
-        ReflectionTestUtils.setField(preferenceCondition, "member", member);
+        ReflectionTestUtils.setField(preferenceCondition, "memberId", member.getId());
         ReflectionTestUtils.setField(preferenceCondition, "lifePatternInformation", information);
         entityManager.persist(preferenceCondition);
         return preferenceCondition;
@@ -1183,7 +1183,7 @@ class RoommateBoardRepositoryTest {
 
     private PreferenceConditionWeight persistPreferenceConditionWeight(Member member, LifePattern pattern) {
         PreferenceConditionWeight preferenceConditionWeight = PreferenceConditionWeight.builder()
-                .member(member)
+                .memberId(member.getId())
                 .lifePattern(pattern)
                 .build();
         entityManager.persist(preferenceConditionWeight);
@@ -1192,7 +1192,7 @@ class RoommateBoardRepositoryTest {
 
     private Authentication persistAuthentication(Member member, AuthenticationType type) {
         Authentication authentication = newInstance(Authentication.class);
-        ReflectionTestUtils.setField(authentication, "member", member);
+        ReflectionTestUtils.setField(authentication, "memberId", member.getId());
         ReflectionTestUtils.setField(authentication, "type", type);
         ReflectionTestUtils.setField(authentication, "email", "auth@example.com");
         ReflectionTestUtils.setField(authentication, "code", "123456");

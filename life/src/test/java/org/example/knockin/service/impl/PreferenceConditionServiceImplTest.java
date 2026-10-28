@@ -6,7 +6,6 @@ import org.example.knockin.life.entity.PreferenceCondition;
 import org.example.knockin.life.entity.PreferenceConditionLog;
 import org.example.knockin.life.entity.PreferenceConditionWeight;
 import org.example.knockin.life.entity.PreferenceConditionWeightLog;
-import org.example.knockin.member.entity.Member;
 import org.example.knockin.life.repository.PreferenceConditionLogRepository;
 import org.example.knockin.life.repository.PreferenceConditionRepository;
 import org.example.knockin.life.repository.PreferenceConditionWeightLogRepository;
@@ -106,32 +105,32 @@ class PreferenceConditionServiceImplTest {
     @DisplayName("회원이 주어지면 해당 회원의 선호도 조건 목록을 조회한다")
     void findPreferenceConditionByMemberTest() {
         // Given
-        Member member = mock(Member.class);
+        Long memberId = 1L;
         PreferenceCondition pc = mock(PreferenceCondition.class);
-        given(preferenceConditionRepository.findByMember(member)).willReturn(List.of(pc));
+        given(preferenceConditionRepository.findByMemberId(memberId)).willReturn(List.of(pc));
  
         // When
-        List<PreferenceCondition> result = preferenceConditionService.findPreferenceConditionByMember(member);
+        List<PreferenceCondition> result = preferenceConditionService.findPreferenceConditionByMemberId(memberId);
  
         // Then
         assertThat(result).hasSize(1);
-        verify(preferenceConditionRepository).findByMember(member);
+        verify(preferenceConditionRepository).findByMemberId(memberId);
     }
  
     @Test
     @DisplayName("회원이 주어지면 해당 회원의 선호도 가중치 목록을 조회한다")
     void findPreferenceConditionWeightByMemberTest() {
         // Given
-        Member member = mock(Member.class);
+        Long memberId = 1L;
         PreferenceConditionWeight pcw = mock(PreferenceConditionWeight.class);
-        given(preferenceConditionWeightRepository.findByMember(member)).willReturn(List.of(pcw));
+        given(preferenceConditionWeightRepository.findByMemberId(memberId)).willReturn(List.of(pcw));
  
         // When
-        List<PreferenceConditionWeight> result = preferenceConditionService.findPreferenceConditionWeightByMember(member);
+        List<PreferenceConditionWeight> result = preferenceConditionService.findPreferenceConditionWeightByMemberId(memberId);
  
         // Then
         assertThat(result).hasSize(1);
-        verify(preferenceConditionWeightRepository).findByMember(member);
+        verify(preferenceConditionWeightRepository).findByMemberId(memberId);
     }
  
     @Test
@@ -174,13 +173,13 @@ class PreferenceConditionServiceImplTest {
     @DisplayName("회원이 주어지면 해당 회원의 선호도 가중치를 삭제하고 flush 한다")
     void deletePreferenceConditionWeightByMemberTest() {
         // Given
-        Member member = mock(Member.class);
+        Long memberId = 1L;
  
         // When
-        preferenceConditionService.deletePreferenceConditionWeightByMember(member);
+        preferenceConditionService.deletePreferenceConditionWeightByMemberId(memberId);
  
         // Then
-        verify(preferenceConditionWeightRepository).deleteByMember(member);
+        verify(preferenceConditionWeightRepository).deleteByMemberId(memberId);
         verify(preferenceConditionWeightRepository).flush();
     }
 }

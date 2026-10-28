@@ -279,7 +279,7 @@ class RoommateMatchingServiceImplTest {
 
         when(memberRepository.findById(reporterId)).thenReturn(Optional.of(reporter));
         when(memberRepository.findById(reportedId)).thenReturn(Optional.of(reported));
-        when(memberDeclarationRepository.existsByReporterAndReported(reporter, reported)).thenReturn(false);
+        when(memberDeclarationRepository.existsByReporterIdAndReportedId(reporter.getId(), reported.getId())).thenReturn(false);
 
         // When
         MemberReportDto.Response response = roommateMatchingService.reportMatching(reporterId, reportedId, request);
@@ -288,8 +288,8 @@ class RoommateMatchingServiceImplTest {
         ArgumentCaptor<MemberDeclaration> declarationCaptor = ArgumentCaptor.forClass(MemberDeclaration.class);
         verify(memberDeclarationRepository).save(declarationCaptor.capture());
         MemberDeclaration declaration = declarationCaptor.getValue();
-        assertThat(declaration.getReporter()).isSameAs(reporter);
-        assertThat(declaration.getReported()).isSameAs(reported);
+        assertThat(declaration.getReporterId()).isEqualTo(reporter.getId());
+        assertThat(declaration.getReportedId()).isEqualTo(reported.getId());
         assertThat(declaration.getReason()).isEqualTo("불쾌한 메시지를 반복해서 보냈습니다.");
         assertThat(response.getUpdatedAt()).isNotNull();
     }
@@ -307,7 +307,7 @@ class RoommateMatchingServiceImplTest {
 
         when(memberRepository.findById(reporterId)).thenReturn(Optional.of(reporter));
         when(memberRepository.findById(reportedId)).thenReturn(Optional.of(reported));
-        when(memberDeclarationRepository.existsByReporterAndReported(reporter, reported)).thenReturn(true);
+        when(memberDeclarationRepository.existsByReporterIdAndReportedId(reporter.getId(), reported.getId())).thenReturn(true);
 
         // When & Then
         assertThatThrownBy(() -> roommateMatchingService.reportMatching(reporterId, reportedId, request))

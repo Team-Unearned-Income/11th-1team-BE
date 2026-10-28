@@ -2,6 +2,8 @@ package org.example.knockin.service.impl;
 
 import org.example.knockin.meta.service.impl.AlarmServiceImpl;
 import org.example.knockin.meta.service.impl.PushNotificationServiceImpl;
+import org.example.knockin.meta.entity.Alarm;
+import org.example.knockin.global.entity.InquiryAlarmTemplate;
 import org.example.knockin.inquiry.dto.BoInquiryDetailDto;
 import org.example.knockin.inquiry.dto.BoInquiryListDto;
 import org.example.knockin.inquiry.dto.InquiryCategoryListDto;
@@ -24,6 +26,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
@@ -72,7 +75,7 @@ class InquirieServiceImplTest {
         request.setTitle("Inquiry Title");
         request.setContents("Inquiry Contents");
 
-        Member member = mock(Member.class);
+        Member member = Member.builder().id(42L).build();
         InquiryCategory category = mock(InquiryCategory.class);
 
         given(inquiryCategoryRepository.findById(1L)).willReturn(Optional.of(category));
@@ -81,7 +84,9 @@ class InquirieServiceImplTest {
         inquiriesService.saveInquiry(request, member);
 
         // then
-        verify(inquiryRepository).save(any(Inquiry.class));
+        ArgumentCaptor<Inquiry> inquiryCaptor = ArgumentCaptor.forClass(Inquiry.class);
+        verify(inquiryRepository).save(inquiryCaptor.capture());
+        assertThat(inquiryCaptor.getValue().getMemberId()).isEqualTo(42L);
     }
 
     @Test
@@ -177,7 +182,7 @@ class InquirieServiceImplTest {
                 .build();
 
         given(memberService.findById(memberId)).willReturn(Optional.of(member));
-        given(inquiryRepository.findMyInquiryList(false, member, pageable)).willReturn(List.of(item));
+        given(inquiryRepository.findMyInquiryList(false, memberId, pageable)).willReturn(List.of(item));
 
         // when
         InquiryListDto.Response response = inquiriesService.findInquirieList(pageable, memberId);
@@ -202,7 +207,7 @@ class InquirieServiceImplTest {
                 .build();
 
         given(memberService.findById(memberId)).willReturn(Optional.of(member));
-        given(inquiryRepository.findMyInquiry(false, member, inquiryId)).willReturn(detail);
+        given(inquiryRepository.findMyInquiry(false, memberId, inquiryId)).willReturn(detail);
 
         // when
         InquiryDetailDto.Response response = inquiriesService.findInquirie(inquiryId, memberId);
@@ -217,12 +222,14 @@ class InquirieServiceImplTest {
     void saveInquirieReplySuccessTest() {
         // given
         Member member = Member.builder().id(10L).fcmToken("token").build();
-        Inquiry inquiry = Inquiry.builder().member(member).build();
+        Inquiry inquiry = Inquiry.builder().memberId(member.getId()).build();
         InquiryComment comment = InquiryComment.builder()
                 .inquiry(inquiry)
+                .memberId(20L)
                 .contents("답변 내용")
                 .build();
         given(inquiryCommentRepository.save(any(InquiryComment.class))).willReturn(comment);
+        given(memberService.findById(member.getId())).willReturn(Optional.of(member));
 
         // when
         InquiryComment result = inquiriesService.saveInquirieReply(comment);
@@ -231,6 +238,10 @@ class InquirieServiceImplTest {
         assertThat(result).isNotNull();
         assertThat(result.getContents()).isEqualTo("답변 내용");
         verify(inquiryCommentRepository).save(comment);
+        ArgumentCaptor<Alarm> alarmCaptor = ArgumentCaptor.forClass(Alarm.class);
+        verify(alarmService).sendToClient(eq(member.getId()), eq(InquiryAlarmTemplate.INQUIRIE_REPLY.name()), alarmCaptor.capture());
+        assertThat(alarmCaptor.getValue().getMember()).isSameAs(member);
+        verify(memberService).findById(10L);
     }
 
     @Test

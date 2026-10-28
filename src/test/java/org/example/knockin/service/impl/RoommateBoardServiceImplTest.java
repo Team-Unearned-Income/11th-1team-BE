@@ -405,7 +405,7 @@ class RoommateBoardServiceImplTest {
 
         when(roommateBoardRepository.findById(boardId)).thenReturn(Optional.of(board));
         when(memberService.findById(memberId)).thenReturn(Optional.of(member));
-        when(roommateBoardDeclarationRepository.findByRoommateBoardAndMember(board, member))
+        when(roommateBoardDeclarationRepository.findByRoommateBoardIdAndMemberId(board.getId(), member.getId()))
                 .thenReturn(Optional.empty());
 
         // When
@@ -414,8 +414,8 @@ class RoommateBoardServiceImplTest {
         // Then
         verify(roommateBoardDeclarationRepository).save(roommateBoardDeclarationCaptor.capture());
         RoommateBoardDeclaration declaration = roommateBoardDeclarationCaptor.getValue();
-        assertThat(declaration.getRoommateBoard()).isSameAs(board);
-        assertThat(declaration.getMember()).isSameAs(member);
+        assertThat(declaration.getRoommateBoardId()).isEqualTo(board.getId());
+        assertThat(declaration.getMemberId()).isEqualTo(member.getId());
         assertThat(declaration.getReason()).isEqualTo("부적절한 게시글입니다.");
         assertThat(response.getUpdatedAt()).isNotNull();
     }
@@ -429,14 +429,14 @@ class RoommateBoardServiceImplTest {
         RoommateBoard board = createRoommateBoard(10L);
         Member member = Member.builder().id(memberId).build();
         RoommateBoardDeclaration existingDeclaration = RoommateBoardDeclaration.builder()
-                .roommateBoard(board)
-                .member(member)
+                .roommateBoardId(board.getId())
+                .memberId(member.getId())
                 .reason("기존 신고 사유")
                 .build();
 
         when(roommateBoardRepository.findById(boardId)).thenReturn(Optional.of(board));
         when(memberService.findById(memberId)).thenReturn(Optional.of(member));
-        when(roommateBoardDeclarationRepository.findByRoommateBoardAndMember(board, member))
+        when(roommateBoardDeclarationRepository.findByRoommateBoardIdAndMemberId(board.getId(), member.getId()))
                 .thenReturn(Optional.of(existingDeclaration));
 
         // When & Then

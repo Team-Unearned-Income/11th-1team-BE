@@ -167,7 +167,7 @@ class BasicInformationRepositoryTest {
             constructor.setAccessible(true);
             BasicInformationFile basicInformationFile = constructor.newInstance();
             ReflectionTestUtils.setField(basicInformationFile, "basicInformation", basicInformation);
-            ReflectionTestUtils.setField(basicInformationFile, "file", file);
+            ReflectionTestUtils.setField(basicInformationFile, "fileId", file.getId());
             return basicInformationFile;
         } catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
             throw new IllegalStateException("기본 정보 파일 테스트 엔티티 생성에 실패했습니다.", e);

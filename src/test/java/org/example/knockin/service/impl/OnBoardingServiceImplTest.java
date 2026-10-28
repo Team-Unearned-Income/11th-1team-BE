@@ -150,7 +150,10 @@ class OnBoardingServiceImplTest {
         SaveProfileLifeStyleDto.Response response = onBoardingService.saveLifeStyleLogic(request, memberId);
  
         assertThat(response).isNotNull();
-        verify(memberLifePatternService).saveMemberLifePatternAll(any());
+        verify(memberLifePatternService).saveMemberLifePatternAll(argThat(patterns ->
+                patterns.size() == 1 && memberId.equals(patterns.getFirst().getMemberId())));
+        verify(memberLifePatternService).saveMemberLifePatternLogAll(argThat(logs ->
+                logs.size() == 1 && memberId.equals(logs.getFirst().getMemberId())));
     }
  
     @Test
@@ -289,7 +292,7 @@ class OnBoardingServiceImplTest {
         given(newInfo.getId()).willReturn(10L);
  
         given(lifeStyleService.findLifePatternInformationAllById(any())).willReturn(List.of(newInfo));
-        given(memberLifePatternService.findByMember(member)).willReturn(List.of(memberLifePattern));
+        given(memberLifePatternService.findByMemberId(memberId)).willReturn(List.of(memberLifePattern));
  
         ModifyProfileLifeStyleDto.Response response = onBoardingService.modifyLifeStyleLogic(request, memberId);
  
@@ -362,7 +365,7 @@ class OnBoardingServiceImplTest {
         SavePreferencesConditionsDto.Response response = onBoardingService.savePreferenceConditionLogic(request, memberId);
 
         assertThat(response).isNotNull();
-        verify(preferenceConditionService).deletePreferenceConditionWeightByMember(any());
+        verify(preferenceConditionService).deletePreferenceConditionWeightByMemberId(any());
         verify(preferenceConditionService).preferenceConditionWeightSaveAll(any());
     }
 }
