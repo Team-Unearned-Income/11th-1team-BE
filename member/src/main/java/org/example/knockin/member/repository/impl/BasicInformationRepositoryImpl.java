@@ -60,7 +60,7 @@ public class BasicInformationRepositoryImpl implements BasicInformationRepositor
                                 .from(latestBasicInformationFile)
                                 .where(latestBasicInformationFile.basicInformation.id.eq(basicInformation.id))
                 ))
-                .leftJoin(basicInformationFile.file, file)
+                .leftJoin(file).on(basicInformationFile.fileId.eq(file.id))
                 .where(basicInformation.member.id.eq(memberId))
                 .orderBy(basicInformation.id.desc())
                 .fetchFirst()
@@ -90,7 +90,7 @@ public class BasicInformationRepositoryImpl implements BasicInformationRepositor
                                 .from(latestBasicInformationFile)
                                 .where(latestBasicInformationFile.basicInformation.id.eq(basicInformation.id))
                 ))
-                .leftJoin(basicInformationFile.file, file)
+                .leftJoin(file).on(basicInformationFile.fileId.eq(file.id))
                 .where(
                         basicInformation.member.id.in(memberIds),
                         basicInformation.id.eq(

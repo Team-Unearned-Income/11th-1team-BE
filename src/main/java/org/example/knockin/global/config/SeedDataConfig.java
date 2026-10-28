@@ -622,7 +622,7 @@ public class SeedDataConfig implements CommandLineRunner {
                 .build();
         fileRepository.saveAll(List.of(profilePic, boardPic, roomTypePic, extraOptionPic, lifePatternPic, chatRoomPic));
 
-        basicInformationFileRepository.save(BasicInformationFile.builder().basicInformation(user1Info).file(profilePic).build());
+        basicInformationFileRepository.save(BasicInformationFile.builder().basicInformation(user1Info).fileId(profilePic.getId()).build());
 
         roomTypeFileRepository.save(RoomTypeFile.builder().roomType(oneRoom).file(roomTypePic).build());
         roomExtraOptionFileRepository.save(RoomExtraOptionFile.builder().roomExtraOption(fullOption).file(extraOptionPic).build());
@@ -1238,7 +1238,7 @@ public class SeedDataConfig implements CommandLineRunner {
             authentications.add(authentication);
             authenticationApproves.add(AuthenticationApprove.builder()
                     .authentication(authentication).status(ApproveType.ACCEPTED).build());
-            basicInformationFiles.add(BasicInformationFile.builder().basicInformation(info).file(profileFile).build());
+            basicInformationFiles.add(BasicInformationFile.builder().basicInformation(info).fileId(profileFile.getId()).build());
 
             RoomOfferProfile offerProfile = RoomOfferProfile.builder()
                     .member(member).region(region).deposit(300 + i % 20 * 50)

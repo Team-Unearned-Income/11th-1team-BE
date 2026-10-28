@@ -322,10 +322,10 @@ public class OnBoardingServiceImpl {
                 File fileEntity = fileService.save(file, FileType.USER_PROFILE_IMAGE);
                 BasicInformationFile basicInformationFile = basicInformationService.findBasicInformationFile(basicInformation);
                 if(basicInformationFile != null) {
-                    basicInformationFile.modifyFile(fileEntity);
+                    basicInformationFile.modifyFile(fileEntity.getId());
                 } else {
                     basicInformationService.save(BasicInformationFile.builder()
-                            .file(fileEntity)
+                            .fileId(fileEntity.getId())
                             .basicInformation(basicInformation)
                             .build());
                 }
