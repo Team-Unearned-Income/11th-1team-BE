@@ -9,7 +9,7 @@ import org.example.knockin.declaration.dto.BoReportDoneListDto;
 import org.example.knockin.declaration.dto.BoReportWaitListDto;
 import org.example.knockin.declaration.entity.DeclarationType;
 import org.example.knockin.global.util.ReportType;
-import org.example.knockin.member.repository.MemberDeclarationRepositoryCustom;
+import org.example.knockin.declaration.repository.MemberDeclarationRepositoryCustom;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
