@@ -328,7 +328,7 @@ public class BackOfficeServiceImpl {
     public BoInquiryReplyDto.Response saveInquiryReply(BoInquiryReplyDto.Request request, Long memberId) {
         Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
         Inquiry inquiry = inquirieService.findInquiryById(request.getInquirieId());
-        inquirieService.saveInquirieReply(InquiryComment.builder().member(member).inquiry(inquiry).contents(request.getContents()).build());
+        inquirieService.saveInquirieReply(InquiryComment.builder().memberId(member.getId()).inquiry(inquiry).contents(request.getContents()).build());
         return BoInquiryReplyDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 

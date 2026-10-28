@@ -724,7 +724,7 @@ public class SeedDataConfig implements CommandLineRunner {
 
         // 13. 1:1 문의 및 답변 (Inquiry & InquiryComment)
         Inquiry inquiry1 = Inquiry.builder()
-                .member(user1)
+                .memberId(user1.getId())
                 .inquiryCategory(catAccount)
                 .title("신원 인증 처리 기간이 궁금합니다.")
                 .contents("학생 인증 신청을 했는데 승인까지 보통 얼마나 걸리나요?")
@@ -733,7 +733,7 @@ public class SeedDataConfig implements CommandLineRunner {
         inquiryRepository.save(inquiry1);
 
         InquiryComment comment1 = InquiryComment.builder()
-                .member(adminMember)
+                .memberId(adminMember.getId())
                 .inquiry(inquiry1)
                 .contents("안녕하세요 김노크님! 신원 인증은 제출 후 영업일 기준 1~2일 이내에 검토 완료됩니다.")
                 .isDeleted(false)
@@ -1030,7 +1030,7 @@ public class SeedDataConfig implements CommandLineRunner {
             searches.add(Search.builder().member(member).keyword("부하테스트 " + (i + 1)).build());
 
             Inquiry inquiry = Inquiry.builder()
-                    .member(member)
+                    .memberId(member.getId())
                     .inquiryCategory(inquiryCategory)
                     .title("부하 테스트 문의 " + (i + 1))
                     .contents("nGrinder 문의 목록 테스트용 데이터입니다. " + (i + 1))
@@ -1038,7 +1038,7 @@ public class SeedDataConfig implements CommandLineRunner {
                     .build();
             inquiries.add(inquiry);
             inquiryComments.add(InquiryComment.builder()
-                    .member(adminMember)
+                    .memberId(adminMember.getId())
                     .inquiry(inquiry)
                     .contents("부하 테스트 답변 " + (i + 1))
                     .isDeleted(false)
