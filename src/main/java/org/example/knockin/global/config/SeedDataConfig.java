@@ -504,34 +504,34 @@ public class SeedDataConfig implements CommandLineRunner {
 
         // 4. 회원 약관 동의 (MemberAgreement)
         memberAgreementRepository.saveAll(List.of(
-                MemberAgreement.builder().member(user1).agreementLog(termsLog1).isAgreed(true).build(),
-                MemberAgreement.builder().member(user1).agreementLog(privacyLog).isAgreed(true).build(),
-                MemberAgreement.builder().member(user2).agreementLog(termsLog1).isAgreed(true).build(),
-                MemberAgreement.builder().member(user2).agreementLog(privacyLog).isAgreed(true).build()
+                MemberAgreement.builder().memberId(user1.getId()).agreementLog(termsLog1).isAgreed(true).build(),
+                MemberAgreement.builder().memberId(user1.getId()).agreementLog(privacyLog).isAgreed(true).build(),
+                MemberAgreement.builder().memberId(user2.getId()).agreementLog(termsLog1).isAgreed(true).build(),
+                MemberAgreement.builder().memberId(user2.getId()).agreementLog(privacyLog).isAgreed(true).build()
         ));
 
         // 5. 회원 생활패턴 (MemberLifePattern) & 선호조건 (PreferenceCondition & Weight)
         if (!lifePatternInformationList.isEmpty()) {
             memberLifePatternRepository.saveAll(List.of(
-                    MemberLifePattern.builder().member(user1).lifePatternInformation(lifePatternInformationList.get(0)).build(),
-                    MemberLifePattern.builder().member(user2).lifePatternInformation(lifePatternInformationList.get(0)).build()
+                    MemberLifePattern.builder().memberId(user1.getId()).lifePatternInformation(lifePatternInformationList.get(0)).build(),
+                    MemberLifePattern.builder().memberId(user2.getId()).lifePatternInformation(lifePatternInformationList.get(0)).build()
             ));
 
             preferenceConditionRepository.saveAll(List.of(
-                    PreferenceCondition.builder().member(user1).lifePatternInformation(lifePatternInformationList.get(0)).build(),
-                    PreferenceCondition.builder().member(user2).lifePatternInformation(lifePatternInformationList.get(0)).build()
+                    PreferenceCondition.builder().memberId(user1.getId()).lifePatternInformation(lifePatternInformationList.get(0)).build(),
+                    PreferenceCondition.builder().memberId(user2.getId()).lifePatternInformation(lifePatternInformationList.get(0)).build()
             ));
 
             preferenceConditionWeightRepository.saveAll(List.of(
-                    PreferenceConditionWeight.builder().member(user1).lifePattern(bedtime).build(),
-                    PreferenceConditionWeight.builder().member(user2).lifePattern(cleanlinessSensitivity).build()
+                    PreferenceConditionWeight.builder().memberId(user1.getId()).lifePattern(bedtime).build(),
+                    PreferenceConditionWeight.builder().memberId(user2.getId()).lifePattern(cleanlinessSensitivity).build()
             ));
         }
 
         // 6. 회원 관심 상대 (MemberInterest) & 차단 (Block) & 회원 신고 (MemberDeclaration)
         memberInterestRepository.save(MemberInterest.builder().sender(user1).receiver(user2).isDeleted(false).build());
         blockRepository.save(Block.builder().blocker(user1).blocked(user2).isDeleted(false).build());
-        memberDeclarationRepository.save(MemberDeclaration.builder().reporter(user1).reported(user2).reason("불쾌한 채팅 메세지").declarationType(DeclarationType.PENDING).build());
+        memberDeclarationRepository.save(MemberDeclaration.builder().reporterId(user1.getId()).reportedId(user2.getId()).reason("불쾌한 채팅 메세지").declarationType(DeclarationType.PENDING).build());
 
         // 7. 자주 묻는 질문 (FAQ)
         Faq faq1 = Faq.builder()
@@ -552,14 +552,14 @@ public class SeedDataConfig implements CommandLineRunner {
 
         // 8. 학생/직장인 신원 인증 (Authentication & AuthenticationApprove)
         Authentication authUser1 = Authentication.builder()
-                .member(user1)
+                .memberId(user1.getId())
                 .type(AuthenticationType.STUDENT)
                 .email("user1@univ.ac.kr")
                 .code("123456")
                 .isAccepted(true)
                 .build();
         Authentication authUser2 = Authentication.builder()
-                .member(user2)
+                .memberId(user2.getId())
                 .type(AuthenticationType.COMPANY)
                 .email("user2@company.com")
                 .code("654321")
@@ -622,11 +622,11 @@ public class SeedDataConfig implements CommandLineRunner {
                 .build();
         fileRepository.saveAll(List.of(profilePic, boardPic, roomTypePic, extraOptionPic, lifePatternPic, chatRoomPic));
 
-        basicInformationFileRepository.save(BasicInformationFile.builder().basicInformation(user1Info).file(profilePic).build());
+        basicInformationFileRepository.save(BasicInformationFile.builder().basicInformation(user1Info).fileId(profilePic.getId()).build());
 
         roomTypeFileRepository.save(RoomTypeFile.builder().roomType(oneRoom).file(roomTypePic).build());
         roomExtraOptionFileRepository.save(RoomExtraOptionFile.builder().roomExtraOption(fullOption).file(extraOptionPic).build());
-        lifePatternFileRepository.save(LifePatternFile.builder().lifePattern(bedtime).file(lifePatternPic).build());
+        lifePatternFileRepository.save(LifePatternFile.builder().lifePattern(bedtime).fileId(lifePatternPic.getId()).build());
 
         // 10. 방 프로필 (RoomOfferProfile, RoomSeekerProfile, OfferRoomType, SeekerRoomType, SeekerProfileRegion)
         RoomOfferProfile offerProfile = RoomOfferProfile.builder()
@@ -691,7 +691,7 @@ public class SeedDataConfig implements CommandLineRunner {
 
         roommateBoardFileRepository.save(RoommateBoardFile.builder().roommateBoard(board1).file(boardPic).isThumbnail(true).build());
         roommateBoardInterestRepository.save(RoommateBoardInterest.builder().member(user2).roommateBoard(board1).isDeleted(false).build());
-        roommateBoardDeclarationRepository.save(RoommateBoardDeclaration.builder().member(user2).roommateBoard(board1).reason("허위 매물 등록 의심").declarationType(DeclarationType.PENDING).build());
+        roommateBoardDeclarationRepository.save(RoommateBoardDeclaration.builder().memberId(user2.getId()).roommateBoardId(board1.getId()).reason("허위 매물 등록 의심").declarationType(DeclarationType.PENDING).build());
 
         // 12-1. 추가 테스트용
         RoommateBoard board2 = RoommateBoard.builder()
@@ -720,11 +720,11 @@ public class SeedDataConfig implements CommandLineRunner {
                 .build();
 
         roommateBoardOptionRepository.saveAll(List.of(boardOption3, boardOption4));
-        roommateBoardDeclarationRepository.save(RoommateBoardDeclaration.builder().member(user2).roommateBoard(board2).reason("허위 매물 등록 의심").declarationType(DeclarationType.PENDING).build());
+        roommateBoardDeclarationRepository.save(RoommateBoardDeclaration.builder().memberId(user2.getId()).roommateBoardId(board2.getId()).reason("허위 매물 등록 의심").declarationType(DeclarationType.PENDING).build());
 
         // 13. 1:1 문의 및 답변 (Inquiry & InquiryComment)
         Inquiry inquiry1 = Inquiry.builder()
-                .member(user1)
+                .memberId(user1.getId())
                 .inquiryCategory(catAccount)
                 .title("신원 인증 처리 기간이 궁금합니다.")
                 .contents("학생 인증 신청을 했는데 승인까지 보통 얼마나 걸리나요?")
@@ -733,7 +733,7 @@ public class SeedDataConfig implements CommandLineRunner {
         inquiryRepository.save(inquiry1);
 
         InquiryComment comment1 = InquiryComment.builder()
-                .member(adminMember)
+                .memberId(adminMember.getId())
                 .inquiry(inquiry1)
                 .contents("안녕하세요 김노크님! 신원 인증은 제출 후 영업일 기준 1~2일 이내에 검토 완료됩니다.")
                 .isDeleted(false)
@@ -781,11 +781,11 @@ public class SeedDataConfig implements CommandLineRunner {
                 MemberLifePatternLogDegree.builder().degree(1L).build());
         PreferenceConditionWeightLogDegree preferenceConditionWeightLogDegree = preferenceConditionWeightLogDegreeRepository.save(PreferenceConditionWeightLogDegree.builder().degree(1L).build());
         MemberLifePatternLog mlpLog = memberLifePatternLogRepository.save(
-                MemberLifePatternLog.builder().member(user1).lifePatternInformation(lifePatternInformationList.get(0)).memberLifePatternLogDegree(memberLifePatternLogDegree).build());
+                MemberLifePatternLog.builder().memberId(user1.getId()).lifePatternInformation(lifePatternInformationList.get(0)).memberLifePatternLogDegree(memberLifePatternLogDegree).build());
         PreferenceConditionLog pcLog = preferenceConditionLogRepository.save(
-                PreferenceConditionLog.builder().member(user1).lifePatternInformation(lifePatternInformationList.get(0)).preferenceConditionLogDegree(preferenceConditionLogDegree).build());
+                PreferenceConditionLog.builder().memberId(user1.getId()).lifePatternInformation(lifePatternInformationList.get(0)).preferenceConditionLogDegree(preferenceConditionLogDegree).build());
         PreferenceConditionWeightLog pcwLog = preferenceConditionWeightLogRepository.save(
-                PreferenceConditionWeightLog.builder().member(user1).lifePattern(bedtime).preferenceConditionWeightLogDegree(preferenceConditionWeightLogDegree).build());
+                PreferenceConditionWeightLog.builder().memberId(user1.getId()).lifePattern(bedtime).preferenceConditionWeightLogDegree(preferenceConditionWeightLogDegree).build());
 
         chatRoomFileRepository.save(ChatRoomFile.builder().chatRoomMessage(msg1).file(chatRoomPic).build());
         ChattingScore chattingScore = chattingScoreRepository.save(ChattingScore.builder().chattingRequired(chatReq).memberLifePatternLogDegree(memberLifePatternLogDegree).preferenceConditionLogDegree(preferenceConditionLogDegree).preferenceConditionWeightLogDegree(preferenceConditionWeightLogDegree).score(90).build());
@@ -1006,7 +1006,7 @@ public class SeedDataConfig implements CommandLineRunner {
                     .build();
             agreements.add(agreement);
             agreementLogs.add(AgreementLog.builder().agreement(agreement).isCurrent(true).build());
-            memberAgreements.add(MemberAgreement.builder().member(member).agreementLog(agreementLogs.get(i)).isAgreed(true).build());
+            memberAgreements.add(MemberAgreement.builder().memberId(member.getId()).agreementLog(agreementLogs.get(i)).isAgreed(true).build());
 
             RoommateBoard board = RoommateBoard.builder()
                     .member(member)
@@ -1030,7 +1030,7 @@ public class SeedDataConfig implements CommandLineRunner {
             searches.add(Search.builder().member(member).keyword("부하테스트 " + (i + 1)).build());
 
             Inquiry inquiry = Inquiry.builder()
-                    .member(member)
+                    .memberId(member.getId())
                     .inquiryCategory(inquiryCategory)
                     .title("부하 테스트 문의 " + (i + 1))
                     .contents("nGrinder 문의 목록 테스트용 데이터입니다. " + (i + 1))
@@ -1038,7 +1038,7 @@ public class SeedDataConfig implements CommandLineRunner {
                     .build();
             inquiries.add(inquiry);
             inquiryComments.add(InquiryComment.builder()
-                    .member(adminMember)
+                    .memberId(adminMember.getId())
                     .inquiry(inquiry)
                     .contents("부하 테스트 답변 " + (i + 1))
                     .isDeleted(false)
@@ -1221,10 +1221,10 @@ public class SeedDataConfig implements CommandLineRunner {
             interests.add(MemberInterest.builder().sender(member).receiver(supportMember).isDeleted(false).build());
             blocks.add(Block.builder().blocker(member).blocked(supportMember).isDeleted(false).build());
             memberDeclarations.add(MemberDeclaration.builder()
-                    .reporter(member).reported(supportMember).reason("부하 테스트 신고 " + (i + 1))
+                    .reporterId(member.getId()).reportedId(supportMember.getId()).reason("부하 테스트 신고 " + (i + 1))
                     .declarationType(DeclarationType.PENDING).build());
             boardDeclarations.add(RoommateBoardDeclaration.builder()
-                    .member(supportMember).roommateBoard(board).reason("부하 테스트 게시글 신고 " + (i + 1))
+                    .memberId(supportMember.getId()).roommateBoardId(board.getId()).reason("부하 테스트 게시글 신고 " + (i + 1))
                     .declarationType(DeclarationType.PENDING).build());
             faqs.add(Faq.builder()
                     .title("부하 테스트 FAQ " + (i + 1))
@@ -1232,13 +1232,13 @@ public class SeedDataConfig implements CommandLineRunner {
                     .member(adminMember).sort(i + 1).isDeleted(false).build());
 
             Authentication authentication = Authentication.builder()
-                    .member(member).type(AuthenticationType.STUDENT)
+                    .memberId(member.getId()).type(AuthenticationType.STUDENT)
                     .email("loadtest" + (i + 1) + "@univ.ac.kr")
                     .code(String.format("%06d", (i + 1) % 1_000_000)).isAccepted(true).build();
             authentications.add(authentication);
             authenticationApproves.add(AuthenticationApprove.builder()
                     .authentication(authentication).status(ApproveType.ACCEPTED).build());
-            basicInformationFiles.add(BasicInformationFile.builder().basicInformation(info).file(profileFile).build());
+            basicInformationFiles.add(BasicInformationFile.builder().basicInformation(info).fileId(profileFile.getId()).build());
 
             RoomOfferProfile offerProfile = RoomOfferProfile.builder()
                     .member(member).region(region).deposit(300 + i % 20 * 50)
@@ -1254,20 +1254,20 @@ public class SeedDataConfig implements CommandLineRunner {
             seekerRoomTypes.add(SeekerRoomType.builder().roomSeekerProfile(seekerProfile).roomType(roomType).build());
             seekerProfileRegions.add(RoomSeekerProfileRegion.builder().roomSeekerProfile(seekerProfile).region(region).build());
 
-            memberLifePatterns.add(MemberLifePattern.builder().member(member).lifePatternInformation(patternInformation).build());
-            preferenceConditions.add(PreferenceCondition.builder().member(member).lifePatternInformation(patternInformation).build());
-            preferenceWeights.add(PreferenceConditionWeight.builder().member(member).lifePattern(lifePattern).build());
+            memberLifePatterns.add(MemberLifePattern.builder().memberId(member.getId()).lifePatternInformation(patternInformation).build());
+            preferenceConditions.add(PreferenceCondition.builder().memberId(member.getId()).lifePatternInformation(patternInformation).build());
+            preferenceWeights.add(PreferenceConditionWeight.builder().memberId(member.getId()).lifePattern(lifePattern).build());
             MemberLifePatternLogDegree memberDegree = MemberLifePatternLogDegree.builder().degree((long) i + 1).build();
             PreferenceConditionLogDegree preferenceDegree = PreferenceConditionLogDegree.builder().degree((long) i + 1).build();
             PreferenceConditionWeightLogDegree weightDegree = PreferenceConditionWeightLogDegree.builder().degree((long) i + 1).build();
             memberLogDegrees.add(memberDegree);
             preferenceLogDegrees.add(preferenceDegree);
             weightLogDegrees.add(weightDegree);
-            memberLifePatternLogs.add(MemberLifePatternLog.builder().member(member)
+            memberLifePatternLogs.add(MemberLifePatternLog.builder().memberId(member.getId())
                     .lifePatternInformation(patternInformation).memberLifePatternLogDegree(memberDegree).build());
-            preferenceConditionLogs.add(PreferenceConditionLog.builder().member(member)
+            preferenceConditionLogs.add(PreferenceConditionLog.builder().memberId(member.getId())
                     .lifePatternInformation(patternInformation).preferenceConditionLogDegree(preferenceDegree).build());
-            preferenceWeightLogs.add(PreferenceConditionWeightLog.builder().member(member)
+            preferenceWeightLogs.add(PreferenceConditionWeightLog.builder().memberId(member.getId())
                     .lifePattern(lifePattern).preferenceConditionWeightLogDegree(weightDegree).build());
             ChattingScore chattingScore = ChattingScore.builder().chattingRequired(chattingRequired)
                     .memberLifePatternLogDegree(memberDegree).preferenceConditionLogDegree(preferenceDegree)
@@ -1419,7 +1419,7 @@ public class SeedDataConfig implements CommandLineRunner {
             File file = files.get(i);
             roomTypeFiles.add(RoomTypeFile.builder().roomType(roomTypes.get(i)).file(file).build());
             roomExtraOptionFiles.add(RoomExtraOptionFile.builder().roomExtraOption(roomExtraOptions.get(i)).file(file).build());
-            lifePatternFiles.add(LifePatternFile.builder().lifePattern(lifePatterns.get(i)).file(file).build());
+            lifePatternFiles.add(LifePatternFile.builder().lifePattern(lifePatterns.get(i)).fileId(file.getId()).build());
         }
         roomTypeFileRepository.saveAll(roomTypeFiles);
         roomExtraOptionFileRepository.saveAll(roomExtraOptionFiles);

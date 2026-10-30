@@ -17,7 +17,6 @@ import org.example.knockin.verification.dto.BoVerificationWaitingListDto;
 import org.example.knockin.verification.dto.MyVerificationListDto;
 import org.example.knockin.verification.entity.ApproveType;
 import org.example.knockin.verification.entity.AuthenticationType;
-import org.example.knockin.member.entity.Member;
 import org.example.knockin.verification.repository.AuthenticationRepositoryCustom;
 import org.example.knockin.verification.repository.row.MemberAuthenticationRow;
 import org.jspecify.annotations.NullMarked;
@@ -36,11 +35,11 @@ public class AuthenticationRepositoryImpl implements AuthenticationRepositoryCus
                 .select(authentication.type)
                 .from(authentication)
                 .where(
-                        authentication.member.id.eq(memberId),
+                        authentication.memberId.eq(memberId),
                         authentication.isAccepted.isTrue(),
                         authentication.isDeleted.isFalse()
                 )
-                .join(authentication.member, member)
+                .join(member).on(authentication.memberId.eq(member.id))
                 .fetch();
     }
 
@@ -49,13 +48,13 @@ public class AuthenticationRepositoryImpl implements AuthenticationRepositoryCus
         return jpaQueryFactory
                 .select(Projections.constructor(
                         MemberAuthenticationRow.class,
-                        authentication.member.id,
+                        authentication.memberId,
                         authentication.type
                 ))
                 .distinct()
                 .from(authentication)
                 .where(
-                        authentication.member.id.in(memberIds),
+                        authentication.memberId.in(memberIds),
                         authentication.isAccepted.isTrue(),
                         authentication.isDeleted.isFalse()
                 )
@@ -72,7 +71,7 @@ public class AuthenticationRepositoryImpl implements AuthenticationRepositoryCus
                     authentication.email,
                     authenticationApprove.createdAt.as("createAt")
                 )).from(authenticationApprove).join(authenticationApprove.authentication, authentication)
-                .join(member).on(authentication.member.eq(member))
+                .join(member).on(authentication.memberId.eq(member.id))
                 .leftJoin(basicInformation).on(basicInformation.member.eq(member))
                 .where(authenticationApprove.status.eq(ApproveType.ACCEPTED))
                 .offset(pageable.getOffset()).limit(pageable.getPageSize())
@@ -90,7 +89,7 @@ public class AuthenticationRepositoryImpl implements AuthenticationRepositoryCus
                         authenticationApprove.createdAt.as("createAt"),
                         authenticationApprove.rejectReason.as("description")
                 )).from(authenticationApprove).join(authenticationApprove.authentication, authentication)
-                .join(member).on(authentication.member.eq(member))
+                .join(member).on(authentication.memberId.eq(member.id))
                 .leftJoin(basicInformation).on(basicInformation.member.eq(member))
                 .where(authenticationApprove.status.eq(ApproveType.REJECT))
                 .offset(pageable.getOffset()).limit(pageable.getPageSize())
@@ -107,7 +106,7 @@ public class AuthenticationRepositoryImpl implements AuthenticationRepositoryCus
                         authentication.email,
                         authenticationApprove.createdAt.as("createAt")
                 )).from(authenticationApprove).join(authenticationApprove.authentication, authentication)
-                .join(member).on(authentication.member.eq(member))
+                .join(member).on(authentication.memberId.eq(member.id))
                 .leftJoin(basicInformation).on(basicInformation.member.eq(member))
                 .where(authenticationApprove.status.eq(ApproveType.PENDING))
                 .offset(pageable.getOffset()).limit(pageable.getPageSize())
@@ -125,14 +124,14 @@ public class AuthenticationRepositoryImpl implements AuthenticationRepositoryCus
                         authenticationApprove.createdAt.as("createAt")
                 )).from(authenticationApprove)
                 .join(authenticationApprove.authentication, authentication)
-                .join(member).on(authentication.member.eq(member))
+                .join(member).on(authentication.memberId.eq(member.id))
                 .leftJoin(basicInformation).on(basicInformation.member.eq(member))
                 .where(authentication.id.eq(id))
                 .fetchFirst();
     }
 
     @Override
-    public Optional<MyVerificationListDto.Response.AuthInfo> findVerificationList(Pageable pageable, Member memberEntity, AuthenticationType authenticationType) {
+    public Optional<MyVerificationListDto.Response.AuthInfo> findVerificationList(Pageable pageable, Long memberId, AuthenticationType authenticationType) {
         return Optional.ofNullable(jpaQueryFactory
                 .select(Projections.fields(MyVerificationListDto.Response.AuthInfo.class,
                         authenticationApprove.status,
@@ -142,7 +141,7 @@ public class AuthenticationRepositoryImpl implements AuthenticationRepositoryCus
                 .from(authentication)
                 .leftJoin(authenticationApprove).on(authenticationApprove.authentication.eq(authentication))
                 .where(
-                        authentication.member.eq(memberEntity),
+                        authentication.memberId.eq(memberId),
                         authentication.isDeleted.isFalse(),
                         authentication.type.eq(authenticationType)
                 )

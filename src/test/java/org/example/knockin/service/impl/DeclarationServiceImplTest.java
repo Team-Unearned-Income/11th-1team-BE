@@ -5,9 +5,13 @@ import org.example.knockin.declaration.dto.BoReportDoneListDto;
 import org.example.knockin.declaration.dto.BoReportWaitListDto;
 import org.example.knockin.declaration.entity.RoommateBoardDeclaration;
 import org.example.knockin.declaration.entity.MemberDeclaration;
+import org.example.knockin.board.entity.RoommateBoard;
+import org.example.knockin.member.entity.Member;
 import org.example.knockin.member.entity.State;
 import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.DeclarationErrorCode;
+import org.example.knockin.global.exception.MemberErrorCode;
+import org.example.knockin.global.exception.RoommateBoardErrorCode;
 import org.example.knockin.declaration.entity.DeclarationType;
 import org.example.knockin.global.util.ReportType;
 import org.example.knockin.declaration.repository.RoommateBoardDeclarationRepository;
@@ -17,6 +21,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
@@ -46,6 +51,59 @@ class DeclarationServiceImplTest {
 
     @InjectMocks
     private DeclarationServiceImpl declarationService;
+
+    @Test
+    void memberReportsStoreReporterAndReportedIds() {
+        Member reporter = Member.builder().id(10L).build();
+        Member reported = Member.builder().id(20L).build();
+
+        declarationService.reportMember(reporter, reported, "신고 사유");
+
+        ArgumentCaptor<MemberDeclaration> captor = ArgumentCaptor.forClass(MemberDeclaration.class);
+        verify(memberDeclarationRepository).existsByReporterIdAndReportedId(10L, 20L);
+        verify(memberDeclarationRepository).save(captor.capture());
+        assertThat(captor.getValue().getReporterId()).isEqualTo(10L);
+        assertThat(captor.getValue().getReportedId()).isEqualTo(20L);
+    }
+
+    @Test
+    void duplicateMemberReportsAreRejectedByIds() {
+        given(memberDeclarationRepository.existsByReporterIdAndReportedId(10L, 20L)).willReturn(true);
+
+        assertThatThrownBy(() -> declarationService.reportMember(
+                Member.builder().id(10L).build(), Member.builder().id(20L).build(), "신고 사유"))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", MemberErrorCode.DECLARATION_DUPLICATE);
+
+        verify(memberDeclarationRepository, never()).save(any());
+    }
+
+    @Test
+    void boardReportsStoreReporterAndBoardIds() {
+        RoommateBoard board = RoommateBoard.builder().id(30L).build();
+        Member reporter = Member.builder().id(10L).build();
+
+        declarationService.reportBoard(board, reporter, "신고 사유");
+
+        ArgumentCaptor<RoommateBoardDeclaration> captor = ArgumentCaptor.forClass(RoommateBoardDeclaration.class);
+        verify(roommateBoardDeclarationRepository).findByRoommateBoardIdAndMemberId(30L, 10L);
+        verify(roommateBoardDeclarationRepository).save(captor.capture());
+        assertThat(captor.getValue().getMemberId()).isEqualTo(10L);
+        assertThat(captor.getValue().getRoommateBoardId()).isEqualTo(30L);
+    }
+
+    @Test
+    void duplicateBoardReportsAreRejectedByIds() {
+        given(roommateBoardDeclarationRepository.findByRoommateBoardIdAndMemberId(30L, 10L))
+                .willReturn(Optional.of(RoommateBoardDeclaration.builder().id(1L).build()));
+
+        assertThatThrownBy(() -> declarationService.reportBoard(
+                RoommateBoard.builder().id(30L).build(), Member.builder().id(10L).build(), "신고 사유"))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", RoommateBoardErrorCode.ROOMMATE_BOARD_DECLARATION_DUPLICATE);
+
+        verify(roommateBoardDeclarationRepository, never()).save(any());
+    }
 
     @Test
     @DisplayName("신고 대기 목록 조회 성공 테스트 (정렬 기준 검증 포함)")

@@ -117,7 +117,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                                 .from(latestBasicInformationFile)
                                 .where(latestBasicInformationFile.basicInformation.id.eq(latestBasicInformation.id))
                 ))
-                .leftJoin(basicInformationFile.file, file)
+                .leftJoin(file).on(basicInformationFile.fileId.eq(file.id))
                 .on(file.isDeleted.isFalse())
                 .where(searchCondition)
                 .orderBy(toBoardOrderSpecifiers(pageable.getSort()))
@@ -259,7 +259,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                                 .from(basicInformationFile)
                                 .where(basicInformationFile.basicInformation.id.eq(basicInformation.id))
                 ))
-                .leftJoin(basicInformationFile.file, file)
+                .leftJoin(file).on(basicInformationFile.fileId.eq(file.id))
                 .on(file.isDeleted.isFalse())
                 .fetchOne();
 
@@ -310,7 +310,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                                 .from(latestBasicInformationFile)
                                 .where(latestBasicInformationFile.basicInformation.id.eq(latestBasicInformation.id))
                 ))
-                .leftJoin(basicInformationFile.file, file)
+                .leftJoin(file).on(basicInformationFile.fileId.eq(file.id))
                 .on(file.isDeleted.isFalse())
                 .where(member.eq(memberEntity), roommateBoard.isDeleted.isFalse())
                 .orderBy(toBoardOrderSpecifiers(page.getSort()))

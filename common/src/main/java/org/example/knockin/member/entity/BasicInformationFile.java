@@ -10,7 +10,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.*;
-import org.example.knockin.meta.entity.File;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -32,11 +31,10 @@ public class BasicInformationFile {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private BasicInformation basicInformation;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "file_id", nullable = false)
-    private File file;
+    @Column(name = "file_id", nullable = false)
+    private Long fileId;
 
-    public void modifyFile(File file) {
-        this.file = file;
+    public void modifyFile(Long fileId) {
+        this.fileId = fileId;
     }
 }

@@ -151,7 +151,7 @@ class RoommateScoreRepositoryTest {
             MemberLifePatternLogDegree logDegree
     ) {
         MemberLifePatternLog log = MemberLifePatternLog.builder()
-                .member(member)
+                .memberId(member.getId())
                 .lifePatternInformation(information)
                 .memberLifePatternLogDegree(logDegree)
                 .build();
@@ -161,7 +161,7 @@ class RoommateScoreRepositoryTest {
 
     private PreferenceConditionWeightLog persistPreferenceConditionWeightLog(Member member, LifePattern lifePattern) {
         PreferenceConditionWeightLog log = PreferenceConditionWeightLog.builder()
-                .member(member)
+                .memberId(member.getId())
                 .lifePattern(lifePattern)
                 .build();
         entityManager.persist(log);

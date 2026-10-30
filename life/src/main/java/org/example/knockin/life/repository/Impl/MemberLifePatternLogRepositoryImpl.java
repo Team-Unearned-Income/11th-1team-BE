@@ -31,13 +31,13 @@ public class MemberLifePatternLogRepositoryImpl implements MemberLifePatternLogR
                 .join(memberLifePatternLog.lifePatternInformation, lifePatternInformation).fetchJoin()
                 .join(lifePatternInformation.lifePattern, lifePattern).fetchJoin()
                 .where(
-                        memberLifePatternLog.member.id.eq(memberId),
+                        memberLifePatternLog.memberId.eq(memberId),
                         memberLifePatternLogDegree.degree.eq(
                                 JPAExpressions
                                         .select(subDegree.degree.max())
                                         .from(subLog)
                                         .join(subLog.memberLifePatternLogDegree, subDegree)
-                                        .where(subLog.member.id.eq(memberId))
+                                        .where(subLog.memberId.eq(memberId))
                         ),
                         lifePattern.isDeleted.isFalse()
                 )

@@ -44,7 +44,7 @@ public class InquirieServiceImpl {
     @Transactional
     public void saveInquiry(InquiryDto.Request request, Member member) {
         InquiryCategory inquiryCategory = inquiryCategoryRepository.findById(request.getCategoryId()).orElseThrow(() -> new BusinessException(InquiryErrorCode.INQUIRY_CATEGORY_NOT_FOUND));
-        inquiryRepository.save(Inquiry.builder().inquiryCategory(inquiryCategory).member(member).title(request.getTitle()).contents(request.getContents()).build());
+        inquiryRepository.save(Inquiry.builder().inquiryCategory(inquiryCategory).memberId(member.getId()).title(request.getTitle()).contents(request.getContents()).build());
     }
 
     @Transactional
@@ -60,21 +60,22 @@ public class InquirieServiceImpl {
     }
 
     public InquiryListDto.Response findInquirieList(Pageable pageable, Long memberId) {
-        Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
-        List<InquiryListDto.Response.InquiryItem> inquiryItemList = inquiryRepository.findMyInquiryList(false, member, pageable);
+        memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+        List<InquiryListDto.Response.InquiryItem> inquiryItemList = inquiryRepository.findMyInquiryList(false, memberId, pageable);
         return InquiryListDto.Response.builder().inquiries(inquiryItemList).build();
     }
 
     public InquiryDetailDto.Response findInquirie(Long inquiryId, Long memberId) {
-        Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
-        return InquiryDetailDto.Response.builder().inquirie(inquiryRepository.findMyInquiry(false, member, inquiryId)).build();
+        memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+        return InquiryDetailDto.Response.builder().inquirie(inquiryRepository.findMyInquiry(false, memberId, inquiryId)).build();
     }
 
     @Transactional
     public InquiryComment saveInquirieReply(InquiryComment inquiryComment) {
         InquiryComment inquiryCommentEntity = inquiryCommentRepository.save(inquiryComment);
 
-        Member member = inquiryCommentEntity.getInquiry().getMember();
+        Long memberId = inquiryCommentEntity.getInquiry().getMemberId();
+        Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
         Alarm alarm = Alarm.builder()
                 .title(InquiryAlarmTemplate.INQUIRIE_REPLY.formatTitle())
                 .contents(InquiryAlarmTemplate.INQUIRIE_REPLY.formatContents())

@@ -35,7 +35,7 @@ public class PreferenceConditionLogRepositoryImpl implements PreferenceCondition
                 .join(preferenceConditionLog.lifePatternInformation, lifePatternInformation).fetchJoin()
                 .join(lifePatternInformation.lifePattern, lifePattern).fetchJoin()
                 .where(
-                        preferenceConditionLog.member.id.eq(memberId),
+                        preferenceConditionLog.memberId.eq(memberId),
                         lifePatternInformation.id.in(lifePatternInformationIds),
                         lifePattern.isDeleted.isFalse(),
                         preferenceConditionLogDegree.degree.eq(
@@ -43,7 +43,7 @@ public class PreferenceConditionLogRepositoryImpl implements PreferenceCondition
                                         .select(subDegree.degree.max())
                                         .from(subLog)
                                         .join(subLog.preferenceConditionLogDegree, subDegree)
-                                        .where(subLog.member.id.eq(memberId))
+                                        .where(subLog.memberId.eq(memberId))
                         )
                 )
                 .orderBy(lifePattern.sort.asc(), preferenceConditionLog.id.asc())
@@ -61,13 +61,13 @@ public class PreferenceConditionLogRepositoryImpl implements PreferenceCondition
                 .join(preferenceConditionLog.lifePatternInformation, lifePatternInformation).fetchJoin()
                 .join(lifePatternInformation.lifePattern, lifePattern).fetchJoin()
                 .where(
-                        preferenceConditionLog.member.id.eq(memberId),
+                        preferenceConditionLog.memberId.eq(memberId),
                         preferenceConditionLogDegree.degree.eq(
                                 JPAExpressions
                                         .select(subDegree.degree.max())
                                         .from(subLog)
                                         .join(subLog.preferenceConditionLogDegree, subDegree)
-                                        .where(subLog.member.id.eq(memberId))
+                                        .where(subLog.memberId.eq(memberId))
                         ),
                         lifePattern.isDeleted.isFalse()
                 )

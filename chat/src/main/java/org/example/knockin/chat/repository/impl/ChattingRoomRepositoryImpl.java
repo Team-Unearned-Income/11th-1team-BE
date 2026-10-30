@@ -94,7 +94,7 @@ public class ChattingRoomRepositoryImpl implements ChattingRoomRepositoryCustom 
                                 .from(basicInformationFileSub)
                                 .where(basicInformationFileSub.basicInformation.eq(basicInformation))
                 ))
-                .leftJoin(basicInformationFile.file, profileImageFile)
+                .leftJoin(profileImageFile).on(basicInformationFile.fileId.eq(profileImageFile.id))
                 .leftJoin(latestRoommateRequired)
                 .on(latestRoommateRequired.id.eq(
                         JPAExpressions

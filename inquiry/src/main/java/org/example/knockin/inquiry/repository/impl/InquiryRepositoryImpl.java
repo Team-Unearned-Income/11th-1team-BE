@@ -10,7 +10,6 @@ import org.example.knockin.inquiry.dto.BoInquiryListDto;
 import org.example.knockin.inquiry.dto.InquiryDetailDto;
 import org.example.knockin.inquiry.dto.InquiryListDto;
 import org.example.knockin.inquiry.repository.InquiryRepositoryCustom;
-import org.example.knockin.member.entity.Member;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
@@ -28,7 +27,7 @@ public class InquiryRepositoryImpl implements InquiryRepositoryCustom {
     private final JPAQueryFactory jpaQueryFactory;
 
     @Override
-    public List<InquiryListDto.Response.InquiryItem> findMyInquiryList(Boolean isDeleted, Member memberEntity, Pageable pageable) {
+    public List<InquiryListDto.Response.InquiryItem> findMyInquiryList(Boolean isDeleted, Long memberId, Pageable pageable) {
         return jpaQueryFactory.select(Projections.fields(InquiryListDto.Response.InquiryItem.class,
                 inquiry.id,
                 inquiry.title,
@@ -37,19 +36,19 @@ public class InquiryRepositoryImpl implements InquiryRepositoryCustom {
                 new CaseBuilder().when(inquiryComment.id.isNull()).then("답변 대기중").otherwise("답변 완료").as("status")
                 )).from(inquiry).leftJoin(inquiry.inquiryCategory)
                 .leftJoin(inquiryComment).on(inquiryComment.inquiry.eq(inquiry))
-                .leftJoin(basicInformation).on(basicInformation.member.eq(inquiry.member))
-                .where(inquiry.isDeleted.eq(isDeleted), inquiry.member.eq(memberEntity))
+                .leftJoin(basicInformation).on(basicInformation.member.id.eq(inquiry.memberId))
+                .where(inquiry.isDeleted.eq(isDeleted), inquiry.memberId.eq(memberId))
                 .offset(pageable.getOffset()).limit(pageable.getPageSize()).fetch();
     }
 
     @Override
-    public InquiryDetailDto.Response.InquiryDetail findMyInquiry(Boolean isDeleted, Member memberEntity, Long inquiryId) {
+    public InquiryDetailDto.Response.InquiryDetail findMyInquiry(Boolean isDeleted, Long memberId, Long inquiryId) {
         return jpaQueryFactory
                 .from(inquiry)
                 .leftJoin(inquiry.inquiryCategory)
                 .leftJoin(inquiryComment).on(inquiryComment.inquiry.eq(inquiry))
-                .leftJoin(basicInformation).on(basicInformation.member.eq(inquiry.member))
-                .where(inquiry.id.eq(inquiryId), inquiry.isDeleted.eq(isDeleted), inquiry.member.eq(memberEntity))
+                .leftJoin(basicInformation).on(basicInformation.member.id.eq(inquiry.memberId))
+                .where(inquiry.id.eq(inquiryId), inquiry.isDeleted.eq(isDeleted), inquiry.memberId.eq(memberId))
                 .transform(groupBy(inquiry.id).list(
                         Projections.fields(InquiryDetailDto.Response.InquiryDetail.class,
                                 inquiry.id,
@@ -76,7 +75,7 @@ public class InquiryRepositoryImpl implements InquiryRepositoryCustom {
                 new CaseBuilder().when(inquiryComment.id.isNull()).then("답변 대기중").otherwise("답변 완료").as("status")
                 )).from(inquiry).leftJoin(inquiry.inquiryCategory)
                 .leftJoin(inquiryComment).on(inquiryComment.inquiry.eq(inquiry))
-                .leftJoin(basicInformation).on(basicInformation.member.eq(inquiry.member))
+                .leftJoin(basicInformation).on(basicInformation.member.id.eq(inquiry.memberId))
                 .where(inquiry.isDeleted.eq(false), searchKeyword(request.getSearchKeyword()), searchState(request.getIsReply()), searchType(request.getCategoryId()))
                 .offset(pageable.getOffset()).limit(pageable.getPageSize()).fetch();
     }
@@ -92,7 +91,7 @@ public class InquiryRepositoryImpl implements InquiryRepositoryCustom {
                         new CaseBuilder().when(inquiryComment.id.isNull()).then("답변 대기중").otherwise("답변 완료").as("status")
                 )).from(inquiry).leftJoin(inquiry.inquiryCategory)
                 .leftJoin(inquiryComment).on(inquiryComment.inquiry.eq(inquiry))
-                .leftJoin(basicInformation).on(basicInformation.member.eq(inquiry.member))
+                .leftJoin(basicInformation).on(basicInformation.member.id.eq(inquiry.memberId))
                 .where(inquiry.id.eq(id), inquiry.isDeleted.eq(false)).fetchOne();
     }
 
@@ -107,7 +106,7 @@ public class InquiryRepositoryImpl implements InquiryRepositoryCustom {
                 ))
                 .from(inquiryComment)
                 .join(inquiryComment.inquiry, inquiry)
-                .join(basicInformation).on(basicInformation.member.eq(inquiryComment.member))
+                .join(basicInformation).on(basicInformation.member.id.eq(inquiryComment.memberId))
                 .where(inquiry.id.eq(id))
                 .fetch();
     }

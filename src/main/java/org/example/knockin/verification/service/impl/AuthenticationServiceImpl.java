@@ -63,32 +63,32 @@ public class AuthenticationServiceImpl {
 
     @Transactional
     public EmailSendDto.Response sendAuthNumStudent(EmailSendDto.Request request, Long memberId) {
-        Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
+        memberService.findById(memberId).orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
         String code = generateAuthCode();
         String mailContent = loadMailTemplate(code);
         Object result = mailSendService.mailSend(request.getEmail(), mailSubject, mailContent);
         if(ObjectUtils.isEmpty(result)) throw new BusinessException(EmailErrorCode.EMAIL_SEND_ERROR);
-        authenticationRepository.findByMemberAndIsDeletedAndIsAcceptedAndType(member, false, false, AuthenticationType.STUDENT).forEach(Authentication::deleteAuthentication);
-        authenticationRepository.save(Authentication.builder().member(member).type(AuthenticationType.STUDENT).email(request.getEmail()).code(code).isAccepted(false).isDeleted(false).build());
+        authenticationRepository.findByMemberIdAndIsDeletedAndIsAcceptedAndType(memberId, false, false, AuthenticationType.STUDENT).forEach(Authentication::deleteAuthentication);
+        authenticationRepository.save(Authentication.builder().memberId(memberId).type(AuthenticationType.STUDENT).email(request.getEmail()).code(code).isAccepted(false).isDeleted(false).build());
         return EmailSendDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
     @Transactional(rollbackFor = Exception.class)
     public EmailSendDto.Response sendAuthNumCompany(EmailSendDto.Request request, Long memberId) {
-        Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
+        memberService.findById(memberId).orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
         String code = generateAuthCode();
         String mailContent = loadMailTemplate(code);
         Object result = mailSendService.mailSend(request.getEmail(), mailSubject, mailContent);
         if(ObjectUtils.isEmpty(result)) throw new BusinessException(EmailErrorCode.EMAIL_SEND_ERROR);
-        authenticationRepository.findByMemberAndIsDeletedAndIsAcceptedAndType(member, false, false, AuthenticationType.COMPANY).forEach(Authentication::deleteAuthentication);
-        authenticationRepository.save(Authentication.builder().member(member).type(AuthenticationType.COMPANY).email(request.getEmail()).code(code).isAccepted(false).isDeleted(false).build());
+        authenticationRepository.findByMemberIdAndIsDeletedAndIsAcceptedAndType(memberId, false, false, AuthenticationType.COMPANY).forEach(Authentication::deleteAuthentication);
+        authenticationRepository.save(Authentication.builder().memberId(memberId).type(AuthenticationType.COMPANY).email(request.getEmail()).code(code).isAccepted(false).isDeleted(false).build());
         return EmailSendDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
     @Transactional
     public EmailConfirmDto.Response confirmAuthNumStudent(EmailConfirmDto.Request request, Long memberId) {
-        Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
-        Authentication authentication = authenticationRepository.findFirstByMemberAndIsDeletedAndIsAcceptedAndTypeOrderByCreatedAtDesc(member, false, false, AuthenticationType.STUDENT).orElseThrow(() -> new BusinessException(EmailErrorCode.EMAIL_VALID_ERROR));
+        memberService.findById(memberId).orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
+        Authentication authentication = authenticationRepository.findFirstByMemberIdAndIsDeletedAndIsAcceptedAndTypeOrderByCreatedAtDesc(memberId, false, false, AuthenticationType.STUDENT).orElseThrow(() -> new BusinessException(EmailErrorCode.EMAIL_VALID_ERROR));
 
         if (authentication.getCreatedAt().plusMinutes(validTime).isBefore(LocalDateTime.now())) {
             throw new BusinessException(EmailErrorCode.EMAIL_VALID_ERROR);
@@ -107,8 +107,8 @@ public class AuthenticationServiceImpl {
 
     @Transactional
     public EmailConfirmDto.Response confirmAuthNumCompany(EmailConfirmDto.Request request, Long memberId) {
-        Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
-        Authentication authentication = authenticationRepository.findFirstByMemberAndIsDeletedAndIsAcceptedAndTypeOrderByCreatedAtDesc(member, false, false, AuthenticationType.COMPANY).orElseThrow(() -> new BusinessException(EmailErrorCode.EMAIL_VALID_ERROR));
+        memberService.findById(memberId).orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
+        Authentication authentication = authenticationRepository.findFirstByMemberIdAndIsDeletedAndIsAcceptedAndTypeOrderByCreatedAtDesc(memberId, false, false, AuthenticationType.COMPANY).orElseThrow(() -> new BusinessException(EmailErrorCode.EMAIL_VALID_ERROR));
 
         if (authentication.getCreatedAt().plusMinutes(validTime).isBefore(LocalDateTime.now())) {
             throw new BusinessException(EmailErrorCode.EMAIL_VALID_ERROR);
@@ -163,7 +163,8 @@ public class AuthenticationServiceImpl {
         AuthenticationApprove approve = authenticationApproveRepository.findById(id).orElseThrow(() -> new BusinessException(AuthenticationErrorCode.AUTHENTICATION_NOT_FOUNT));
         approve.approve();
 
-        Member member = approve.getAuthentication().getMember();
+        Member member = memberService.findById(approve.getAuthentication().getMemberId())
+                .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
         Alarm alarm = Alarm.builder()
                 .title(AuthenticateAlarmTemplate.SAVE_VERIFICATION.formatTitle())
                 .contents(AuthenticateAlarmTemplate.SAVE_VERIFICATION.formatContents())
@@ -182,7 +183,8 @@ public class AuthenticationServiceImpl {
         AuthenticationApprove approve = authenticationApproveRepository.findById(id).orElseThrow(() -> new BusinessException(AuthenticationErrorCode.AUTHENTICATION_NOT_FOUNT));
         approve.reject(rejectReason);
 
-        Member member = approve.getAuthentication().getMember();
+        Member member = memberService.findById(approve.getAuthentication().getMemberId())
+                .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
         Alarm alarm = Alarm.builder()
                 .title(AuthenticateAlarmTemplate.DELETE_VERIFICATION.formatTitle())
                 .contents(AuthenticateAlarmTemplate.DELETE_VERIFICATION.formatContents(rejectReason))
@@ -204,9 +206,9 @@ public class AuthenticationServiceImpl {
         return authenticationRepository.findAcceptedByMemberIds(memberIds);
     }
 
-    public MyVerificationListDto.Response findVerificationList(Pageable pageable, Member member) {
-        MyVerificationListDto.Response.AuthInfo studentAuth = authenticationRepository.findVerificationList(pageable, member, AuthenticationType.STUDENT).orElse(null);
-        MyVerificationListDto.Response.AuthInfo employeeAuth = authenticationRepository.findVerificationList(pageable, member, AuthenticationType.COMPANY).orElse(null);
+    public MyVerificationListDto.Response findVerificationList(Pageable pageable, Long memberId) {
+        MyVerificationListDto.Response.AuthInfo studentAuth = authenticationRepository.findVerificationList(pageable, memberId, AuthenticationType.STUDENT).orElse(null);
+        MyVerificationListDto.Response.AuthInfo employeeAuth = authenticationRepository.findVerificationList(pageable, memberId, AuthenticationType.COMPANY).orElse(null);
 
         return MyVerificationListDto.Response.builder()
                 .studentAuth(studentAuth)

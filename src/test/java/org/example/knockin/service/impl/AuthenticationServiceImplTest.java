@@ -114,7 +114,7 @@ class AuthenticationServiceImplTest {
         given(mailSendService.mailSend(anyString(), anyString(), anyString())).willReturn("email_id_123");
 
         Authentication oldAuth = spy(Authentication.builder().build());
-        given(authenticationRepository.findByMemberAndIsDeletedAndIsAcceptedAndType(member, false, false, AuthenticationType.STUDENT))
+        given(authenticationRepository.findByMemberIdAndIsDeletedAndIsAcceptedAndType(memberId, false, false, AuthenticationType.STUDENT))
                 .willReturn(List.of(oldAuth));
 
         // when
@@ -124,7 +124,8 @@ class AuthenticationServiceImplTest {
         assertThat(response).isNotNull();
         assertThat(response.getUpdatedAt()).isNotNull();
         verify(oldAuth).deleteAuthentication();
-        verify(authenticationRepository).save(any(Authentication.class));
+        verify(authenticationRepository).save(argThat(authentication ->
+                memberId.equals(authentication.getMemberId()) && authentication.getType() == AuthenticationType.STUDENT));
     }
 
     @Test
@@ -145,7 +146,7 @@ class AuthenticationServiceImplTest {
         given(mailSendService.mailSend(anyString(), anyString(), anyString())).willReturn("email_id_123");
 
         Authentication oldAuth = spy(Authentication.builder().build());
-        given(authenticationRepository.findByMemberAndIsDeletedAndIsAcceptedAndType(member, false, false, AuthenticationType.COMPANY))
+        given(authenticationRepository.findByMemberIdAndIsDeletedAndIsAcceptedAndType(memberId, false, false, AuthenticationType.COMPANY))
                 .willReturn(List.of(oldAuth));
 
         // when
@@ -155,7 +156,8 @@ class AuthenticationServiceImplTest {
         assertThat(response).isNotNull();
         assertThat(response.getUpdatedAt()).isNotNull();
         verify(oldAuth).deleteAuthentication();
-        verify(authenticationRepository).save(any(Authentication.class));
+        verify(authenticationRepository).save(argThat(authentication ->
+                memberId.equals(authentication.getMemberId()) && authentication.getType() == AuthenticationType.COMPANY));
     }
 
     @Test
@@ -190,7 +192,7 @@ class AuthenticationServiceImplTest {
                 .build());
         ReflectionTestUtils.setField(authentication, "createdAt", LocalDateTime.now());
 
-        given(authenticationRepository.findFirstByMemberAndIsDeletedAndIsAcceptedAndTypeOrderByCreatedAtDesc(member, false, false, AuthenticationType.STUDENT))
+        given(authenticationRepository.findFirstByMemberIdAndIsDeletedAndIsAcceptedAndTypeOrderByCreatedAtDesc(memberId, false, false, AuthenticationType.STUDENT))
                 .willReturn(Optional.of(authentication));
 
         // when
@@ -220,7 +222,7 @@ class AuthenticationServiceImplTest {
                 .build());
         ReflectionTestUtils.setField(authentication, "createdAt", LocalDateTime.now());
 
-        given(authenticationRepository.findFirstByMemberAndIsDeletedAndIsAcceptedAndTypeOrderByCreatedAtDesc(member, false, false, AuthenticationType.COMPANY))
+        given(authenticationRepository.findFirstByMemberIdAndIsDeletedAndIsAcceptedAndTypeOrderByCreatedAtDesc(memberId, false, false, AuthenticationType.COMPANY))
                 .willReturn(Optional.of(authentication));
 
         // when
@@ -265,7 +267,7 @@ class AuthenticationServiceImplTest {
         // 4분 전 생성된 것으로 설정
         ReflectionTestUtils.setField(authentication, "createdAt", LocalDateTime.now().minusMinutes(4));
 
-        given(authenticationRepository.findFirstByMemberAndIsDeletedAndIsAcceptedAndTypeOrderByCreatedAtDesc(member, false, false, AuthenticationType.STUDENT))
+        given(authenticationRepository.findFirstByMemberIdAndIsDeletedAndIsAcceptedAndTypeOrderByCreatedAtDesc(memberId, false, false, AuthenticationType.STUDENT))
                 .willReturn(Optional.of(authentication));
 
         // when & then
@@ -290,7 +292,7 @@ class AuthenticationServiceImplTest {
                 .build();
         ReflectionTestUtils.setField(authentication, "createdAt", LocalDateTime.now());
 
-        given(authenticationRepository.findFirstByMemberAndIsDeletedAndIsAcceptedAndTypeOrderByCreatedAtDesc(member, false, false, AuthenticationType.STUDENT))
+        given(authenticationRepository.findFirstByMemberIdAndIsDeletedAndIsAcceptedAndTypeOrderByCreatedAtDesc(memberId, false, false, AuthenticationType.STUDENT))
                 .willReturn(Optional.of(authentication));
 
         // when & then
@@ -368,13 +370,14 @@ class AuthenticationServiceImplTest {
         // given
         Long id = 1L;
         Member member = Member.builder().id(10L).fcmToken("token").build();
-        Authentication authentication = Authentication.builder().member(member).build();
+        Authentication authentication = Authentication.builder().memberId(member.getId()).build();
         AuthenticationApprove approve = AuthenticationApprove.builder()
                 .id(id)
                 .authentication(authentication)
                 .status(ApproveType.PENDING)
                 .build();
         given(authenticationApproveRepository.findById(id)).willReturn(Optional.of(approve));
+        given(memberService.findById(member.getId())).willReturn(Optional.of(member));
 
         // when
         authenticationService.saveVerifications(id);
@@ -398,19 +401,40 @@ class AuthenticationServiceImplTest {
     }
 
     @Test
-    @DisplayName("인증 반려 등록 성공 테스트")
-    void deleteVerificationsSuccessTest() {
-        // given
+    @DisplayName("인증에 연결된 회원이 없으면 승인 알림을 발송하지 않는다")
+    void saveVerificationsRejectsMissingMember() {
         Long id = 1L;
-        String rejectReason = "반려사유";
-        Member member = Member.builder().id(10L).fcmToken("token").build();
-        Authentication authentication = Authentication.builder().member(member).build();
+        Long memberId = 10L;
+        Authentication authentication = Authentication.builder().memberId(memberId).build();
         AuthenticationApprove approve = AuthenticationApprove.builder()
                 .id(id)
                 .authentication(authentication)
                 .status(ApproveType.PENDING)
                 .build();
         given(authenticationApproveRepository.findById(id)).willReturn(Optional.of(approve));
+        given(memberService.findById(memberId)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authenticationService.saveVerifications(id))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", MemberErrorCode.MEMBER_NOT_FOUND);
+        verifyNoInteractions(alarmService, pushNotificationService);
+    }
+
+    @Test
+    @DisplayName("인증 반려 등록 성공 테스트")
+    void deleteVerificationsSuccessTest() {
+        // given
+        Long id = 1L;
+        String rejectReason = "반려사유";
+        Member member = Member.builder().id(10L).fcmToken("token").build();
+        Authentication authentication = Authentication.builder().memberId(member.getId()).build();
+        AuthenticationApprove approve = AuthenticationApprove.builder()
+                .id(id)
+                .authentication(authentication)
+                .status(ApproveType.PENDING)
+                .build();
+        given(authenticationApproveRepository.findById(id)).willReturn(Optional.of(approve));
+        given(memberService.findById(member.getId())).willReturn(Optional.of(member));
 
         // when
         authenticationService.deleteVerifications(id, rejectReason);
@@ -425,7 +449,7 @@ class AuthenticationServiceImplTest {
     void findVerificationListSuccessTest() {
         // given
         Pageable pageable = PageRequest.of(0, 10);
-        Member member = Member.builder().id(1L).build();
+        Long memberId = 1L;
         MyVerificationListDto.Response.AuthInfo studentAuth = MyVerificationListDto.Response.AuthInfo.builder()
                 .status(ApproveType.ACCEPTED)
                 .email("student@univ.ac.kr")
@@ -437,11 +461,11 @@ class AuthenticationServiceImplTest {
                 .createAt(LocalDateTime.now())
                 .build();
 
-        given(authenticationRepository.findVerificationList(pageable, member, AuthenticationType.STUDENT)).willReturn(Optional.of(studentAuth));
-        given(authenticationRepository.findVerificationList(pageable, member, AuthenticationType.COMPANY)).willReturn(Optional.of(employeeAuth));
+        given(authenticationRepository.findVerificationList(pageable, memberId, AuthenticationType.STUDENT)).willReturn(Optional.of(studentAuth));
+        given(authenticationRepository.findVerificationList(pageable, memberId, AuthenticationType.COMPANY)).willReturn(Optional.of(employeeAuth));
 
         // when
-        MyVerificationListDto.Response response = authenticationService.findVerificationList(pageable, member);
+        MyVerificationListDto.Response response = authenticationService.findVerificationList(pageable, memberId);
 
         // then
         assertThat(response).isNotNull();

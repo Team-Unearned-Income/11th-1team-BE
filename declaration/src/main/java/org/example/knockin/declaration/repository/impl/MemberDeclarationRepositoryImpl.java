@@ -9,7 +9,7 @@ import org.example.knockin.declaration.dto.BoReportDoneListDto;
 import org.example.knockin.declaration.dto.BoReportWaitListDto;
 import org.example.knockin.declaration.entity.DeclarationType;
 import org.example.knockin.global.util.ReportType;
-import org.example.knockin.member.repository.MemberDeclarationRepositoryCustom;
+import org.example.knockin.declaration.repository.MemberDeclarationRepositoryCustom;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
@@ -31,15 +31,15 @@ public class MemberDeclarationRepositoryImpl implements MemberDeclarationReposit
                         memberDeclaration.id,
                         ExpressionUtils.as(Expressions.constant(ReportType.MEMBER.name()), "type"),
                         basicInformation.name.as("reporter"),
-                        memberDeclaration.reporter.id.as("reporterId"),
-                        memberDeclaration.reported.id.as("reportedId"),
+                        memberDeclaration.reporterId,
+                        memberDeclaration.reportedId,
                         memberDeclaration.reason,
                         memberDeclaration.createdAt
                 ))
                 .from(memberDeclaration)
-                .join(memberDeclaration.reporter, member)
+                .join(member).on(member.id.eq(memberDeclaration.reporterId))
                 .leftJoin(basicInformation)
-                .on(basicInformation.member.eq(memberDeclaration.reporter))
+                .on(basicInformation.member.id.eq(memberDeclaration.reporterId))
                 .where(memberDeclaration.declarationType.eq(DeclarationType.PENDING))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
@@ -57,9 +57,9 @@ public class MemberDeclarationRepositoryImpl implements MemberDeclarationReposit
                         memberDeclaration.createdAt
                 ))
                 .from(memberDeclaration)
-                .join(memberDeclaration.reporter, member)
+                .join(member).on(member.id.eq(memberDeclaration.reporterId))
                 .leftJoin(basicInformation)
-                .on(basicInformation.member.eq(memberDeclaration.reporter))
+                .on(basicInformation.member.id.eq(memberDeclaration.reporterId))
                 .where(memberDeclaration.declarationType.ne(DeclarationType.PENDING))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())

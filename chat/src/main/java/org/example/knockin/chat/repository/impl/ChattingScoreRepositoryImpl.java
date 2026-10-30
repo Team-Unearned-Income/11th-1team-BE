@@ -27,7 +27,7 @@ public class ChattingScoreRepositoryImpl implements ChattingScoreRepositoryCusto
                                         .from(evaluatorLog)
                                         .where(
                                                 evaluatorLog.memberLifePatternLogDegree.eq(chattingScore.memberLifePatternLogDegree),
-                                                evaluatorLog.member.id.eq(memberId)
+                                                evaluatorLog.memberId.eq(memberId)
                                         )
                                         .exists()
                         )

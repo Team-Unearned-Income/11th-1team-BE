@@ -5,7 +5,6 @@ import org.example.knockin.life.service.impl.MemberLifePatternService;
 import org.example.knockin.life.entity.LifePatternType;
 import org.example.knockin.life.entity.MemberLifePattern;
 import org.example.knockin.life.entity.MemberLifePatternLog;
-import org.example.knockin.member.entity.Member;
 import org.example.knockin.life.repository.MemberLifePatternLogRepository;
 import org.example.knockin.life.repository.MemberLifePatternRepository;
 import org.example.knockin.life.repository.row.MatchingLifestyleRow;
@@ -72,16 +71,16 @@ class MemberLifePatternServiceTest {
     @DisplayName("회원이 주어지면 해당 회원의 생활 패턴 목록을 조회한다")
     void findByMemberTest() {
         // Given
-        Member member = mock(Member.class);
+        Long memberId = 1L;
         MemberLifePattern pattern = mock(MemberLifePattern.class);
-        given(memberLifePatternRepository.findByMember(member)).willReturn(List.of(pattern));
+        given(memberLifePatternRepository.findByMemberId(memberId)).willReturn(List.of(pattern));
  
         // When
-        List<MemberLifePattern> result = memberLifePatternService.findByMember(member);
+        List<MemberLifePattern> result = memberLifePatternService.findByMemberId(memberId);
  
         // Then
         assertThat(result).hasSize(1);
-        verify(memberLifePatternRepository).findByMember(member);
+        verify(memberLifePatternRepository).findByMemberId(memberId);
     }
 
     @Test

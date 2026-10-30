@@ -3,7 +3,6 @@ package org.example.knockin.life.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.board.dto.BoardDetailDto.Response.Condition;
 import org.example.knockin.board.dto.BoardDetailDto.Response.ConditionWeight;
-import org.example.knockin.member.entity.Member;
 import org.example.knockin.life.entity.PreferenceCondition;
 import org.example.knockin.life.entity.PreferenceConditionLog;
 import org.example.knockin.life.entity.PreferenceConditionLogDegree;
@@ -53,12 +52,12 @@ public class PreferenceConditionServiceImpl {
         return preferenceConditionWeightLogRepository.saveAll(preferenceConditionWeightLogList);
     }
 
-    public List<PreferenceCondition> findPreferenceConditionByMember(Member member) {
-        return preferenceConditionRepository.findByMember(member);
+    public List<PreferenceCondition> findPreferenceConditionByMemberId(Long memberId) {
+        return preferenceConditionRepository.findByMemberId(memberId);
     }
 
-    public List<PreferenceConditionWeight> findPreferenceConditionWeightByMember(Member member) {
-        return preferenceConditionWeightRepository.findByMember(member);
+    public List<PreferenceConditionWeight> findPreferenceConditionWeightByMemberId(Long memberId) {
+        return preferenceConditionWeightRepository.findByMemberId(memberId);
     }
 
     public List<MatchingPreferenceConditionRow> findRowByMemberIdsIn(List<Long> memberIds) {
@@ -78,21 +77,21 @@ public class PreferenceConditionServiceImpl {
     }
 
     @Transactional
-    public void deletePreferenceConditionWeightByMember(Member member) {
-        preferenceConditionWeightRepository.deleteByMember(member);
+    public void deletePreferenceConditionWeightByMemberId(Long memberId) {
+        preferenceConditionWeightRepository.deleteByMemberId(memberId);
         preferenceConditionWeightRepository.flush();
     }
 
     @Transactional
-    public void deletePreferenceConditionByMember(Member member) {
-        List<PreferenceCondition> existing = preferenceConditionRepository.findByMember(member);
+    public void deletePreferenceConditionByMemberId(Long memberId) {
+        List<PreferenceCondition> existing = preferenceConditionRepository.findByMemberId(memberId);
         if (!existing.isEmpty()) {
             preferenceConditionRepository.deleteAll(existing);
         }
     }
 
-    public Long findMaxPreferenceConditionLogDegree(Member member) {
-        return preferenceConditionLogDegreeRepository.findMaxPreferenceConditionLogDegree(member).orElse(null);
+    public Long findMaxPreferenceConditionLogDegree(Long memberId) {
+        return preferenceConditionLogDegreeRepository.findMaxPreferenceConditionLogDegree(memberId).orElse(null);
     }
 
     @Transactional
@@ -100,8 +99,8 @@ public class PreferenceConditionServiceImpl {
         return preferenceConditionLogDegreeRepository.save(PreferenceConditionLogDegree.builder().degree(degree).build());
     }
 
-    public Long findMaxPreferenceConditionWeightLogDegree(Member member) {
-        return preferenceConditionWeightLogDegreeRepository.findMaxPreferenceConditionWeightLogDegree(member).orElse(null);
+    public Long findMaxPreferenceConditionWeightLogDegree(Long memberId) {
+        return preferenceConditionWeightLogDegreeRepository.findMaxPreferenceConditionWeightLogDegree(memberId).orElse(null);
     }
 
     @Transactional

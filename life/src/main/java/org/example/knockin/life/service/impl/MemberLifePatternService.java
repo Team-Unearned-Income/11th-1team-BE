@@ -5,7 +5,6 @@ import org.example.knockin.board.dto.BoardDetailDto.Response.Lifestyle;
 import org.example.knockin.life.entity.MemberLifePattern;
 import org.example.knockin.life.entity.MemberLifePatternLog;
 import org.example.knockin.life.entity.MemberLifePatternLogDegree;
-import org.example.knockin.member.entity.Member;
 import org.example.knockin.life.repository.MemberLifePatternLogDegreeRepository;
 import org.example.knockin.life.repository.MemberLifePatternLogRepository;
 import org.example.knockin.life.repository.MemberLifePatternRepository;
@@ -38,8 +37,8 @@ public class MemberLifePatternService {
         memberLifePatternRepository.flush();
     }
 
-    public List<MemberLifePattern> findByMember(Member member) {
-        return memberLifePatternRepository.findByMember(member);
+    public List<MemberLifePattern> findByMemberId(Long memberId) {
+        return memberLifePatternRepository.findByMemberId(memberId);
     }
 
     public List<MatchingLifestyleRow> findMatchingRowByMemberIdsIn(List<Long> memberIds) {
@@ -50,8 +49,8 @@ public class MemberLifePatternService {
         return memberLifePatternRepository.getLifeStyleDto(memberId);
     }
 
-    public Long findMaxmemberLifePatternLogDegree(Member member) {
-        return memberLifePatternLogDegreeRepository.findMaxmemberLifePatternLogDegree(member).orElse(null);
+    public Long findMaxmemberLifePatternLogDegree(Long memberId) {
+        return memberLifePatternLogDegreeRepository.findMaxmemberLifePatternLogDegree(memberId).orElse(null);
     }
 
     @Transactional

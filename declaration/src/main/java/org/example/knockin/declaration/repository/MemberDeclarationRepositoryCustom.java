@@ -1,4 +1,4 @@
-package org.example.knockin.member.repository;
+package org.example.knockin.declaration.repository;
 
 import org.example.knockin.declaration.dto.BoReportDoneListDto;
 import org.example.knockin.declaration.dto.BoReportWaitListDto;

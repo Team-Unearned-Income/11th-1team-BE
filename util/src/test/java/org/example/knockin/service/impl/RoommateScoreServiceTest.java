@@ -347,7 +347,7 @@ class RoommateScoreServiceTest {
 
     private MemberLifePatternLog lifePatternLog(Member member, LifePatternInformation information) {
         return MemberLifePatternLog.builder()
-                .member(member)
+                .memberId(member.getId())
                 .lifePatternInformation(information)
                 .memberLifePatternLogDegree(MemberLifePatternLogDegree.builder().degree(1L).build())
                 .build();
@@ -355,7 +355,7 @@ class RoommateScoreServiceTest {
 
     private PreferenceConditionLog preferenceLog(Member member, LifePatternInformation information) {
         return PreferenceConditionLog.builder()
-                .member(member)
+                .memberId(member.getId())
                 .lifePatternInformation(information)
                 .preferenceConditionLogDegree(PreferenceConditionLogDegree.builder().degree(1L).build())
                 .build();
@@ -363,7 +363,7 @@ class RoommateScoreServiceTest {
 
     private PreferenceConditionWeightLog weightLog(Member member, LifePattern lifePattern) {
         return PreferenceConditionWeightLog.builder()
-                .member(member)
+                .memberId(member.getId())
                 .lifePattern(lifePattern)
                 .preferenceConditionWeightLogDegree(PreferenceConditionWeightLogDegree.builder().degree(1L).build())
                 .build();

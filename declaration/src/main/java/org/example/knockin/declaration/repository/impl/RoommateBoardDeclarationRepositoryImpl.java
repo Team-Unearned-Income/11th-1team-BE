@@ -31,15 +31,15 @@ public class RoommateBoardDeclarationRepositoryImpl implements RoommateBoardDecl
                         roommateBoardDeclaration.id,
                         ExpressionUtils.as(Expressions.constant(ReportType.BOARD.name()), "type"),
                         basicInformation.name.as("reporter"),
-                        roommateBoardDeclaration.member.id.as("reporterId"),
-                        roommateBoardDeclaration.roommateBoard.id.as("reportedId"),
+                        roommateBoardDeclaration.memberId.as("reporterId"),
+                        roommateBoardDeclaration.roommateBoardId.as("reportedId"),
                         roommateBoardDeclaration.reason,
                         roommateBoardDeclaration.createdAt
                 ))
                 .from(roommateBoardDeclaration)
-                .join(roommateBoardDeclaration.member, member)
+                .join(member).on(member.id.eq(roommateBoardDeclaration.memberId))
                 .leftJoin(basicInformation)
-                .on(basicInformation.member.eq(roommateBoardDeclaration.member))
+                .on(basicInformation.member.id.eq(roommateBoardDeclaration.memberId))
                 .where(roommateBoardDeclaration.declarationType.eq(DeclarationType.PENDING))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
@@ -57,9 +57,9 @@ public class RoommateBoardDeclarationRepositoryImpl implements RoommateBoardDecl
                         roommateBoardDeclaration.declarationType
                 ))
                 .from(roommateBoardDeclaration)
-                .join(roommateBoardDeclaration.member, member)
+                .join(member).on(member.id.eq(roommateBoardDeclaration.memberId))
                 .leftJoin(basicInformation)
-                .on(basicInformation.member.eq(roommateBoardDeclaration.member))
+                .on(basicInformation.member.id.eq(roommateBoardDeclaration.memberId))
                 .where(roommateBoardDeclaration.declarationType.ne(DeclarationType.PENDING))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())

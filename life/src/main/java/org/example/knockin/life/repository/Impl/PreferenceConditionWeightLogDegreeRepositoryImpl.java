@@ -2,7 +2,6 @@ package org.example.knockin.life.repository.Impl;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.member.entity.Member;
 import org.example.knockin.life.repository.PreferenceConditionWeightLogDegreeRepositoryCustom;
 import org.springframework.stereotype.Repository;
 
@@ -17,10 +16,10 @@ public class PreferenceConditionWeightLogDegreeRepositoryImpl implements Prefere
     private final JPAQueryFactory jpaQueryFactory;
 
     @Override
-    public Optional<Long> findMaxPreferenceConditionWeightLogDegree(Member member) {
+    public Optional<Long> findMaxPreferenceConditionWeightLogDegree(Long memberId) {
         return Optional.ofNullable(jpaQueryFactory.select(preferenceConditionWeightLogDegree.degree.max())
                 .from(preferenceConditionWeightLogDegree)
                 .join(preferenceConditionWeightLog).on(preferenceConditionWeightLog.preferenceConditionWeightLogDegree.eq(preferenceConditionWeightLogDegree))
-                .where(preferenceConditionWeightLog.member.eq(member)).fetchOne());
+                .where(preferenceConditionWeightLog.memberId.eq(memberId)).fetchOne());
     }
 }

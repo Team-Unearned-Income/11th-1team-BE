@@ -47,9 +47,9 @@ public class PreferenceConditionRepositoryImpl implements PreferenceConditionRep
                                 .from(latestPatternFile)
                                 .where(latestPatternFile.lifePattern.eq(lifePattern))
                 ))
-                .leftJoin(selectedPatternFile.file, patternImageFile)
-                .on(patternImageFile.isDeleted.isFalse())
-                .where(preferenceCondition.member.id.eq(memberId))
+                .leftJoin(patternImageFile)
+                .on(selectedPatternFile.fileId.eq(patternImageFile.id), patternImageFile.isDeleted.isFalse())
+                .where(preferenceCondition.memberId.eq(memberId))
                 .fetch();
     }
 
@@ -66,7 +66,7 @@ public class PreferenceConditionRepositoryImpl implements PreferenceConditionRep
         return jpaQueryFactory
                 .select(Projections.constructor(
                         MatchingPreferenceConditionRow.class,
-                        preferenceCondition.member.id,
+                        preferenceCondition.memberId,
                         preferenceCondition.id,
                         lifePattern.id,
                         lifePatternInformation.id,
@@ -86,10 +86,10 @@ public class PreferenceConditionRepositoryImpl implements PreferenceConditionRep
                                 .from(latestPatternFile)
                                 .where(latestPatternFile.lifePattern.eq(lifePattern))
                 ))
-                .leftJoin(selectedPatternFile.file, patternImageFile)
-                .on(patternImageFile.isDeleted.isFalse())
+                .leftJoin(patternImageFile)
+                .on(selectedPatternFile.fileId.eq(patternImageFile.id), patternImageFile.isDeleted.isFalse())
                 .where(
-                        preferenceCondition.member.id.in(memberIds),
+                        preferenceCondition.memberId.in(memberIds),
                         lifePattern.isDeleted.isFalse()
                 )
                 .orderBy(lifePattern.sort.asc(), preferenceCondition.id.asc())
@@ -103,7 +103,7 @@ public class PreferenceConditionRepositoryImpl implements PreferenceConditionRep
                 .distinct()
                 .from(preferenceCondition)
                 .join(preferenceCondition.lifePatternInformation, lifePatternInformation)
-                .where(preferenceCondition.member.id.eq(memberId))
+                .where(preferenceCondition.memberId.eq(memberId))
                 .fetch();
     }
 }

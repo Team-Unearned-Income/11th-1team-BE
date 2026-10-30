@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.example.knockin.board.dto.BoardDetailDto;
 import org.example.knockin.meta.entity.QFile;
 import org.example.knockin.life.entity.QLifePatternFile;
-import org.example.knockin.member.entity.Member;
 import org.example.knockin.life.repository.MemberLifePatternRepositoryCustom;
 import org.example.knockin.life.repository.row.MatchingLifestyleRow;
 import org.springframework.stereotype.Repository;
@@ -48,16 +47,16 @@ public class MemberLifePatternRepositoryImpl implements MemberLifePatternReposit
                                 .from(latestPatternFile)
                                 .where(latestPatternFile.lifePattern.eq(lifePattern))
                 ))
-                .leftJoin(selectedPatternFile.file, patternImageFile)
-                .on(patternImageFile.isDeleted.isFalse())
-                .where(memberLifePattern.member.id.eq(memberId))
+                .leftJoin(patternImageFile)
+                .on(selectedPatternFile.fileId.eq(patternImageFile.id), patternImageFile.isDeleted.isFalse())
+                .where(memberLifePattern.memberId.eq(memberId))
                 .orderBy(lifePattern.sort.asc())
                 .fetch();
     }
 
     @Override
-    public boolean isExsitLifeStyle(Member member) {
-        Long result = jpaQueryFactory.select(memberLifePattern.id).from(memberLifePattern).where(memberLifePattern.member.eq(member)).fetchFirst();
+    public boolean isExsitLifeStyle(Long memberId) {
+        Long result = jpaQueryFactory.select(memberLifePattern.id).from(memberLifePattern).where(memberLifePattern.memberId.eq(memberId)).fetchFirst();
         return result != null;
     }
 
@@ -74,7 +73,7 @@ public class MemberLifePatternRepositoryImpl implements MemberLifePatternReposit
         return jpaQueryFactory
                 .select(Projections.constructor(
                         MatchingLifestyleRow.class,
-                        memberLifePattern.member.id,
+                        memberLifePattern.memberId,
                         memberLifePattern.id,
                         lifePattern.id,
                         lifePatternInformation.id,
@@ -94,10 +93,10 @@ public class MemberLifePatternRepositoryImpl implements MemberLifePatternReposit
                                 .from(latestPatternFile)
                                 .where(latestPatternFile.lifePattern.eq(lifePattern))
                 ))
-                .leftJoin(selectedPatternFile.file, patternImageFile)
-                .on(patternImageFile.isDeleted.isFalse())
+                .leftJoin(patternImageFile)
+                .on(selectedPatternFile.fileId.eq(patternImageFile.id), patternImageFile.isDeleted.isFalse())
                 .where(
-                        memberLifePattern.member.id.in(memberIds),
+                        memberLifePattern.memberId.in(memberIds),
                         lifePattern.isDeleted.isFalse()
                 )
                 .orderBy(lifePattern.sort.asc(), memberLifePattern.id.asc())

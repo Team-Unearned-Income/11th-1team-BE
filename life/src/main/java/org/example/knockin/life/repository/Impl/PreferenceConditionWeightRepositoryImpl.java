@@ -42,9 +42,9 @@ public class PreferenceConditionWeightRepositoryImpl implements PreferenceCondit
                                 .from(latestPatternFile)
                                 .where(latestPatternFile.lifePattern.eq(lifePattern))
                 ))
-                .leftJoin(selectedPatternFile.file, patternImageFile)
-                .on(patternImageFile.isDeleted.isFalse())
-                .where(preferenceConditionWeight.member.id.eq(memberId))
+                .leftJoin(patternImageFile)
+                .on(selectedPatternFile.fileId.eq(patternImageFile.id), patternImageFile.isDeleted.isFalse())
+                .where(preferenceConditionWeight.memberId.eq(memberId))
                 .fetch();
     }
 
@@ -61,7 +61,7 @@ public class PreferenceConditionWeightRepositoryImpl implements PreferenceCondit
         return jpaQueryFactory
                 .select(Projections.constructor(
                         MatchingPreferenceConditionWeightRow.class,
-                        preferenceConditionWeight.member.id,
+                        preferenceConditionWeight.memberId,
                         preferenceConditionWeight.id,
                         lifePattern.id,
                         lifePattern.name,
@@ -76,10 +76,10 @@ public class PreferenceConditionWeightRepositoryImpl implements PreferenceCondit
                                 .from(latestPatternFile)
                                 .where(latestPatternFile.lifePattern.eq(lifePattern))
                 ))
-                .leftJoin(selectedPatternFile.file, patternImageFile)
-                .on(patternImageFile.isDeleted.isFalse())
+                .leftJoin(patternImageFile)
+                .on(selectedPatternFile.fileId.eq(patternImageFile.id), patternImageFile.isDeleted.isFalse())
                 .where(
-                        preferenceConditionWeight.member.id.in(memberIds),
+                        preferenceConditionWeight.memberId.in(memberIds),
                         lifePattern.isDeleted.isFalse()
                 )
                 .orderBy(lifePattern.sort.asc(), preferenceConditionWeight.id.asc())

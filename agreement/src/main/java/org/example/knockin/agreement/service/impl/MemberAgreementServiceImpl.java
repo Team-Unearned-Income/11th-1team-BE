@@ -3,7 +3,6 @@ package org.example.knockin.agreement.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.agreement.entity.AgreementLog;
 import org.example.knockin.agreement.entity.MemberAgreement;
-import org.example.knockin.member.entity.Member;
 import org.example.knockin.agreement.repository.MemberAgreementRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,11 +24,11 @@ public class MemberAgreementServiceImpl {
         return memberAgreementRepository.save(memberAgreement);
     }
 
-    public List<MemberAgreement> findByMember(Member member) {
-        return memberAgreementRepository.findByMember(member);
+    public List<MemberAgreement> findByMemberId(Long memberId) {
+        return memberAgreementRepository.findByMemberId(memberId);
     }
 
-    public List<MemberAgreement> findByMemberAndAgreementLogNotIn(Member member, List<AgreementLog> skipList) {
-        return memberAgreementRepository.findByMemberAndAgreementLogNotIn(member, skipList);
+    public List<MemberAgreement> findByMemberIdAndAgreementLogNotIn(Long memberId, List<AgreementLog> skipList) {
+        return memberAgreementRepository.findByMemberIdAndAgreementLogNotIn(memberId, skipList);
     }
 }

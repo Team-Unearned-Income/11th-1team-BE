@@ -32,17 +32,17 @@ public class PreferenceConditionWeightLogRepositoryImpl implements PreferenceCon
                 .join(preferenceConditionWeightLog.lifePattern, lifePattern).fetchJoin()
                 .join(preferenceConditionWeight)
                 .on(
-                        preferenceConditionWeight.member.eq(preferenceConditionWeightLog.member),
+                        preferenceConditionWeight.memberId.eq(preferenceConditionWeightLog.memberId),
                         preferenceConditionWeight.lifePattern.eq(preferenceConditionWeightLog.lifePattern)
                 )
                 .where(
-                        preferenceConditionWeightLog.member.id.eq(memberId),
+                        preferenceConditionWeightLog.memberId.eq(memberId),
                         preferenceConditionWeightLogDegree.degree.eq(
                                 JPAExpressions
                                         .select(subDegree.degree.max())
                                         .from(subLog)
                                         .join(subLog.preferenceConditionWeightLogDegree, subDegree)
-                                        .where(subLog.member.id.eq(memberId))
+                                        .where(subLog.memberId.eq(memberId))
                         ),
                         lifePattern.isDeleted.isFalse()
                 )

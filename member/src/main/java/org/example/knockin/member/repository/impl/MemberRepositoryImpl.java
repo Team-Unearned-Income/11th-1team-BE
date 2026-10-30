@@ -69,6 +69,14 @@ import static org.example.knockin.member.entity.QMemberPrivacy.memberPrivacy;
 import static org.example.knockin.verification.entity.QAuthenticationApprove.authenticationApprove;
 import static org.example.knockin.verification.entity.QAuthentication.authentication;
 import static org.example.knockin.declaration.entity.QMemberDeclaration.memberDeclaration;
+import static org.example.knockin.agreement.entity.QMemberAgreement.memberAgreement;
+import static org.example.knockin.board.entity.QRoommateBoard.roommateBoard;
+import static org.example.knockin.declaration.entity.QRoommateBoardDeclaration.roommateBoardDeclaration;
+import static org.example.knockin.inquiry.entity.QInquiry.inquiry;
+import static org.example.knockin.inquiry.entity.QInquiryComment.inquiryComment;
+import static org.example.knockin.life.entity.QMemberLifePatternLog.memberLifePatternLog;
+import static org.example.knockin.life.entity.QPreferenceConditionLog.preferenceConditionLog;
+import static org.example.knockin.life.entity.QPreferenceConditionWeightLog.preferenceConditionWeightLog;
 import static com.querydsl.core.group.GroupBy.groupBy;
 import static com.querydsl.core.group.GroupBy.list;
 
@@ -91,7 +99,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                         basicInformation.name.as("name"),
                         JPAExpressions.selectOne()
                                 .from(memberLifePattern)
-                                .where(memberLifePattern.member.eq(member))
+                                .where(memberLifePattern.memberId.eq(member.id))
                                 .exists()
                                 .and(JPAExpressions.selectOne()
                                         .from(basicInformation)
@@ -104,11 +112,11 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                                 .as("basicInfo"),
                         JPAExpressions.selectOne()
                                 .from(preferenceCondition)
-                                .where(preferenceCondition.member.eq(member))
+                                .where(preferenceCondition.memberId.eq(member.id))
                                 .exists()
                                 .and(JPAExpressions.selectOne()
                                                 .from(preferenceConditionWeight)
-                                                .where(preferenceConditionWeight.member.eq(member))
+                                                .where(preferenceConditionWeight.memberId.eq(member.id))
                                                 .exists())
                                 .as("preferenceInfo"),
                         Projections.fields(AuthResponse.DeleteInfo.class,
@@ -144,7 +152,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                 .from(member)
                 .leftJoin(basicInformation).on(basicInformation.member.eq(member))
                 .leftJoin(basicInformationFile).on(basicInformationFile.basicInformation.eq(basicInformation))
-                .leftJoin(basicInformationFile.file, file)
+                .leftJoin(file).on(basicInformationFile.fileId.eq(file.id))
                 .leftJoin(memberPrivacy).on(memberPrivacy.member.eq(member))
                 .where(member.eq(memberEntity)).fetchOne();
     }
@@ -162,7 +170,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                 .from(memberLifePattern)
                 .leftJoin(memberLifePattern.lifePatternInformation, lifePatternInformation)
                 .leftJoin(lifePatternInformation.lifePattern, lifePattern)
-                .where(memberLifePattern.member.eq(memberEntity)).fetch();
+                .where(memberLifePattern.memberId.eq(memberEntity.getId())).fetch();
     }
 
     @Override
@@ -223,7 +231,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                 .from(preferenceCondition)
                 .join(preferenceCondition.lifePatternInformation, lifePatternInformation)
                 .join(lifePatternInformation.lifePattern, lifePattern)
-                .where(preferenceCondition.member.eq(memberEntity))
+                .where(preferenceCondition.memberId.eq(memberEntity.getId()))
                 .fetch();
     }
 
@@ -233,7 +241,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                         lifePattern.name.as("name")))
                 .from(preferenceConditionWeight)
                 .join(preferenceConditionWeight.lifePattern, lifePattern)
-                .where(preferenceConditionWeight.member.eq(memberEntity))
+                .where(preferenceConditionWeight.memberId.eq(memberEntity.getId()))
                 .fetch();
     }
 
@@ -255,7 +263,37 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
         jpaQueryFactory.delete(roommateMatchingRequiredAlarm).where(roommateMatchingRequiredAlarm.roommateMatchingRequired.id.in(matchingRequestIds)).execute();
         jpaQueryFactory.delete(roommateCalendarAlarm).where(roommateCalendarAlarm.roommateCalendar.id.in(calendarIds)).execute();
 
+        deleteExternalMemberReferences(eligibleIds);
         return jpaQueryFactory.delete(member).where(member.id.in(eligibleIds)).execute();
+    }
+
+    private void deleteExternalMemberReferences(List<Long> memberIds) {
+        // Use the locked, revalidated IDs so a recovered member keeps all of its data.
+        JPQLSubQuery<Long> boardIds = JPAExpressions.select(roommateBoard.id).from(roommateBoard)
+                .where(roommateBoard.member.id.in(memberIds));
+        jpaQueryFactory.delete(roommateBoardDeclaration)
+                .where(roommateBoardDeclaration.memberId.in(memberIds)
+                        .or(roommateBoardDeclaration.roommateBoardId.in(boardIds))).execute();
+        jpaQueryFactory.delete(memberDeclaration)
+                .where(memberDeclaration.reporterId.in(memberIds).or(memberDeclaration.reportedId.in(memberIds))).execute();
+
+        JPQLSubQuery<Long> inquiryIds = JPAExpressions.select(inquiry.id).from(inquiry)
+                .where(inquiry.memberId.in(memberIds));
+        jpaQueryFactory.delete(inquiryComment)
+                .where(inquiryComment.memberId.in(memberIds).or(inquiryComment.inquiry.id.in(inquiryIds))).execute();
+        jpaQueryFactory.delete(inquiry).where(inquiry.memberId.in(memberIds)).execute();
+
+        JPQLSubQuery<Long> authenticationIds = JPAExpressions.select(authentication.id).from(authentication)
+                .where(authentication.memberId.in(memberIds));
+        jpaQueryFactory.delete(authenticationApprove).where(authenticationApprove.authentication.id.in(authenticationIds)).execute();
+        jpaQueryFactory.delete(authentication).where(authentication.memberId.in(memberIds)).execute();
+        jpaQueryFactory.delete(memberAgreement).where(memberAgreement.memberId.in(memberIds)).execute();
+        jpaQueryFactory.delete(memberLifePattern).where(memberLifePattern.memberId.in(memberIds)).execute();
+        jpaQueryFactory.delete(memberLifePatternLog).where(memberLifePatternLog.memberId.in(memberIds)).execute();
+        jpaQueryFactory.delete(preferenceCondition).where(preferenceCondition.memberId.in(memberIds)).execute();
+        jpaQueryFactory.delete(preferenceConditionLog).where(preferenceConditionLog.memberId.in(memberIds)).execute();
+        jpaQueryFactory.delete(preferenceConditionWeight).where(preferenceConditionWeight.memberId.in(memberIds)).execute();
+        jpaQueryFactory.delete(preferenceConditionWeightLog).where(preferenceConditionWeightLog.memberId.in(memberIds)).execute();
     }
 
     @Override
@@ -307,7 +345,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                                 .from(basicInformationFile)
                                 .where(basicInformationFile.basicInformation.id.eq(basicInformation.id))
                 ))
-                .leftJoin(basicInformationFile.file, file)
+                .leftJoin(file).on(basicInformationFile.fileId.eq(file.id))
                 .on(file.isDeleted.isFalse())
                 .orderBy(randomOrder.asc())
                 .limit(size)
@@ -372,7 +410,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                                 .from(basicInformationFile)
                                 .where(basicInformationFile.basicInformation.id.eq(basicInformation.id))
                 ))
-                .leftJoin(basicInformationFile.file, file)
+                .leftJoin(file).on(basicInformationFile.fileId.eq(file.id))
                 .on(file.isDeleted.isFalse())
                 .fetchOne());
     }
@@ -390,7 +428,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                 )).from(member)
                 .leftJoin(basicInformation).on(basicInformation.member.eq(member))
                 .leftJoin(state).on(state.member.eq(member))
-                .leftJoin(authentication).on(authentication.member.eq(member))
+                .leftJoin(authentication).on(authentication.memberId.eq(member.id))
                 .leftJoin(authenticationApprove).on(authenticationApprove.authentication.eq(authentication))
                 .where(searchName(request.getSearchName()), searchState(request.getSearchState()), searchApproveType(request.getSearchApproveType()))
                 .offset(pageable.getOffset()).limit(pageable.getPageSize()).fetch();
@@ -402,7 +440,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                 .from(member)
                 .leftJoin(basicInformation).on(basicInformation.member.eq(member))
                 .leftJoin(state).on(state.member.eq(member))
-                .leftJoin(authentication).on(authentication.member.eq(member))
+                .leftJoin(authentication).on(authentication.memberId.eq(member.id))
                 .where(member.id.eq(id))
                 .transform(groupBy(member.id).as(Projections.fields(BoMemberDetailDto.Response.class,
                         member.id,
@@ -415,7 +453,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                         state.states.as("state"),
                         ExpressionUtils.as(JPAExpressions
                                 .select(memberDeclaration.count().intValue())
-                                .from(memberDeclaration).where(memberDeclaration.reported.id.eq(member.id)), "reportCount"),
+                                .from(memberDeclaration).where(memberDeclaration.reportedId.eq(member.id)), "reportCount"),
                         list(Projections.fields(BoMemberDetailDto.Response.AuthenticationInfo.class,
                                 authentication.type.as("authenticationType"),
                                 authentication.email.as("authenticationEmail"))).as("authenticationInfoList")))).get(id);
