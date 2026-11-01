@@ -1,6 +1,5 @@
 package org.example.knockin.service.impl;
  
-import org.example.knockin.agreement.service.impl.MemberAgreementServiceImpl;
 import org.example.knockin.board.dto.MyBoardListDto;
 import org.example.knockin.agreement.entity.AgreementLog;
 import org.example.knockin.agreement.entity.MemberAgreement;

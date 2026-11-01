@@ -67,7 +67,7 @@ class MetaServiceImplTest {
         Agreement agreement = mock(Agreement.class);
         given(agreement.getId()).willReturn(1L);
         given(agreement.getContents()).willReturn("약관 내용");
-        given(agreementService.findAgreement(anyLong())).willReturn(agreement);
+        given(agreementService.findBoAgreement(anyLong())).willReturn(agreement);
  
         TermsDetailDto.Response result = metaService.findTermDetail(1L);
  

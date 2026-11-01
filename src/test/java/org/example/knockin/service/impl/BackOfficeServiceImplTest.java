@@ -204,7 +204,7 @@ class BackOfficeServiceImplTest {
                 .build();
         ReflectionTestUtils.setField(agreement, "createdAt", LocalDateTime.now());
 
-        given(agreementService.findAgreement(termsId)).willReturn(agreement);
+        given(agreementService.findBoAgreement(termsId)).willReturn(agreement);
 
         // when
         BoTermsDetailDto.Response response = backOfficeService.findTerms(termsId);

@@ -171,7 +171,7 @@ class AgreementServiceImplTest {
         given(agreementLogRepository.findById(id)).willReturn(Optional.of(log));
  
         // when
-        Agreement result = agreementService.findAgreement(id);
+        Agreement result = agreementService.findBoAgreement(id);
  
         // then
         assertThat(result).isNotNull();
@@ -186,7 +186,7 @@ class AgreementServiceImplTest {
         given(agreementLogRepository.findById(id)).willReturn(Optional.empty());
  
         // when & then
-        assertThatThrownBy(() -> agreementService.findAgreement(id))
+        assertThatThrownBy(() -> agreementService.findBoAgreement(id))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", AgreementErrorCode.AGREEMENT_NOT_FOUNT);
     }

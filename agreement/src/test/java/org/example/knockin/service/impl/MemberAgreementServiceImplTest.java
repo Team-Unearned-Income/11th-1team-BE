@@ -2,7 +2,6 @@ package org.example.knockin.service.impl;
  
 import org.example.knockin.agreement.entity.AgreementLog;
 import org.example.knockin.agreement.entity.MemberAgreement;
-import org.example.knockin.agreement.service.impl.MemberAgreementServiceImpl;
 import org.example.knockin.member.entity.Member;
 import org.example.knockin.agreement.repository.MemberAgreementRepository;
 import org.junit.jupiter.api.DisplayName;

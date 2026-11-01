@@ -80,14 +80,12 @@ public class MetaServiceImpl {
     }
 
     public TermsListDto.Response findTermList() {
-        List<TermsListDto.Response.TermsItem> termsItemList = agreementService.findByAgreementsIsCurrentAndIsDeleted().stream().map(item ->
-            TermsListDto.Response.TermsItem.builder().id(item.getId()).title(item.getTitle()).build()).toList();
+        List<TermsListDto.Response.TermsItem> termsItemList = agreementService.findByAgreementsIsCurrentAndIsDeleted();
         return TermsListDto.Response.builder().terms(termsItemList).build();
     }
 
     public TermsDetailDto.Response findTermDetail(Long termsId) {
-        Agreement agreement = agreementService.findAgreement(termsId);
-        return TermsDetailDto.Response.builder().id(agreement.getId()).contents(agreement.getContents()).build();
+        return agreementService.findUserAgreement(termsId);
     }
 
     public PopularSearchDto.Response findPopSearch() {
