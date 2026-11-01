@@ -133,7 +133,7 @@ public class OnBoardingServiceImpl {
     public SaveProfileBasicDto.Response saveBasicInfoLogic(SaveProfileBasicDto.Request request, Long memberId) {
         Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
         if(ObjectUtils.isEmpty(saveBasicInfo(request, member))) throw new BusinessException(OnBoardErrorCode.ONBOARD_BASIC_SAVE_ERROR);
-        if(agreementService.saveMemberAgreement(request, memberId)) throw new BusinessException(OnBoardErrorCode.ONBOARD_TERM_SAVE_ERROR);
+        if(agreementService.saveMemberAgreement(request.getTerms(), memberId)) throw new BusinessException(OnBoardErrorCode.ONBOARD_TERM_SAVE_ERROR);
         saveOrUpdateState(member);
         return SaveProfileBasicDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
@@ -279,7 +279,7 @@ public class OnBoardingServiceImpl {
                 .build();
 
         if(ObjectUtils.isEmpty(saveBasicInfo(basicRequest, member))) throw new BusinessException(OnBoardErrorCode.ONBOARD_BASIC_SAVE_ERROR);
-        if(agreementService.saveMemberAgreement(basicRequest, memberId)) throw new BusinessException(OnBoardErrorCode.ONBOARD_TERM_SAVE_ERROR);
+        if(agreementService.saveMemberAgreement(basicRequest.getTerms(), memberId)) throw new BusinessException(OnBoardErrorCode.ONBOARD_TERM_SAVE_ERROR);
         if(saveMemberLifeStyle(lifeStyleRequest, member).isEmpty()) throw new BusinessException(OnBoardErrorCode.ONBOARD_LIFE_STYLE_SAVE_ERROR);
         if(ObjectUtils.isEmpty(saveRoomInfo(roomInfoRequest,member))) throw new BusinessException(OnBoardErrorCode.ONBOARD_ROOM_INFO_SAVE_ERROR);
         saveOrUpdateState(member);
@@ -322,6 +322,7 @@ public class OnBoardingServiceImpl {
         Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
 
         modifyBasicInfo(request, member, file);
+        agreementService.modifyMemberAgreement(request.getTerms(), memberId);
 
         return ModifyProfileBasicDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
@@ -504,7 +505,7 @@ public class OnBoardingServiceImpl {
                 .build();
 
         modifyBasicInfo(basicRequest, member);
-        agreementService.modifyMemberAgreement(basicRequest, memberId);
+        agreementService.modifyMemberAgreement(basicRequest.getTerms(), memberId);
         modifyLifeStyle(lifeStyleRequest, member);
         modifyLifeStyleLog(member);
         modifyRoomInfo(roomInfoRequest, member);

@@ -4,8 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.example.knockin.agreement.dto.TermsDetailDto;
 import org.example.knockin.agreement.dto.TermsListDto;
 import org.example.knockin.agreement.service.impl.AgreementServiceImpl;
-import org.example.knockin.agreement.entity.Agreement;
-import org.example.knockin.agreement.entity.AgreementLog;
 import org.example.knockin.life.service.impl.LifeStyleServiceImpl;
 import org.example.knockin.life.dto.MetaLifestylePatternsDto;
 import org.example.knockin.life.entity.LifePattern;
@@ -42,10 +40,6 @@ public class MetaServiceImpl {
     private final AgreementServiceImpl agreementService;
     private final SearchServiceImpl searchService;
     private final FileService fileService;
-
-    public List<AgreementLog> findByAgreementLogIsCurrent(List<Long> agreementIds) {
-        return agreementService.findByAgreementLogIsCurrent(agreementIds);
-    }
 
     public List<LifePatternInformation> findByLifeStyle(List<Long> lifeStyles) {
         return lifeStyleService.findByLifeStyles(lifeStyles);

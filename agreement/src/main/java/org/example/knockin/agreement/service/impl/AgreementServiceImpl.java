@@ -1,7 +1,7 @@
 package org.example.knockin.agreement.service.impl;
 
 import java.util.ArrayList;
-import java.util.Objects;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -22,8 +22,6 @@ import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.agreement.repository.AgreementLogRepository;
 import org.example.knockin.agreement.repository.AgreementRepository;
 import org.example.knockin.agreement.repository.AgreementTypeRepository;
-import org.example.knockin.member.dto.ModifyProfileBasicDto;
-import org.example.knockin.member.dto.SaveProfileBasicDto;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -71,14 +69,19 @@ public class AgreementServiceImpl {
                 .build();
 
         Agreement agreementEntity = agreementRepository.save(agreement);
-        agreementLogRepository.save(AgreementLog.builder().agreement(agreement).isCurrent(false).build());
+        agreementLogRepository.save(AgreementLog.builder().agreement(agreementEntity).isCurrent(false).build());
         return agreementEntity;
     }
 
     @Transactional
     public Agreement modifyAgreement(BoTermsDto.Request request, Long agreementId) {
         Agreement agreementEntity = agreementRepository.findById(agreementId).orElseThrow(() -> new BusinessException(AgreementErrorCode.AGREEMENT_NOT_FOUNT));
-        agreementLogRepository.findByAgreementIn(agreementRepository.findByType(agreementEntity.getType())).forEach(AgreementLog::clearCurrent);
+        List<AgreementLog> agreementLogs = agreementLogRepository.findByAgreementIn(agreementRepository.findByType(agreementEntity.getType()));
+        AgreementLog targetLog = agreementLogs.stream()
+                .filter(log -> agreementId.equals(log.getAgreement().getId()))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(AgreementErrorCode.AGREEMENT_LOG_NOT_FOUNT));
+        agreementLogs.forEach(AgreementLog::clearCurrent);
 
         Agreement newAgreement = Agreement.builder()
                 .title(request.getTitle())
@@ -87,7 +90,7 @@ public class AgreementServiceImpl {
                 .build();
 
         agreementEntity.modifyAgreement(newAgreement);
-        agreementLogRepository.findById(agreementEntity.getId()).orElseThrow(() -> new BusinessException(AgreementErrorCode.AGREEMENT_LOG_NOT_FOUNT)).enableCurrent();
+        targetLog.enableCurrent();
         return agreementEntity;
     }
 
@@ -97,8 +100,8 @@ public class AgreementServiceImpl {
     }
 
     public BoTermsDetailDto.Response findBoAgreement(Long id) {
-        Agreement agreement = agreementLogRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(AgreementErrorCode.AGREEMENT_NOT_FOUNT)).getAgreement();
+        Agreement agreement = agreementRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(AgreementErrorCode.AGREEMENT_NOT_FOUNT));
         return BoTermsDetailDto.Response.builder()
                 .id(agreement.getId())
                 .title(agreement.getTitle())
@@ -108,8 +111,8 @@ public class AgreementServiceImpl {
     }
 
     public TermsDetailDto.Response findUserAgreement(Long id) {
-        Agreement agreement = agreementLogRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(AgreementErrorCode.AGREEMENT_NOT_FOUNT)).getAgreement();
+        Agreement agreement = agreementRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(AgreementErrorCode.AGREEMENT_NOT_FOUNT));
         return TermsDetailDto.Response.builder()
                 .id(agreement.getId())
                 .contents(agreement.getContents())
@@ -127,6 +130,7 @@ public class AgreementServiceImpl {
         return agreementTypeRepository.findById(id).orElseThrow(() -> new BusinessException(AgreementErrorCode.AGREEMENT_TYPE_NOT_FOUNT));
     }
 
+    @Transactional
     public void modifyAgreementType(Long termTypeId, BoTypeTermsDto.Request request) {
         AgreementType type = findAgreementTypeById(termTypeId);
         type.modifyAgreementType(request.getTitle());
@@ -160,70 +164,64 @@ public class AgreementServiceImpl {
     }
 
     @Transactional
-    public boolean saveMemberAgreement(SaveProfileBasicDto.Request request, Long memberId) {
-        return saveAllMemberAgreement(request, memberId).isEmpty();
+    public boolean saveMemberAgreement(List<Long> agreementIds, Long memberId) {
+        return saveAllMemberAgreement(agreementIds, memberId).stream()
+                .noneMatch(agreement -> Boolean.TRUE.equals(agreement.getIsAgreed()));
     }
 
     @Transactional
-    public List<MemberAgreement> saveAllMemberAgreement(SaveProfileBasicDto.Request request, Long memberId) {
+    public List<MemberAgreement> saveAllMemberAgreement(List<Long> agreementIds, Long memberId) {
         List<MemberAgreement> existing = findByMemberId(memberId);
+        List<AgreementLog> requestedLogs = findByAgreementLogIsCurrent(agreementIds);
         if (!existing.isEmpty()) {
-            modifyMemberAgreementForSave(request, memberId);
-            return findByMemberId(memberId);
+            return synchronizeMemberAgreements(requestedLogs, existing, memberId);
         }
-        List<MemberAgreement> memberAgreementList = new ArrayList<>();
-
-        findByAgreementLogIsCurrent(request.getTerms()).forEach(item -> {
-            MemberAgreement memberAgreement = MemberAgreement.builder()
-                    .memberId(memberId)
-                    .agreementLog(item)
-                    .isAgreed(true)
-                    .build();
-            memberAgreementList.add(memberAgreement);
-        });
-
+        List<MemberAgreement> memberAgreementList = requestedLogs.stream()
+                .map(log -> newMemberAgreement(memberId, log))
+                .toList();
         return memberAgreementRepository.saveAll(memberAgreementList);
     }
 
     @Transactional
-    public void modifyMemberAgreement(ModifyProfileBasicDto.Request request, Long memberId) {
-        List<AgreementLog> requestAgreementList = findByAgreementLogIsCurrent(request.getTerms());
-        List<AgreementLog> memberAgreementList = findByMemberId(memberId).stream().map(MemberAgreement::getAgreementLog).toList();
+    public void modifyMemberAgreement(List<Long> agreementIds, Long memberId) {
+        synchronizeMemberAgreements(findByAgreementLogIsCurrent(agreementIds), findByMemberId(memberId), memberId);
+    }
 
-        Set<Long> memberAgreementIds = memberAgreementList.stream().map(AgreementLog::getId).collect(Collectors.toSet());
-        List<AgreementLog> skipList = requestAgreementList.stream().filter(reqLog -> memberAgreementIds.contains(reqLog.getId())).toList();
-
-        if (skipList.isEmpty()) {
-            findByMemberId(memberId).forEach(MemberAgreement::disableAgree);
-        } else {
-            findByMemberIdAndAgreementLogNotIn(memberId, skipList).forEach(MemberAgreement::disableAgree);
-        }
-
-        requestAgreementList.forEach(agreementLog -> {
-            boolean isNotInSkipList = skipList.stream().noneMatch(skipItem -> Objects.equals(skipItem.getId(), agreementLog.getId()));
-            if (isNotInSkipList) saveMemberAgreement(memberId, agreementLog);
+    private List<MemberAgreement> synchronizeMemberAgreements(List<AgreementLog> requestedLogs, List<MemberAgreement> existing, Long memberId) {
+        Set<Long> requestedLogIds = requestedLogs.stream().map(AgreementLog::getId).collect(Collectors.toSet());
+        Set<Long> existingLogIds = new HashSet<>();
+        existing.forEach(agreement -> {
+            Long logId = agreement.getAgreementLog().getId();
+            existingLogIds.add(logId);
+            if (requestedLogIds.contains(logId)) {
+                agreement.enableAgree();
+            } else {
+                agreement.disableAgree();
+            }
         });
+
+        List<MemberAgreement> result = new ArrayList<>(existing);
+        requestedLogs.stream()
+                .filter(log -> existingLogIds.add(log.getId()))
+                .forEach(log -> result.add(saveMemberAgreement(memberId, log)));
+        return result;
     }
 
     @Transactional
-    public void modifyMemberAgreementForSave(SaveProfileBasicDto.Request request, Long memberId) {
-        modifyMemberAgreement(ModifyProfileBasicDto.Request.of(request), memberId);
+    public MemberAgreement saveMemberAgreement(Long memberId, AgreementLog agreementLog) {
+        return memberAgreementRepository.save(newMemberAgreement(memberId, agreementLog));
     }
 
-    public MemberAgreement saveMemberAgreement(Long memberId, AgreementLog agreementLog) {
-        MemberAgreement memberAgreement = MemberAgreement.builder()
+    private MemberAgreement newMemberAgreement(Long memberId, AgreementLog agreementLog) {
+        return MemberAgreement.builder()
                 .memberId(memberId)
                 .agreementLog(agreementLog)
                 .isAgreed(true)
                 .build();
-        return memberAgreementRepository.save(memberAgreement);
     }
 
     public List<MemberAgreement> findByMemberId(Long memberId) {
         return memberAgreementRepository.findByMemberId(memberId);
     }
 
-    public List<MemberAgreement> findByMemberIdAndAgreementLogNotIn(Long memberId, List<AgreementLog> skipList) {
-        return memberAgreementRepository.findByMemberIdAndAgreementLogNotIn(memberId, skipList);
-    }
 }

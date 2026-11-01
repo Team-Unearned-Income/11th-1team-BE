@@ -32,7 +32,6 @@ import org.example.knockin.declaration.dto.BoReportNoActionDto;
 import org.example.knockin.declaration.dto.BoReportSuspendedDto;
 import org.example.knockin.declaration.dto.BoReportWaitListDto;
 import org.example.knockin.declaration.service.impl.DeclarationServiceImpl;
-import org.example.knockin.agreement.entity.AgreementType;
 import org.example.knockin.meta.entity.Notification;
 import org.example.knockin.member.service.impl.MemberServiceImpl;
 import org.example.knockin.meta.entity.File;
