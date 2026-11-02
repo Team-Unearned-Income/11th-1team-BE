@@ -57,7 +57,7 @@ class DeclarationServiceImplTest {
         Member reporter = Member.builder().id(10L).build();
         Member reported = Member.builder().id(20L).build();
 
-        declarationService.reportMember(reporter, reported, "신고 사유");
+        declarationService.reportMember(reporter.getId(), reported.getId(), "신고 사유");
 
         ArgumentCaptor<MemberDeclaration> captor = ArgumentCaptor.forClass(MemberDeclaration.class);
         verify(memberDeclarationRepository).existsByReporterIdAndReportedId(10L, 20L);
@@ -71,7 +71,7 @@ class DeclarationServiceImplTest {
         given(memberDeclarationRepository.existsByReporterIdAndReportedId(10L, 20L)).willReturn(true);
 
         assertThatThrownBy(() -> declarationService.reportMember(
-                Member.builder().id(10L).build(), Member.builder().id(20L).build(), "신고 사유"))
+                Member.builder().id(10L).build().getId(), Member.builder().id(20L).build().getId(), "신고 사유"))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", MemberErrorCode.DECLARATION_DUPLICATE);
 
@@ -83,7 +83,7 @@ class DeclarationServiceImplTest {
         RoommateBoard board = RoommateBoard.builder().id(30L).build();
         Member reporter = Member.builder().id(10L).build();
 
-        declarationService.reportBoard(board, reporter, "신고 사유");
+        declarationService.reportBoard(board.getId(), reporter.getId(), "신고 사유");
 
         ArgumentCaptor<RoommateBoardDeclaration> captor = ArgumentCaptor.forClass(RoommateBoardDeclaration.class);
         verify(roommateBoardDeclarationRepository).findByRoommateBoardIdAndMemberId(30L, 10L);
@@ -98,7 +98,7 @@ class DeclarationServiceImplTest {
                 .willReturn(Optional.of(RoommateBoardDeclaration.builder().id(1L).build()));
 
         assertThatThrownBy(() -> declarationService.reportBoard(
-                RoommateBoard.builder().id(30L).build(), Member.builder().id(10L).build(), "신고 사유"))
+                RoommateBoard.builder().id(30L).build().getId(), Member.builder().id(10L).build().getId(), "신고 사유"))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", RoommateBoardErrorCode.ROOMMATE_BOARD_DECLARATION_DUPLICATE);
 

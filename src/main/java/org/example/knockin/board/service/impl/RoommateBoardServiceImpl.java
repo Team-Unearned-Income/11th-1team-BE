@@ -789,7 +789,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
         Member member = memberService.findById(memberId)
                 .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
 
-        declarationService.reportBoard(roommateBoard, member, request.getContents());
+        declarationService.reportBoard(roommateBoard.getId(), member.getId(), request.getContents());
 
         return new ReportDto.Response(LocalDateTime.now());
     }

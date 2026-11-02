@@ -10,6 +10,7 @@ import org.example.knockin.agreement.service.AgreementService;
 import org.example.knockin.board.dto.BoBoardDeleteDto;
 import org.example.knockin.board.dto.BoBoardDetailDto;
 import org.example.knockin.board.dto.BoBoardListDto;
+import org.example.knockin.global.util.ReportType;
 import org.example.knockin.member.dto.BoMemberAuthDto;
 import org.example.knockin.member.dto.BoMemberCancelDto;
 import org.example.knockin.member.dto.BoMemberDetailDto;
@@ -389,6 +390,9 @@ public class BackOfficeServiceImpl {
     @Transactional
     public BoReportSuspendedDto.Response reportSuspended(BoReportSuspendedDto.Request request) {
         declarationService.reportSuspended(request.getId(), request.getType(), request.getReason());
+        if (request.getType().equals(ReportType.MEMBER)) {
+            memberService.findStateByMemberId(request.getId()).rejectState(request.getReason());
+        }
         return BoReportSuspendedDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 

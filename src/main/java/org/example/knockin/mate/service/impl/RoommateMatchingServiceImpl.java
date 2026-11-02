@@ -395,7 +395,7 @@ public class RoommateMatchingServiceImpl implements RoommateMatchingService {
     public MemberReportDto.Response reportMatching(Long reporterId, Long reportedId, MemberReportDto.Request request) {
         Member reporter = memberService.findByIdOrThrow(reporterId);
         Member reported = memberService.findByIdOrThrow(reportedId);
-        declarationService.reportMember(reporter, reported, request.getContents());
+        declarationService.reportMember(reporter.getId(), reported.getId(), request.getContents());
 
         return new MemberReportDto.Response(LocalDateTime.now());
     }
