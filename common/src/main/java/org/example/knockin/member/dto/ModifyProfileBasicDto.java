@@ -43,6 +43,16 @@ public class ModifyProfileBasicDto {
         @Schema(description = "약관")
         @NotEmpty
         private List<Long> terms;
+
+        public static Request of(SaveProfileBasicDto.Request request) {
+            return Request.builder()
+                    .name(request.getName())
+                    .birth(request.getBirth())
+                    .gender(request.getGender())
+                    .email(request.getEmail())
+                    .terms(request.getTerms())
+                    .build();
+        }
     }
 
     @Data

@@ -44,4 +44,8 @@ public class MemberAgreement extends CreatedAtEntity {
     public void disableAgree() {
         this.isAgreed = false;
     }
+
+    public void enableAgree() {
+        this.isAgreed = true;
+    }
 }

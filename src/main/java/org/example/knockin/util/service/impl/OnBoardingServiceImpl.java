@@ -2,13 +2,11 @@ package org.example.knockin.util.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.knockin.agreement.service.impl.MemberAgreementServiceImpl;
+import org.example.knockin.agreement.service.AgreementService;
 import org.example.knockin.mate.service.impl.MetaServiceImpl;
 import org.example.knockin.verification.dto.MyVerificationListDto;
 import org.example.knockin.verification.service.impl.AuthenticationServiceImpl;
 import org.example.knockin.board.dto.MyBoardListDto;
-import org.example.knockin.agreement.entity.AgreementLog;
-import org.example.knockin.agreement.entity.MemberAgreement;
 import org.example.knockin.member.dto.ModifyProfileAllDto;
 import org.example.knockin.member.dto.ModifyProfileBasicDto;
 import org.example.knockin.member.dto.ProfileVisibilityDto;
@@ -90,7 +88,6 @@ public class OnBoardingServiceImpl {
     private final AuthenticationServiceImpl authenticationService;
     private final BasicInformationServiceImpl basicInformationService;
     private final MemberServiceImpl memberService;
-    private final MemberAgreementServiceImpl memberAgreementService;
     private final MemberLifePatternService memberLifePatternService;
     private final RoomProfileServiceImpl roomProfileService;
     private final RoomTypeServiceImpl roomTypeService;
@@ -102,6 +99,7 @@ public class OnBoardingServiceImpl {
     private final MyRoomMateServiceImpl myRoomMateService;
     private final RoommateBoardService roommateBoardService;
     private final FileService fileService;
+    private final AgreementService agreementService;
 
     private String resolveName(String name) {
         if (StringUtils.hasText(name)) {
@@ -132,27 +130,10 @@ public class OnBoardingServiceImpl {
     }
 
     @Transactional
-    public List<MemberAgreement> saveMemberAgreement(SaveProfileBasicDto.Request request, Member member) {
-        Long memberId = member.getId();
-        List<MemberAgreement> existing = memberAgreementService.findByMemberId(memberId);
-        if (!existing.isEmpty()) {
-            modifyAgreementForSave(request, member);
-            return memberAgreementService.findByMemberId(memberId);
-        }
-        List<MemberAgreement> memberAgreementList = new ArrayList<>();
-
-        metaService.findByAgreementLogIsCurrent(request.getTerms()).forEach(item -> {
-            memberAgreementList.add(MemberAgreement.builder().memberId(member.getId()).agreementLog(item).isAgreed(true).build());
-        });
-
-        return memberAgreementService.saveAll(memberAgreementList);
-    }
-
-    @Transactional
     public SaveProfileBasicDto.Response saveBasicInfoLogic(SaveProfileBasicDto.Request request, Long memberId) {
         Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
         if(ObjectUtils.isEmpty(saveBasicInfo(request, member))) throw new BusinessException(OnBoardErrorCode.ONBOARD_BASIC_SAVE_ERROR);
-        if(saveMemberAgreement(request, member).isEmpty()) throw new BusinessException(OnBoardErrorCode.ONBOARD_TERM_SAVE_ERROR);
+        if(agreementService.saveMemberAgreement(request.getTerms(), memberId)) throw new BusinessException(OnBoardErrorCode.ONBOARD_TERM_SAVE_ERROR);
         saveOrUpdateState(member);
         return SaveProfileBasicDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
@@ -298,7 +279,7 @@ public class OnBoardingServiceImpl {
                 .build();
 
         if(ObjectUtils.isEmpty(saveBasicInfo(basicRequest, member))) throw new BusinessException(OnBoardErrorCode.ONBOARD_BASIC_SAVE_ERROR);
-        if(saveMemberAgreement(basicRequest, member).isEmpty()) throw new BusinessException(OnBoardErrorCode.ONBOARD_TERM_SAVE_ERROR);
+        if(agreementService.saveMemberAgreement(basicRequest.getTerms(), memberId)) throw new BusinessException(OnBoardErrorCode.ONBOARD_TERM_SAVE_ERROR);
         if(saveMemberLifeStyle(lifeStyleRequest, member).isEmpty()) throw new BusinessException(OnBoardErrorCode.ONBOARD_LIFE_STYLE_SAVE_ERROR);
         if(ObjectUtils.isEmpty(saveRoomInfo(roomInfoRequest,member))) throw new BusinessException(OnBoardErrorCode.ONBOARD_ROOM_INFO_SAVE_ERROR);
         saveOrUpdateState(member);
@@ -337,68 +318,11 @@ public class OnBoardingServiceImpl {
     }
 
     @Transactional
-    public void modifyAgreement(ModifyProfileBasicDto.Request request, Member member) {
-        Long memberId = member.getId();
-
-        List<AgreementLog> requestAgreementList = metaService.findByAgreementLogIsCurrent(request.getTerms());
-        List<AgreementLog> memberAgreementList = memberAgreementService.findByMemberId(memberId).stream().map(MemberAgreement::getAgreementLog).toList();
-
-        Set<Long> memberAgreementIds = memberAgreementList.stream().map(AgreementLog::getId).collect(Collectors.toSet());
-        List<AgreementLog> skipList = requestAgreementList.stream().filter(reqLog -> memberAgreementIds.contains(reqLog.getId())).toList();
-
-        if (skipList.isEmpty()) {
-            memberAgreementService.findByMemberId(memberId).forEach(MemberAgreement::disableAgree);
-        } else {
-            memberAgreementService.findByMemberIdAndAgreementLogNotIn(memberId, skipList).forEach(MemberAgreement::disableAgree);
-        }
-
-        requestAgreementList.forEach(item -> {
-            boolean isNotInSkipList = skipList.stream().noneMatch(skipItem -> Objects.equals(skipItem.getId(), item.getId()));
-
-            if (isNotInSkipList) {
-                memberAgreementService.save(MemberAgreement.builder()
-                        .memberId(member.getId())
-                        .agreementLog(item)
-                        .isAgreed(true)
-                        .build());
-            }
-        });
-    }
-
-    @Transactional
-    public void modifyAgreementForSave(SaveProfileBasicDto.Request request, Member member) {
-        Long memberId = member.getId();
-
-        List<AgreementLog> requestAgreementList = metaService.findByAgreementLogIsCurrent(request.getTerms());
-        List<AgreementLog> memberAgreementList = memberAgreementService.findByMemberId(memberId).stream().map(MemberAgreement::getAgreementLog).toList();
-
-        Set<Long> memberAgreementIds = memberAgreementList.stream().map(AgreementLog::getId).collect(Collectors.toSet());
-        List<AgreementLog> skipList = requestAgreementList.stream().filter(reqLog -> memberAgreementIds.contains(reqLog.getId())).toList();
-
-        if (skipList.isEmpty()) {
-            memberAgreementService.findByMemberId(memberId).forEach(MemberAgreement::disableAgree);
-        } else {
-            memberAgreementService.findByMemberIdAndAgreementLogNotIn(memberId, skipList).forEach(MemberAgreement::disableAgree);
-        }
-
-        requestAgreementList.forEach(item -> {
-            boolean isNotInSkipList = skipList.stream().noneMatch(skipItem -> Objects.equals(skipItem.getId(), item.getId()));
-
-            if (isNotInSkipList) {
-                memberAgreementService.save(MemberAgreement.builder()
-                        .memberId(member.getId())
-                        .agreementLog(item)
-                        .isAgreed(true)
-                        .build());
-            }
-        });
-    }
-
-    @Transactional
     public ModifyProfileBasicDto.Response modifyBasicInfoLogic(ModifyProfileBasicDto.Request request, Long memberId, MultipartFile file) {
         Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
 
         modifyBasicInfo(request, member, file);
+        agreementService.modifyMemberAgreement(request.getTerms(), memberId);
 
         return ModifyProfileBasicDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
@@ -581,7 +505,7 @@ public class OnBoardingServiceImpl {
                 .build();
 
         modifyBasicInfo(basicRequest, member);
-        modifyAgreement(basicRequest, member);
+        agreementService.modifyMemberAgreement(basicRequest.getTerms(), memberId);
         modifyLifeStyle(lifeStyleRequest, member);
         modifyLifeStyleLog(member);
         modifyRoomInfo(roomInfoRequest, member);

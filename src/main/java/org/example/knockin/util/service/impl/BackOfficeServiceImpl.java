@@ -6,7 +6,7 @@ import org.example.knockin.agreement.dto.BoTermsDto;
 import org.example.knockin.agreement.dto.BoTermsListDto;
 import org.example.knockin.agreement.dto.BoTypeTermsDto;
 import org.example.knockin.agreement.dto.BoTypeTermsListDto;
-import org.example.knockin.agreement.service.impl.AgreementServiceImpl;
+import org.example.knockin.agreement.service.AgreementService;
 import org.example.knockin.board.dto.BoBoardDeleteDto;
 import org.example.knockin.board.dto.BoBoardDetailDto;
 import org.example.knockin.board.dto.BoBoardListDto;
@@ -32,8 +32,6 @@ import org.example.knockin.declaration.dto.BoReportNoActionDto;
 import org.example.knockin.declaration.dto.BoReportSuspendedDto;
 import org.example.knockin.declaration.dto.BoReportWaitListDto;
 import org.example.knockin.declaration.service.impl.DeclarationServiceImpl;
-import org.example.knockin.agreement.entity.Agreement;
-import org.example.knockin.agreement.entity.AgreementType;
 import org.example.knockin.meta.entity.Notification;
 import org.example.knockin.member.service.impl.MemberServiceImpl;
 import org.example.knockin.meta.entity.File;
@@ -82,7 +80,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class BackOfficeServiceImpl {
-    private final AgreementServiceImpl agreementService;
+    private final AgreementService agreementService;
     private final RoomTypeServiceImpl roomTypeService;
     private final LifeStyleServiceImpl lifeStyleService;
     private final AuthenticationServiceImpl authenticationService;
@@ -96,15 +94,13 @@ public class BackOfficeServiceImpl {
 
     @Transactional
     public BoTermsDto.Response saveTerms(BoTermsDto.Request request) {
-        AgreementType agreementType = agreementService.findAgreementTypeById(request.getAgreementTypeId());
-        agreementService.saveAgreement(Agreement.builder().title(request.getTitle()).contents(request.getContents()).isRequired(request.getIsRequired()).type(agreementType).build());
+        agreementService.saveAgreement(request);
         return BoTermsDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
     @Transactional
     public BoTermsDto.Response modifyTerms(BoTermsDto.Request request, Long termsId) {
-        AgreementType type = agreementService.findAgreementType(termsId);
-        agreementService.modifyTemporaryAgreement(Agreement.builder().title(request.getTitle()).contents(request.getContents()).isRequired(request.getIsRequired()).type(type).isDeleted(false).build());
+        agreementService.modifyTemporaryAgreement(request, termsId);
         return BoTermsDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
@@ -114,8 +110,7 @@ public class BackOfficeServiceImpl {
     }
 
     public BoTermsDetailDto.Response findTerms(Long termsId) {
-        Agreement agreement = agreementService.findAgreement(termsId);
-        return BoTermsDetailDto.Response.builder().id(agreement.getId()).title(agreement.getTitle()).contents(agreement.getContents()).createAt(agreement.getCreatedAt()).build();
+        return agreementService.findBoAgreement(termsId);
     }
 
     @Transactional
@@ -126,7 +121,7 @@ public class BackOfficeServiceImpl {
 
     @Transactional
     public BoTermsDto.Response modifyLastTerms(BoTermsDto.Request request, Long termsId) {
-        agreementService.modifyAgreement(Agreement.builder().title(request.getTitle()).contents(request.getContents()).isRequired(request.getIsRequired()).build(), termsId);
+        agreementService.modifyAgreement(request, termsId);
         return BoTermsDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
@@ -423,13 +418,13 @@ public class BackOfficeServiceImpl {
 
     @Transactional
     public BoTypeTermsDto.Response modifyTermType(Long termTypeId, BoTypeTermsDto.Request request) {
-        agreementService.findAgreementTypeById(termTypeId).modifyAgreementType(request.getTitle());
+        agreementService.modifyAgreementType(termTypeId, request);
         return BoTypeTermsDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
     @Transactional
     public BoTypeTermsDto.Response saveTermType(BoTypeTermsDto.Request request) {
-        agreementService.saveTermType(AgreementType.builder().name(request.getTitle()).isDeleted(false).build());
+        agreementService.saveTermType(request);
         return BoTypeTermsDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 

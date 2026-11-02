@@ -1,11 +1,10 @@
 package org.example.knockin.service.impl;
  
-import org.example.knockin.agreement.service.impl.MemberAgreementServiceImpl;
 import org.example.knockin.board.dto.MyBoardListDto;
-import org.example.knockin.agreement.entity.AgreementLog;
-import org.example.knockin.agreement.entity.MemberAgreement;
+import org.example.knockin.agreement.service.impl.AgreementServiceImpl;
 import org.example.knockin.mate.service.impl.MetaServiceImpl;
 import org.example.knockin.member.dto.ModifyProfileBasicDto;
+import org.example.knockin.member.dto.ModifyProfileAllDto;
 import org.example.knockin.member.dto.ProfileVisibilityDto;
 import org.example.knockin.member.dto.SaveProfileAllDto;
 import org.example.knockin.member.dto.SaveProfileBasicDto;
@@ -18,6 +17,8 @@ import org.example.knockin.member.service.impl.MemberPrivacyServiceImpl;
 import org.example.knockin.member.service.impl.MemberServiceImpl;
 import org.example.knockin.meta.entity.Region;
 import org.example.knockin.global.exception.BusinessException;
+import org.example.knockin.global.exception.AuthErrorCode;
+import org.example.knockin.global.exception.OnBoardErrorCode;
 import org.example.knockin.board.service.RoommateBoardService;
 import org.example.knockin.life.service.impl.LifeStyleServiceImpl;
 import org.example.knockin.life.service.impl.MemberLifePatternService;
@@ -65,7 +66,7 @@ class OnBoardingServiceImplTest {
  
     @Mock private BasicInformationServiceImpl basicInformationService;
     @Mock private MemberServiceImpl memberService;
-    @Mock private MemberAgreementServiceImpl memberAgreementService;
+    @Mock private AgreementServiceImpl agreementService;
     @Mock private MemberLifePatternService memberLifePatternService;
     @Mock private RoomProfileServiceImpl roomProfileService;
     @Mock private RoomTypeServiceImpl roomTypeService;
@@ -100,14 +101,12 @@ class OnBoardingServiceImplTest {
                 .build();
  
         given(basicInformationService.save(any(BasicInformation.class))).willReturn(mock(BasicInformation.class));
-        given(metaService.findByAgreementLogIsCurrent(any())).willReturn(List.of(mock(AgreementLog.class)));
-        given(memberAgreementService.saveAll(any())).willReturn(List.of(mock(MemberAgreement.class)));
  
         SaveProfileBasicDto.Response response = onBoardingService.saveBasicInfoLogic(request, memberId);
  
         assertThat(response).isNotNull();
         verify(basicInformationService).save(any(BasicInformation.class));
-        verify(memberAgreementService).saveAll(any());
+        verify(agreementService).saveMemberAgreement(request.getTerms(), memberId);
         verify(memberPrivacyService).save(any());
     }
  
@@ -122,19 +121,41 @@ class OnBoardingServiceImplTest {
         BasicInformation existingBasic = mock(BasicInformation.class);
         given(basicInformationService.findByMember(any())).willReturn(List.of(existingBasic));
         
-        MemberAgreement memberAgreement = mock(MemberAgreement.class);
-        AgreementLog agreementLog = mock(AgreementLog.class);
-        given(memberAgreement.getAgreementLog()).willReturn(agreementLog);
-        given(agreementLog.getId()).willReturn(1L);
-        
-        given(memberAgreementService.findByMemberId(any())).willReturn(List.of(memberAgreement));
-        given(metaService.findByAgreementLogIsCurrent(any())).willReturn(List.of(agreementLog));
-
         SaveProfileBasicDto.Response response = onBoardingService.saveBasicInfoLogic(request, memberId);
 
         assertThat(response).isNotNull();
         verify(existingBasic).modifyBasicInformation(any());
         verify(basicInformationService, never()).save(any(BasicInformation.class));
+        verify(agreementService).saveMemberAgreement(request.getTerms(), memberId);
+    }
+
+    @Test
+    @DisplayName("약관 저장에 실패하면 프로필 공개 상태를 변경하지 않는다")
+    void saveBasicInfoLogic_FailsWhenAgreementSaveFails() {
+        SaveProfileBasicDto.Request request = SaveProfileBasicDto.Request.builder()
+                .name("홍길동").terms(List.of(10L, 20L)).build();
+        given(basicInformationService.save(any(BasicInformation.class))).willReturn(mock(BasicInformation.class));
+        given(agreementService.saveMemberAgreement(request.getTerms(), memberId)).willReturn(true);
+
+        assertThatThrownBy(() -> onBoardingService.saveBasicInfoLogic(request, memberId))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(OnBoardErrorCode.ONBOARD_TERM_SAVE_ERROR));
+
+        verifyNoInteractions(memberPrivacyService);
+    }
+
+    @Test
+    @DisplayName("회원이 없으면 기본 정보와 약관을 저장하지 않는다")
+    void saveBasicInfoLogic_FailsBeforeAgreementSaveWhenMemberMissing() {
+        SaveProfileBasicDto.Request request = SaveProfileBasicDto.Request.builder()
+                .terms(List.of(10L)).build();
+        given(memberService.findById(memberId)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> onBoardingService.saveBasicInfoLogic(request, memberId))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.MEMBER_NOT_FOUND));
+
+        verifyNoInteractions(basicInformationService, agreementService);
     }
 
     @Test
@@ -208,8 +229,6 @@ class OnBoardingServiceImplTest {
         request.setRoomProfile(List.of(1L));
  
         given(basicInformationService.save(any(BasicInformation.class))).willReturn(mock(BasicInformation.class));
-        given(metaService.findByAgreementLogIsCurrent(any())).willReturn(List.of(mock(AgreementLog.class)));
-        given(memberAgreementService.saveAll(any())).willReturn(List.of(mock(MemberAgreement.class)));
         given(metaService.findByLifeStyle(any())).willReturn(List.of(mock(LifePatternInformation.class)));
         given(memberLifePatternService.saveMemberLifePatternAll(any())).willReturn(List.of(mock(MemberLifePattern.class)));
         given(metaService.findByRegionId(anyLong())).willReturn(Optional.of(mock(Region.class)));
@@ -222,6 +241,43 @@ class OnBoardingServiceImplTest {
         verify(basicInformationService).save(any(BasicInformation.class));
         verify(memberLifePatternService).saveMemberLifePatternAll(any());
         verify(roomProfileService).save(any(RoomOfferProfile.class));
+        verify(agreementService).saveMemberAgreement(request.getTerms(), memberId);
+    }
+
+    @Test
+    @DisplayName("전체 프로필 저장 중 약관 저장에 실패하면 나머지 프로필을 저장하지 않는다")
+    void saveAll_FailsBeforeLifeStyleAndRoomSaveWhenAgreementSaveFails() {
+        SaveProfileAllDto.Request request = new SaveProfileAllDto.Request();
+        request.setTerms(List.of(10L, 20L));
+        given(basicInformationService.save(any(BasicInformation.class))).willReturn(mock(BasicInformation.class));
+        given(agreementService.saveMemberAgreement(request.getTerms(), memberId)).willReturn(true);
+
+        assertThatThrownBy(() -> onBoardingService.saveAll(request, memberId))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(OnBoardErrorCode.ONBOARD_TERM_SAVE_ERROR));
+
+        verifyNoInteractions(memberLifePatternService, roomProfileService, memberPrivacyService);
+    }
+
+    @Test
+    @DisplayName("전체 프로필 수정은 약관 ID와 회원 ID를 agreement 서비스에 전달한다")
+    void modifyAll_DelegatesTermsToAgreementService() {
+        ModifyProfileAllDto.Request request = new ModifyProfileAllDto.Request();
+        request.setTerms(List.of(10L, 20L));
+        request.setLifestyles(List.of());
+        request.setType(RoomProfileType.SEEKER);
+        request.setRegion(List.of(100L));
+        request.setRoomProfile(List.of(200L));
+        BasicInformation basicInformation = mock(BasicInformation.class);
+        RoomSeekerProfile roomProfile = mock(RoomSeekerProfile.class);
+        given(basicInformationService.findByMember(member)).willReturn(List.of(basicInformation));
+        given(roomProfileService.findByMember(member)).willReturn(List.of(roomProfile));
+        given(roomProfile.getType()).willReturn(RoomProfileType.SEEKER);
+
+        ModifyProfileAllDto.Response response = onBoardingService.modifyAll(request, memberId);
+
+        assertThat(response.getUpdatedAt()).isNotNull();
+        verify(agreementService).modifyMemberAgreement(request.getTerms(), memberId);
     }
  
     @Test
@@ -239,6 +295,7 @@ class OnBoardingServiceImplTest {
 
         assertThat(response).isNotNull();
         verify(basicInfo).modifyBasicInformation(request);
+        verify(agreementService).modifyMemberAgreement(request.getTerms(), memberId);
     }
  
     @Test

@@ -3,7 +3,6 @@ package org.example.knockin.service.impl;
 import org.example.knockin.agreement.dto.TermsDetailDto;
 import org.example.knockin.agreement.dto.TermsListDto;
 import org.example.knockin.agreement.service.impl.AgreementServiceImpl;
-import org.example.knockin.agreement.entity.Agreement;
 import org.example.knockin.mate.service.impl.MetaServiceImpl;
 import org.example.knockin.meta.dto.MetaRegionsDto;
 import org.example.knockin.meta.dto.PopularSearchDto;
@@ -28,11 +27,10 @@ import java.util.List;
 import java.util.Optional;
  
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
  
 @ExtendWith(MockitoExtension.class)
 class MetaServiceImplTest {
@@ -50,29 +48,30 @@ class MetaServiceImplTest {
     @Test
     @DisplayName("약관 목록 조회 테스트")
     void findTermListTest() {
-        Agreement agreement = mock(Agreement.class);
-        given(agreement.getId()).willReturn(1L);
-        given(agreement.getTitle()).willReturn("약관 제목");
-        given(agreementService.findByAgreementsIsCurrentAndIsDeleted()).willReturn(List.of(agreement));
+        TermsListDto.Response.TermsItem item = TermsListDto.Response.TermsItem.builder()
+                .id(1L).title("약관 제목").build();
+        given(agreementService.findByAgreementsIsCurrentAndIsDeleted()).willReturn(List.of(item));
  
         TermsListDto.Response result = metaService.findTermList();
  
         assertThat(result.getTerms()).hasSize(1);
         assertThat(result.getTerms().get(0).getTitle()).isEqualTo("약관 제목");
+        assertThat(result.getTerms().get(0)).isSameAs(item);
     }
  
     @Test
     @DisplayName("약관 상세 조회 테스트")
     void findTermDetailTest() {
-        Agreement agreement = mock(Agreement.class);
-        given(agreement.getId()).willReturn(1L);
-        given(agreement.getContents()).willReturn("약관 내용");
-        given(agreementService.findAgreement(anyLong())).willReturn(agreement);
+        TermsDetailDto.Response detail = TermsDetailDto.Response.builder()
+                .id(1L).contents("약관 내용").build();
+        given(agreementService.findUserAgreement(1L)).willReturn(detail);
  
         TermsDetailDto.Response result = metaService.findTermDetail(1L);
  
         assertThat(result.getId()).isEqualTo(1L);
         assertThat(result.getContents()).isEqualTo("약관 내용");
+        assertThat(result).isSameAs(detail);
+        verify(agreementService).findUserAgreement(1L);
     }
  
     @Test

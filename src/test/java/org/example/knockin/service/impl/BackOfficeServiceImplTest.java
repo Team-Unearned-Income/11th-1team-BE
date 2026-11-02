@@ -31,8 +31,6 @@ import org.example.knockin.declaration.dto.BoReportNoActionDto;
 import org.example.knockin.declaration.dto.BoReportSuspendedDto;
 import org.example.knockin.declaration.dto.BoReportWaitListDto;
 import org.example.knockin.declaration.service.impl.DeclarationServiceImpl;
-import org.example.knockin.agreement.entity.Agreement;
-import org.example.knockin.agreement.entity.AgreementType;
 import org.example.knockin.meta.entity.Notification;
 import org.example.knockin.inquiry.dto.BoInquiryDetailDto;
 import org.example.knockin.inquiry.dto.BoInquiryListDto;
@@ -67,7 +65,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import org.example.knockin.meta.service.FileService;
 import java.time.LocalDateTime;
@@ -131,15 +128,13 @@ class BackOfficeServiceImplTest {
         request.setContents("약관 내용");
         request.setIsRequired(true);
  
-        given(agreementService.findAgreementTypeById(1L)).willReturn(AgreementType.builder().id(1L).name("약관동의").isDeleted(false).build());
- 
         // when
         BoTermsDto.Response response = backOfficeService.saveTerms(request);
  
         // then
         assertThat(response).isNotNull();
         assertThat(response.getUpdatedAt()).isNotNull();
-        verify(agreementService).saveAgreement(any(Agreement.class));
+        verify(agreementService).saveAgreement(request);
     }
  
     @Test
@@ -152,15 +147,13 @@ class BackOfficeServiceImplTest {
         request.setContents("임시 약관 내용");
         request.setIsRequired(false);
  
-        given(agreementService.findAgreementType(termsId)).willReturn(AgreementType.builder().id(1L).name("약관동의").isDeleted(false).build());
- 
         // when
         BoTermsDto.Response response = backOfficeService.modifyTerms(request, termsId);
  
         // then
         assertThat(response).isNotNull();
         assertThat(response.getUpdatedAt()).isNotNull();
-        verify(agreementService).modifyTemporaryAgreement(any(Agreement.class));
+        verify(agreementService).modifyTemporaryAgreement(request, termsId);
     }
  
     @Test
@@ -197,14 +190,14 @@ class BackOfficeServiceImplTest {
     void findTermsSuccessTest() {
         // given
         Long termsId = 100L;
-        Agreement agreement = Agreement.builder()
+        BoTermsDetailDto.Response detail = BoTermsDetailDto.Response.builder()
                 .id(termsId)
                 .title("상세 약관")
                 .contents("상세 내용")
+                .createAt(LocalDateTime.now())
                 .build();
-        ReflectionTestUtils.setField(agreement, "createdAt", LocalDateTime.now());
 
-        given(agreementService.findAgreement(termsId)).willReturn(agreement);
+        given(agreementService.findBoAgreement(termsId)).willReturn(detail);
 
         // when
         BoTermsDetailDto.Response response = backOfficeService.findTerms(termsId);
@@ -215,6 +208,7 @@ class BackOfficeServiceImplTest {
         assertThat(response.getTitle()).isEqualTo("상세 약관");
         assertThat(response.getContents()).isEqualTo("상세 내용");
         assertThat(response.getCreateAt()).isNotNull();
+        assertThat(response).isSameAs(detail);
     }
 
     @Test
@@ -248,7 +242,7 @@ class BackOfficeServiceImplTest {
         // then
         assertThat(response).isNotNull();
         assertThat(response.getUpdatedAt()).isNotNull();
-        verify(agreementService).modifyAgreement(any(Agreement.class), eq(termsId));
+        verify(agreementService).modifyAgreement(request, termsId);
     }
 
     @Test
@@ -1070,16 +1064,13 @@ class BackOfficeServiceImplTest {
         BoTypeTermsDto.Request request = new BoTypeTermsDto.Request();
         request.setTitle("수정된 약관 유형");
 
-        AgreementType agreementType = spy(AgreementType.builder().id(termTypeId).name("기존 약관 유형").build());
-        given(agreementService.findAgreementTypeById(termTypeId)).willReturn(agreementType);
-
         // when
         BoTypeTermsDto.Response response = backOfficeService.modifyTermType(termTypeId, request);
 
         // then
         assertThat(response).isNotNull();
         assertThat(response.getUpdatedAt()).isNotNull();
-        verify(agreementType).modifyAgreementType("수정된 약관 유형");
+        verify(agreementService).modifyAgreementType(termTypeId, request);
     }
 
     @Test
@@ -1095,7 +1086,7 @@ class BackOfficeServiceImplTest {
         // then
         assertThat(response).isNotNull();
         assertThat(response.getUpdatedAt()).isNotNull();
-        verify(agreementService).saveTermType(any(AgreementType.class));
+        verify(agreementService).saveTermType(request);
     }
 
     @Test

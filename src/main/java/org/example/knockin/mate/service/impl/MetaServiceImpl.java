@@ -3,9 +3,7 @@ package org.example.knockin.mate.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.agreement.dto.TermsDetailDto;
 import org.example.knockin.agreement.dto.TermsListDto;
-import org.example.knockin.agreement.service.impl.AgreementServiceImpl;
-import org.example.knockin.agreement.entity.Agreement;
-import org.example.knockin.agreement.entity.AgreementLog;
+import org.example.knockin.agreement.service.AgreementService;
 import org.example.knockin.life.service.impl.LifeStyleServiceImpl;
 import org.example.knockin.life.dto.MetaLifestylePatternsDto;
 import org.example.knockin.life.entity.LifePattern;
@@ -39,13 +37,9 @@ public class MetaServiceImpl {
     private final RegionServiceImpl regionService;
     private final RoomTypeServiceImpl roomTypeService;
     private final RoomExtraOptionServiceImpl roomExtraOptionService;
-    private final AgreementServiceImpl agreementService;
+    private final AgreementService agreementService;
     private final SearchServiceImpl searchService;
     private final FileService fileService;
-
-    public List<AgreementLog> findByAgreementLogIsCurrent(List<Long> agreementIds) {
-        return agreementService.findByAgreementLogIsCurrent(agreementIds);
-    }
 
     public List<LifePatternInformation> findByLifeStyle(List<Long> lifeStyles) {
         return lifeStyleService.findByLifeStyles(lifeStyles);
@@ -80,14 +74,12 @@ public class MetaServiceImpl {
     }
 
     public TermsListDto.Response findTermList() {
-        List<TermsListDto.Response.TermsItem> termsItemList = agreementService.findByAgreementsIsCurrentAndIsDeleted().stream().map(item ->
-            TermsListDto.Response.TermsItem.builder().id(item.getId()).title(item.getTitle()).build()).toList();
+        List<TermsListDto.Response.TermsItem> termsItemList = agreementService.findByAgreementsIsCurrentAndIsDeleted();
         return TermsListDto.Response.builder().terms(termsItemList).build();
     }
 
     public TermsDetailDto.Response findTermDetail(Long termsId) {
-        Agreement agreement = agreementService.findAgreement(termsId);
-        return TermsDetailDto.Response.builder().id(agreement.getId()).contents(agreement.getContents()).build();
+        return agreementService.findUserAgreement(termsId);
     }
 
     public PopularSearchDto.Response findPopSearch() {
