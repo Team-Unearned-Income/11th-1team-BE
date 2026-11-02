@@ -62,6 +62,14 @@ public class DeclarationServiceImpl implements DeclarationService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Long findReportedMemberId(Long declarationId) {
+        return memberDeclarationRepository.findById(declarationId)
+                .orElseThrow(() -> new BusinessException(DeclarationErrorCode.DECLARATION_NOT_FOUND))
+                .getReportedId();
+    }
+
+    @Override
     @Transactional
     public void reportBoard(Long boardId, Long memberId, String reason) {
         roommateBoardDeclarationRepository.findByRoommateBoardIdAndMemberId(boardId, memberId)

@@ -32,7 +32,7 @@ import org.example.knockin.declaration.dto.BoReportHiddenDto;
 import org.example.knockin.declaration.dto.BoReportNoActionDto;
 import org.example.knockin.declaration.dto.BoReportSuspendedDto;
 import org.example.knockin.declaration.dto.BoReportWaitListDto;
-import org.example.knockin.declaration.service.impl.DeclarationServiceImpl;
+import org.example.knockin.declaration.service.DeclarationService;
 import org.example.knockin.meta.entity.Notification;
 import org.example.knockin.member.service.impl.MemberServiceImpl;
 import org.example.knockin.meta.entity.File;
@@ -88,7 +88,7 @@ public class BackOfficeServiceImpl {
     private final NotificationServiceImpl notificationService;
     private final MemberServiceImpl memberService;
     private final InquirieServiceImpl inquirieService;
-    private final DeclarationServiceImpl declarationService;
+    private final DeclarationService declarationService;
     private final RoommateBoardServiceImpl roommateBoardService;
     private final RoomExtraOptionServiceImpl roomExtraOptionService;
     private final FileService fileService;
@@ -390,8 +390,9 @@ public class BackOfficeServiceImpl {
     @Transactional
     public BoReportSuspendedDto.Response reportSuspended(BoReportSuspendedDto.Request request) {
         declarationService.reportSuspended(request.getId(), request.getType(), request.getReason());
-        if (request.getType().equals(ReportType.MEMBER)) {
-            memberService.findStateByMemberId(request.getId()).rejectState(request.getReason());
+        if (request.getType() == ReportType.MEMBER) {
+            Long reportedMemberId = declarationService.findReportedMemberId(request.getId());
+            memberService.findStateByMemberId(reportedMemberId).rejectState(request.getReason());
         }
         return BoReportSuspendedDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }

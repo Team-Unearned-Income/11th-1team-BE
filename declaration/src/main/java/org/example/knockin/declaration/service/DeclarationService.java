@@ -14,6 +14,8 @@ public interface DeclarationService {
 
     MemberDeclaration reportMember(Long reporterId, Long reportedId, String reason);
 
+    Long findReportedMemberId(Long declarationId);
+
     void reportBoard(Long boardId, Long memberId, String reason);
 
     void reportHidden(Long id, ReportType type, String reason);
