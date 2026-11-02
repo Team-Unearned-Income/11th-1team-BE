@@ -9,8 +9,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.example.knockin.declaration.service.DeclarationService;
 import org.example.knockin.verification.service.impl.AuthenticationServiceImpl;
-import org.example.knockin.declaration.service.impl.DeclarationServiceImpl;
 import org.example.knockin.util.dto.Compatibility;
 import org.example.knockin.util.dto.MatchDetailDto;
 import org.example.knockin.util.dto.MatchDto;
@@ -60,7 +60,7 @@ public class RoommateMatchingServiceImpl implements RoommateMatchingService {
     private final MemberLifePatternService memberLifePatternService;
     private final PreferenceConditionServiceImpl preferenceConditionService;
     private final AuthenticationServiceImpl authenticationService;
-    private final DeclarationServiceImpl declarationService;
+    private final DeclarationService declarationService;
     private final RoommateScoreService javaRoommateScoreV2Service;
 
     @Override
