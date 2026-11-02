@@ -5,9 +5,6 @@ import org.example.knockin.declaration.dto.BoReportDoneListDto;
 import org.example.knockin.declaration.dto.BoReportWaitListDto;
 import org.example.knockin.declaration.entity.RoommateBoardDeclaration;
 import org.example.knockin.declaration.entity.MemberDeclaration;
-import org.example.knockin.board.entity.RoommateBoard;
-import org.example.knockin.member.entity.Member;
-import org.example.knockin.member.entity.State;
 import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.DeclarationErrorCode;
 import org.example.knockin.global.exception.MemberErrorCode;
@@ -16,7 +13,6 @@ import org.example.knockin.declaration.entity.DeclarationType;
 import org.example.knockin.global.util.ReportType;
 import org.example.knockin.declaration.repository.RoommateBoardDeclarationRepository;
 import org.example.knockin.declaration.repository.MemberDeclarationRepository;
-import org.example.knockin.member.service.impl.MemberServiceImpl;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,32 +42,27 @@ class DeclarationServiceImplTest {
     @Mock
     private RoommateBoardDeclarationRepository roommateBoardDeclarationRepository;
 
-    @Mock
-    private MemberServiceImpl memberService;
-
     @InjectMocks
     private DeclarationServiceImpl declarationService;
 
     @Test
     void memberReportsStoreReporterAndReportedIds() {
-        Member reporter = Member.builder().id(10L).build();
-        Member reported = Member.builder().id(20L).build();
-
-        declarationService.reportMember(reporter.getId(), reported.getId(), "신고 사유");
+        declarationService.reportMember(10L, 20L, "신고 사유");
 
         ArgumentCaptor<MemberDeclaration> captor = ArgumentCaptor.forClass(MemberDeclaration.class);
         verify(memberDeclarationRepository).existsByReporterIdAndReportedId(10L, 20L);
         verify(memberDeclarationRepository).save(captor.capture());
         assertThat(captor.getValue().getReporterId()).isEqualTo(10L);
         assertThat(captor.getValue().getReportedId()).isEqualTo(20L);
+        assertThat(captor.getValue().getReason()).isEqualTo("신고 사유");
+        assertThat(captor.getValue().getDeclarationType()).isEqualTo(DeclarationType.PENDING);
     }
 
     @Test
     void duplicateMemberReportsAreRejectedByIds() {
         given(memberDeclarationRepository.existsByReporterIdAndReportedId(10L, 20L)).willReturn(true);
 
-        assertThatThrownBy(() -> declarationService.reportMember(
-                Member.builder().id(10L).build().getId(), Member.builder().id(20L).build().getId(), "신고 사유"))
+        assertThatThrownBy(() -> declarationService.reportMember(10L, 20L, "신고 사유"))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", MemberErrorCode.DECLARATION_DUPLICATE);
 
@@ -80,16 +71,15 @@ class DeclarationServiceImplTest {
 
     @Test
     void boardReportsStoreReporterAndBoardIds() {
-        RoommateBoard board = RoommateBoard.builder().id(30L).build();
-        Member reporter = Member.builder().id(10L).build();
-
-        declarationService.reportBoard(board.getId(), reporter.getId(), "신고 사유");
+        declarationService.reportBoard(30L, 10L, "신고 사유");
 
         ArgumentCaptor<RoommateBoardDeclaration> captor = ArgumentCaptor.forClass(RoommateBoardDeclaration.class);
         verify(roommateBoardDeclarationRepository).findByRoommateBoardIdAndMemberId(30L, 10L);
         verify(roommateBoardDeclarationRepository).save(captor.capture());
         assertThat(captor.getValue().getMemberId()).isEqualTo(10L);
         assertThat(captor.getValue().getRoommateBoardId()).isEqualTo(30L);
+        assertThat(captor.getValue().getReason()).isEqualTo("신고 사유");
+        assertThat(captor.getValue().getDeclarationType()).isEqualTo(DeclarationType.PENDING);
     }
 
     @Test
@@ -97,8 +87,7 @@ class DeclarationServiceImplTest {
         given(roommateBoardDeclarationRepository.findByRoommateBoardIdAndMemberId(30L, 10L))
                 .willReturn(Optional.of(RoommateBoardDeclaration.builder().id(1L).build()));
 
-        assertThatThrownBy(() -> declarationService.reportBoard(
-                RoommateBoard.builder().id(30L).build().getId(), Member.builder().id(10L).build().getId(), "신고 사유"))
+        assertThatThrownBy(() -> declarationService.reportBoard(30L, 10L, "신고 사유"))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", RoommateBoardErrorCode.ROOMMATE_BOARD_DECLARATION_DUPLICATE);
 
@@ -252,16 +241,39 @@ class DeclarationServiceImplTest {
     void reportSuspendedMemberSuccessTest() {
         // given
         Long id = 1L;
-        MemberDeclaration memberDeclaration = spy(MemberDeclaration.builder().id(id).build());
-        State state = mock(State.class);
+        MemberDeclaration memberDeclaration = MemberDeclaration.builder()
+                .id(id)
+                .reporterId(10L)
+                .reportedId(20L)
+                .declarationType(DeclarationType.PENDING)
+                .build();
         given(memberDeclarationRepository.findById(id)).willReturn(Optional.of(memberDeclaration));
-        given(memberService.findStateByMemberId(id)).willReturn(state);
 
         // when
         declarationService.reportSuspended(id, ReportType.MEMBER, "사유");
 
         // then
-        verify(memberDeclaration).changeDeclarationType(DeclarationType.SUSPENDED);
-        verify(state).rejectState("사유");
+        assertThat(memberDeclaration.getDeclarationType()).isEqualTo(DeclarationType.SUSPENDED);
+        verifyNoInteractions(roommateBoardDeclarationRepository);
+    }
+
+    @Test
+    @DisplayName("신고 ID로 신고 대상 회원 ID를 조회한다")
+    void findReportedMemberIdUsesDeclarationId() {
+        MemberDeclaration declaration = MemberDeclaration.builder()
+                .id(100L).reporterId(10L).reportedId(20L).build();
+        given(memberDeclarationRepository.findById(100L)).willReturn(Optional.of(declaration));
+
+        assertThat(declarationService.findReportedMemberId(100L)).isEqualTo(20L);
+    }
+
+    @Test
+    @DisplayName("신고 대상 회원 조회 시 신고가 없으면 예외를 던진다")
+    void findReportedMemberIdRejectsMissingDeclaration() {
+        given(memberDeclarationRepository.findById(100L)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> declarationService.findReportedMemberId(100L))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", DeclarationErrorCode.DECLARATION_NOT_FOUND);
     }
 }

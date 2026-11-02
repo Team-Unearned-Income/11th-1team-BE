@@ -30,7 +30,7 @@ import org.example.knockin.declaration.dto.BoReportHiddenDto;
 import org.example.knockin.declaration.dto.BoReportNoActionDto;
 import org.example.knockin.declaration.dto.BoReportSuspendedDto;
 import org.example.knockin.declaration.dto.BoReportWaitListDto;
-import org.example.knockin.declaration.service.impl.DeclarationServiceImpl;
+import org.example.knockin.declaration.service.DeclarationService;
 import org.example.knockin.meta.entity.Notification;
 import org.example.knockin.inquiry.dto.BoInquiryDetailDto;
 import org.example.knockin.inquiry.dto.BoInquiryListDto;
@@ -47,6 +47,7 @@ import org.example.knockin.life.entity.LifePatternType;
 import org.example.knockin.member.entity.Member;
 import org.example.knockin.member.entity.MemberRole;
 import org.example.knockin.member.entity.MemberState;
+import org.example.knockin.member.entity.State;
 import org.example.knockin.member.service.impl.MemberServiceImpl;
 import org.example.knockin.room.dto.BoRoomTypeDetailDto;
 import org.example.knockin.room.dto.BoRoomTypeDto;
@@ -54,6 +55,7 @@ import org.example.knockin.room.dto.BoRoomTypeListDto;
 import org.example.knockin.room.entity.RoomType;
 import org.example.knockin.global.exception.AuthErrorCode;
 import org.example.knockin.global.exception.BusinessException;
+import org.example.knockin.global.exception.DeclarationErrorCode;
 import org.example.knockin.global.util.ReportType;
 import org.example.knockin.inquiry.service.impl.InquirieServiceImpl;
 import org.example.knockin.room.service.impl.RoomTypeServiceImpl;
@@ -80,6 +82,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("관리자 백오피스 서비스 테스트")
@@ -110,7 +115,7 @@ class BackOfficeServiceImplTest {
     private InquirieServiceImpl inquirieService;
 
     @Mock
-    private DeclarationServiceImpl declarationService;
+    private DeclarationService declarationService;
 
     @Mock
     private RoommateBoardServiceImpl roommateBoardService;
@@ -974,6 +979,44 @@ class BackOfficeServiceImplTest {
         assertThat(response).isNotNull();
         assertThat(response.getUpdatedAt()).isNotNull();
         verify(declarationService).reportSuspended(100L, ReportType.BOARD, "사유");
+        verify(declarationService, never()).findReportedMemberId(any());
+        verifyNoInteractions(memberService);
+    }
+
+    @Test
+    @DisplayName("회원 신고 정지는 신고 ID가 아닌 신고 대상 회원 ID로 상태를 변경한다")
+    void reportSuspendedMemberUsesReportedMemberId() {
+        BoReportSuspendedDto.Request request = new BoReportSuspendedDto.Request(100L, ReportType.MEMBER, "정지 사유");
+        State state = State.builder()
+                .member(Member.builder().id(20L).build())
+                .states(MemberState.ACTIVE)
+                .build();
+        given(declarationService.findReportedMemberId(100L)).willReturn(20L);
+        given(memberService.findStateByMemberId(20L)).willReturn(state);
+
+        BoReportSuspendedDto.Response response = backOfficeService.reportSuspended(request);
+
+        assertThat(response.getUpdatedAt()).isNotNull();
+        assertThat(state.getStates()).isEqualTo(MemberState.INACTIVE);
+        assertThat(state.getRejectReason()).isEqualTo("정지 사유");
+        verify(declarationService).reportSuspended(100L, ReportType.MEMBER, "정지 사유");
+        verify(memberService).findStateByMemberId(20L);
+        verify(memberService, never()).findStateByMemberId(100L);
+    }
+
+    @Test
+    @DisplayName("정지 처리할 신고가 없으면 회원 상태를 조회하거나 변경하지 않는다")
+    void reportSuspendedMissingDeclarationDoesNotChangeMemberState() {
+        BoReportSuspendedDto.Request request = new BoReportSuspendedDto.Request(100L, ReportType.MEMBER, "정지 사유");
+        doThrow(new BusinessException(DeclarationErrorCode.DECLARATION_NOT_FOUND))
+                .when(declarationService).reportSuspended(100L, ReportType.MEMBER, "정지 사유");
+
+        assertThatThrownBy(() -> backOfficeService.reportSuspended(request))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", DeclarationErrorCode.DECLARATION_NOT_FOUND);
+
+        verify(declarationService, never()).findReportedMemberId(any());
+        verifyNoInteractions(memberService);
     }
 
     @Test
