@@ -2,7 +2,7 @@ package org.example.knockin.util.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.knockin.agreement.service.impl.AgreementServiceImpl;
+import org.example.knockin.agreement.service.AgreementService;
 import org.example.knockin.mate.service.impl.MetaServiceImpl;
 import org.example.knockin.verification.dto.MyVerificationListDto;
 import org.example.knockin.verification.service.impl.AuthenticationServiceImpl;
@@ -99,7 +99,7 @@ public class OnBoardingServiceImpl {
     private final MyRoomMateServiceImpl myRoomMateService;
     private final RoommateBoardService roommateBoardService;
     private final FileService fileService;
-    private final AgreementServiceImpl agreementService;
+    private final AgreementService agreementService;
 
     private String resolveName(String name) {
         if (StringUtils.hasText(name)) {

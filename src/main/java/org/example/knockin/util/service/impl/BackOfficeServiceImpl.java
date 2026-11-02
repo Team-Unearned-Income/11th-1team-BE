@@ -6,7 +6,7 @@ import org.example.knockin.agreement.dto.BoTermsDto;
 import org.example.knockin.agreement.dto.BoTermsListDto;
 import org.example.knockin.agreement.dto.BoTypeTermsDto;
 import org.example.knockin.agreement.dto.BoTypeTermsListDto;
-import org.example.knockin.agreement.service.impl.AgreementServiceImpl;
+import org.example.knockin.agreement.service.AgreementService;
 import org.example.knockin.board.dto.BoBoardDeleteDto;
 import org.example.knockin.board.dto.BoBoardDetailDto;
 import org.example.knockin.board.dto.BoBoardListDto;
@@ -80,7 +80,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class BackOfficeServiceImpl {
-    private final AgreementServiceImpl agreementService;
+    private final AgreementService agreementService;
     private final RoomTypeServiceImpl roomTypeService;
     private final LifeStyleServiceImpl lifeStyleService;
     private final AuthenticationServiceImpl authenticationService;

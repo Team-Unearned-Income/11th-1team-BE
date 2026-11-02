@@ -3,7 +3,7 @@ package org.example.knockin.mate.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.agreement.dto.TermsDetailDto;
 import org.example.knockin.agreement.dto.TermsListDto;
-import org.example.knockin.agreement.service.impl.AgreementServiceImpl;
+import org.example.knockin.agreement.service.AgreementService;
 import org.example.knockin.life.service.impl.LifeStyleServiceImpl;
 import org.example.knockin.life.dto.MetaLifestylePatternsDto;
 import org.example.knockin.life.entity.LifePattern;
@@ -37,7 +37,7 @@ public class MetaServiceImpl {
     private final RegionServiceImpl regionService;
     private final RoomTypeServiceImpl roomTypeService;
     private final RoomExtraOptionServiceImpl roomExtraOptionService;
-    private final AgreementServiceImpl agreementService;
+    private final AgreementService agreementService;
     private final SearchServiceImpl searchService;
     private final FileService fileService;
 
