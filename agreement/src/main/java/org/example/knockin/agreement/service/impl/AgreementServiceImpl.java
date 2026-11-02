@@ -17,6 +17,7 @@ import org.example.knockin.agreement.entity.AgreementLog;
 import org.example.knockin.agreement.entity.AgreementType;
 import org.example.knockin.agreement.entity.MemberAgreement;
 import org.example.knockin.agreement.repository.MemberAgreementRepository;
+import org.example.knockin.agreement.service.AgreementService;
 import org.example.knockin.global.exception.AgreementErrorCode;
 import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.agreement.repository.AgreementLogRepository;
@@ -31,12 +32,13 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class AgreementServiceImpl {
+public class AgreementServiceImpl implements AgreementService {
     private final AgreementRepository agreementRepository;
     private final AgreementLogRepository agreementLogRepository;
     private final AgreementTypeRepository agreementTypeRepository;
     private final MemberAgreementRepository memberAgreementRepository;
 
+    @Override
     @Transactional
     public Agreement saveAgreement(BoTermsDto.Request request) {
         AgreementType agreementType = findAgreementTypeById(request.getAgreementTypeId());
@@ -52,11 +54,13 @@ public class AgreementServiceImpl {
         return agreementEntity;
     }
 
+    @Override
     public AgreementType findAgreementType(Long agreementId) {
         return agreementRepository.findById(agreementId).orElseThrow(() -> new BusinessException(AgreementErrorCode.AGREEMENT_NOT_FOUNT)).getType();
     }
 
     @Transactional
+    @Override
     public Agreement modifyTemporaryAgreement(BoTermsDto.Request request, Long termsId) {
         AgreementType type = findAgreementType(termsId);
 
@@ -73,6 +77,7 @@ public class AgreementServiceImpl {
         return agreementEntity;
     }
 
+    @Override
     @Transactional
     public Agreement modifyAgreement(BoTermsDto.Request request, Long agreementId) {
         Agreement agreementEntity = agreementRepository.findById(agreementId).orElseThrow(() -> new BusinessException(AgreementErrorCode.AGREEMENT_NOT_FOUNT));
@@ -94,11 +99,13 @@ public class AgreementServiceImpl {
         return agreementEntity;
     }
 
+    @Override
     public List<BoTermsListDto.Response.TermsItem> findAgreementList(Pageable pageable, Long agreementTypeId) {
         return agreementLogRepository.findByAgreemnetIsCurrent(true, pageable, agreementTypeId).stream().map(item ->
                 BoTermsListDto.Response.TermsItem.builder().title(item.getAgreement().getTitle()).createAt(item.getAgreement().getCreatedAt()).id(item.getAgreement().getId()).isCurrent(item.getIsCurrent()).build()).toList();
     }
 
+    @Override
     public BoTermsDetailDto.Response findBoAgreement(Long id) {
         Agreement agreement = agreementRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(AgreementErrorCode.AGREEMENT_NOT_FOUNT));
@@ -110,6 +117,7 @@ public class AgreementServiceImpl {
                 .build();
     }
 
+    @Override
     public TermsDetailDto.Response findUserAgreement(Long id) {
         Agreement agreement = agreementRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(AgreementErrorCode.AGREEMENT_NOT_FOUNT));
@@ -119,6 +127,7 @@ public class AgreementServiceImpl {
                 .build();
     }
 
+    @Override
     @Transactional
     public Agreement deleteAgreement(Long id) {
         Agreement agreement = agreementRepository.findById(id).orElseThrow(() -> new BusinessException(AgreementErrorCode.AGREEMENT_NOT_FOUNT));
@@ -126,27 +135,32 @@ public class AgreementServiceImpl {
         return agreement;
     }
 
+    @Override
     public AgreementType findAgreementTypeById(Long id) {
         return agreementTypeRepository.findById(id).orElseThrow(() -> new BusinessException(AgreementErrorCode.AGREEMENT_TYPE_NOT_FOUNT));
     }
 
+    @Override
     @Transactional
     public void modifyAgreementType(Long termTypeId, BoTypeTermsDto.Request request) {
         AgreementType type = findAgreementTypeById(termTypeId);
         type.modifyAgreementType(request.getTitle());
     }
 
+    @Override
     public List<BoTypeTermsListDto.Response.TermsTypeItem> findTypeTermsList() {
         return agreementTypeRepository.findAll().stream().map(item ->
                 BoTypeTermsListDto.Response.TermsTypeItem.builder().id(item.getId()).title(item.getName()).createAt(item.getCreatedAt()).build()).toList();
     }
 
+    @Override
     @Transactional
     public AgreementType saveTermType(BoTypeTermsDto.Request request) {
         AgreementType type = AgreementType.builder().name(request.getTitle()).isDeleted(false).build();
         return agreementTypeRepository.save(type);
     }
 
+    @Override
     @Transactional
     public AgreementType deleteTermType(Long termTypeId) {
         AgreementType agreementType = agreementTypeRepository.findById(termTypeId).orElseThrow(() -> new BusinessException(AgreementErrorCode.AGREEMENT_TYPE_NOT_FOUNT));
@@ -154,21 +168,25 @@ public class AgreementServiceImpl {
         return agreementType;
     }
 
+    @Override
     public List<TermsListDto.Response.TermsItem> findByAgreementsIsCurrentAndIsDeleted() {
         return agreementRepository.findByAgreementsIsCurrentAndIsDeleted().stream().map(item ->
                 TermsListDto.Response.TermsItem.builder().id(item.getId()).title(item.getTitle()).build()).toList();
     }
 
+    @Override
     public List<AgreementLog> findByAgreementLogIsCurrent(List<Long> agreementIds) {
         return agreementLogRepository.findByAgreementLogIsCurrent(agreementIds);
     }
 
+    @Override
     @Transactional
     public boolean saveMemberAgreement(List<Long> agreementIds, Long memberId) {
         return saveAllMemberAgreement(agreementIds, memberId).stream()
                 .noneMatch(agreement -> Boolean.TRUE.equals(agreement.getIsAgreed()));
     }
 
+    @Override
     @Transactional
     public List<MemberAgreement> saveAllMemberAgreement(List<Long> agreementIds, Long memberId) {
         List<MemberAgreement> existing = findByMemberId(memberId);
@@ -182,12 +200,15 @@ public class AgreementServiceImpl {
         return memberAgreementRepository.saveAll(memberAgreementList);
     }
 
+    @Override
     @Transactional
     public void modifyMemberAgreement(List<Long> agreementIds, Long memberId) {
         synchronizeMemberAgreements(findByAgreementLogIsCurrent(agreementIds), findByMemberId(memberId), memberId);
     }
 
-    private List<MemberAgreement> synchronizeMemberAgreements(List<AgreementLog> requestedLogs, List<MemberAgreement> existing, Long memberId) {
+    @Override
+    public List<MemberAgreement> synchronizeMemberAgreements(List<AgreementLog> requestedLogs,
+                                                             List<MemberAgreement> existing, Long memberId) {
         Set<Long> requestedLogIds = requestedLogs.stream().map(AgreementLog::getId).collect(Collectors.toSet());
         Set<Long> existingLogIds = new HashSet<>();
         existing.forEach(agreement -> {
@@ -207,12 +228,14 @@ public class AgreementServiceImpl {
         return result;
     }
 
+    @Override
     @Transactional
     public MemberAgreement saveMemberAgreement(Long memberId, AgreementLog agreementLog) {
         return memberAgreementRepository.save(newMemberAgreement(memberId, agreementLog));
     }
 
-    private MemberAgreement newMemberAgreement(Long memberId, AgreementLog agreementLog) {
+    @Override
+    public MemberAgreement newMemberAgreement(Long memberId, AgreementLog agreementLog) {
         return MemberAgreement.builder()
                 .memberId(memberId)
                 .agreementLog(agreementLog)
@@ -220,6 +243,7 @@ public class AgreementServiceImpl {
                 .build();
     }
 
+    @Override
     public List<MemberAgreement> findByMemberId(Long memberId) {
         return memberAgreementRepository.findByMemberId(memberId);
     }
