@@ -12,6 +12,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.board.dto.*;
+import org.example.knockin.declaration.service.DeclarationService;
 import org.example.knockin.meta.service.impl.AlarmServiceImpl;
 import org.example.knockin.meta.service.impl.PushNotificationServiceImpl;
 import org.example.knockin.board.service.RoommateBoardService;
@@ -64,7 +65,6 @@ import org.example.knockin.util.service.RoommateScoreService;
 import org.example.knockin.verification.service.impl.AuthenticationServiceImpl;
 import org.example.knockin.life.service.impl.MemberLifePatternService;
 import org.example.knockin.member.service.impl.MemberServiceImpl;
-import org.example.knockin.declaration.service.impl.DeclarationServiceImpl;
 import org.example.knockin.mate.service.impl.MetaServiceImpl;
 import org.example.knockin.life.service.impl.PreferenceConditionServiceImpl;
 import org.example.knockin.board.event.BoardKeywordSearchedEvent;
@@ -97,7 +97,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
     private final ApplicationEventPublisher eventPublisher;
     private final AlarmServiceImpl alarmService;
     private final PushNotificationServiceImpl pushNotificationService;
-    private final DeclarationServiceImpl declarationService;
+    private final DeclarationService declarationService;
 
     public RoommateBoard findById(Long id) {
         return roommateBoardRepository.findById(id)
@@ -789,7 +789,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
         Member member = memberService.findById(memberId)
                 .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
 
-        declarationService.reportBoard(roommateBoard, member, request.getContents());
+        declarationService.reportBoard(roommateBoard.getId(), member.getId(), request.getContents());
 
         return new ReportDto.Response(LocalDateTime.now());
     }

@@ -10,6 +10,7 @@ import org.example.knockin.agreement.service.AgreementService;
 import org.example.knockin.board.dto.BoBoardDeleteDto;
 import org.example.knockin.board.dto.BoBoardDetailDto;
 import org.example.knockin.board.dto.BoBoardListDto;
+import org.example.knockin.global.util.ReportType;
 import org.example.knockin.member.dto.BoMemberAuthDto;
 import org.example.knockin.member.dto.BoMemberCancelDto;
 import org.example.knockin.member.dto.BoMemberDetailDto;
@@ -31,7 +32,7 @@ import org.example.knockin.declaration.dto.BoReportHiddenDto;
 import org.example.knockin.declaration.dto.BoReportNoActionDto;
 import org.example.knockin.declaration.dto.BoReportSuspendedDto;
 import org.example.knockin.declaration.dto.BoReportWaitListDto;
-import org.example.knockin.declaration.service.impl.DeclarationServiceImpl;
+import org.example.knockin.declaration.service.DeclarationService;
 import org.example.knockin.meta.entity.Notification;
 import org.example.knockin.member.service.impl.MemberServiceImpl;
 import org.example.knockin.meta.entity.File;
@@ -87,7 +88,7 @@ public class BackOfficeServiceImpl {
     private final NotificationServiceImpl notificationService;
     private final MemberServiceImpl memberService;
     private final InquirieServiceImpl inquirieService;
-    private final DeclarationServiceImpl declarationService;
+    private final DeclarationService declarationService;
     private final RoommateBoardServiceImpl roommateBoardService;
     private final RoomExtraOptionServiceImpl roomExtraOptionService;
     private final FileService fileService;
@@ -389,6 +390,10 @@ public class BackOfficeServiceImpl {
     @Transactional
     public BoReportSuspendedDto.Response reportSuspended(BoReportSuspendedDto.Request request) {
         declarationService.reportSuspended(request.getId(), request.getType(), request.getReason());
+        if (request.getType() == ReportType.MEMBER) {
+            Long reportedMemberId = declarationService.findReportedMemberId(request.getId());
+            memberService.findStateByMemberId(reportedMemberId).rejectState(request.getReason());
+        }
         return BoReportSuspendedDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 

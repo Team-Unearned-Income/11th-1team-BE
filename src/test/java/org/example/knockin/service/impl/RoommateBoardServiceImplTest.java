@@ -181,7 +181,7 @@ class RoommateBoardServiceImplTest {
         roommateBoardOptionService = spy(new RoommateBoardOptionServiceImpl(roomExtraOptionService, roommateBoardOptionRepository));
         roommateBoardInterestService = spy(new RoommateBoardInterestServiceImpl(roommateBoardInterestRepository));
         DeclarationServiceImpl declarationService = new DeclarationServiceImpl(
-                mock(MemberDeclarationRepository.class), roommateBoardDeclarationRepository, memberService);
+                mock(MemberDeclarationRepository.class), roommateBoardDeclarationRepository);
         roommateBoardPolicy = new RoommateBoardPolicy();
         roommateBoardPolicy.setImageMaxCount(10);
         roommateBoardPolicy.setThumbnailImageMaxCount(1);
