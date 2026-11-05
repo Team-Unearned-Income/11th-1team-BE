@@ -16,6 +16,7 @@ import org.example.knockin.inquiry.repository.InquiryCategoryRepository;
 import org.example.knockin.inquiry.repository.InquiryCommentRepository;
 import org.example.knockin.inquiry.repository.InquiryRepository;
 import org.example.knockin.inquiry.service.InquiryReplyEvent;
+import org.example.knockin.inquiry.service.InquiryService;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -26,38 +27,44 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class InquiryServiceImpl {
+public class InquiryServiceImpl implements InquiryService {
     private final InquiryCategoryRepository inquiryCategoryRepository;
     private final InquiryRepository inquiryRepository;
     private final InquiryCommentRepository inquiryCommentRepository;
     private final ApplicationEventPublisher eventPublisher;
 
+    @Override
     @Transactional
     public void saveInquiry(InquiryDto.Request request, Long memberId) {
         InquiryCategory inquiryCategory = inquiryCategoryRepository.findById(request.getCategoryId()).orElseThrow(() -> new BusinessException(InquiryErrorCode.INQUIRY_CATEGORY_NOT_FOUND));
         inquiryRepository.save(Inquiry.builder().inquiryCategory(inquiryCategory).memberId(memberId).title(request.getTitle()).contents(request.getContents()).build());
     }
 
+    @Override
     @Transactional
     public InquiryDto.Response saveInquiryLogic(InquiryDto.Request request, Long memberId) {
         saveInquiry(request, memberId);
         return InquiryDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
+    @Override
     public InquiryCategoryListDto.Response findInquiryCategoryList() {
         List<InquiryCategoryListDto.Response.Category> categoryList = inquiryCategoryRepository.findAllByIsDeleted(false).stream().map(item -> InquiryCategoryListDto.Response.Category.builder().id(item.getId()).name(item.getTitle()).build()).toList();
         return InquiryCategoryListDto.Response.builder().inquirieCategorys(categoryList).build();
     }
 
+    @Override
     public InquiryListDto.Response findInquiryList(Pageable pageable, Long memberId) {
         List<InquiryListDto.Response.InquiryItem> inquiryItemList = inquiryRepository.findMyInquiryList(false, memberId, pageable);
         return InquiryListDto.Response.builder().inquiries(inquiryItemList).build();
     }
 
+    @Override
     public InquiryDetailDto.Response findInquiry(Long inquiryId, Long memberId) {
         return InquiryDetailDto.Response.builder().inquirie(inquiryRepository.findMyInquiry(false, memberId, inquiryId)).build();
     }
 
+    @Override
     @Transactional
     public InquiryComment saveInquiryReply(InquiryComment inquiryComment) {
         InquiryComment inquiryCommentEntity = inquiryCommentRepository.save(inquiryComment);
@@ -69,14 +76,17 @@ public class InquiryServiceImpl {
         return inquiryCommentEntity;
     }
 
+    @Override
     public Inquiry findInquiryById(Long inquiryId) {
         return inquiryRepository.findByIdAndIsDeleted(inquiryId, false).orElseThrow(() -> new BusinessException(InquiryErrorCode.INQUIRY_NOT_FOUND));
     }
 
+    @Override
     public List<BoInquiryListDto.Response.InquiryItem> findBackOfficeInquirieList(Pageable pageable, BoInquiryListDto.Request request) {
         return inquiryRepository.findBackOfficeInquirieList(pageable, request);
     }
 
+    @Override
     public BoInquiryDetailDto.Response.InquiryDetail findBackOfficeInquirie(Long id) {
         BoInquiryDetailDto.Response.InquiryDetail inquiryDetail = inquiryRepository.findBackOfficeInquirie(id);
         inquiryDetail.setReply(inquiryRepository.findBackOfficeInquirieReply(id));
