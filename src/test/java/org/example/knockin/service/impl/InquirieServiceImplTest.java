@@ -1,8 +1,8 @@
 package org.example.knockin.service.impl;
 
-import org.example.knockin.meta.service.impl.AlarmServiceImpl;
-import org.example.knockin.meta.service.impl.PushNotificationServiceImpl;
-import org.example.knockin.meta.entity.Alarm;
+import org.example.knockin.alarm.service.impl.AlarmServiceImpl;
+import org.example.knockin.alarm.service.impl.PushNotificationServiceImpl;
+import org.example.knockin.alarm.entity.Alarm;
 import org.example.knockin.global.entity.InquiryAlarmTemplate;
 import org.example.knockin.inquiry.dto.BoInquiryDetailDto;
 import org.example.knockin.inquiry.dto.BoInquiryListDto;

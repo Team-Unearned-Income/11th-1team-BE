@@ -40,11 +40,11 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.example.knockin.chat.entity.QChattingRequired.chattingRequired;
-import static org.example.knockin.chat.entity.QChattingRequiredAlarm.chattingRequiredAlarm;
+import static org.example.knockin.alarm.entity.QChattingRequiredAlarm.chattingRequiredAlarm;
 import static org.example.knockin.mate.entity.QRoommateMatchingRequired.roommateMatchingRequired;
-import static org.example.knockin.mate.entity.QRoommateMatchingRequiredAlarm.roommateMatchingRequiredAlarm;
+import static org.example.knockin.alarm.entity.QRoommateMatchingRequiredAlarm.roommateMatchingRequiredAlarm;
 import static org.example.knockin.mate.entity.QRoommateCalendar.roommateCalendar;
-import static org.example.knockin.mate.entity.QRoommateCalendarAlarm.roommateCalendarAlarm;
+import static org.example.knockin.alarm.entity.QRoommateCalendarAlarm.roommateCalendarAlarm;
 import static org.example.knockin.mate.entity.QMyRoommate.myRoommate;
 
 import static org.example.knockin.member.entity.QBlock.block;

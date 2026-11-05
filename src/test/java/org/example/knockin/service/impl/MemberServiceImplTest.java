@@ -11,7 +11,7 @@ import org.example.knockin.member.entity.MemberState;
 import org.example.knockin.member.entity.State;
 import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.MemberErrorCode;
-import org.example.knockin.meta.repository.AlarmSettingRepository;
+import org.example.knockin.alarm.repository.AlarmSettingRepository;
 import org.example.knockin.life.repository.MemberLifePatternRepository;
 import org.example.knockin.member.repository.BasicInformationRepository;
 import org.example.knockin.member.repository.MemberRepository;
