@@ -11,7 +11,7 @@ import com.google.firebase.messaging.Message;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 import org.example.knockin.KnockInApplication;
-import org.example.knockin.meta.service.impl.FcmServiceImpl;
+import org.example.knockin.alarm.service.impl.FcmServiceImpl;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

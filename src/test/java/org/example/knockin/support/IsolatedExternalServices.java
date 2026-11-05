@@ -9,7 +9,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import org.example.knockin.global.auth.util.AppleClientSecretGenerator;
-import org.example.knockin.global.config.FirebaseConfig;
+import org.example.knockin.alarm.config.FirebaseConfig;
 import org.example.knockin.global.config.ResendConfig;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.test.context.TestPropertySource;

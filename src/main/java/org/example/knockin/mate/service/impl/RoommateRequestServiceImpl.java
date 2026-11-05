@@ -1,7 +1,9 @@
 package org.example.knockin.mate.service.impl;
 
+import org.example.knockin.alarm.service.impl.RoommateMatchingRequiredAlarmServiceImpl;
+
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.meta.service.impl.PushNotificationServiceImpl;
+import org.example.knockin.alarm.service.impl.PushNotificationServiceImpl;
 import org.example.knockin.chat.dto.ChatSocketResponse;
 import org.example.knockin.chat.service.impl.ChatRoomMemberServiceImpl;
 import org.example.knockin.chat.dto.EventType;
@@ -9,7 +11,7 @@ import org.example.knockin.mate.dto.RoommateRequestDto;
 import org.example.knockin.mate.dto.RoommateRequestDto.Response;
 import org.example.knockin.mate.dto.RoommateRequestDto.RoommateMatchingRequiredInfo;
 import org.example.knockin.mate.dto.RoommateRequestListDto;
-import org.example.knockin.meta.entity.AlarmSettingType;
+import org.example.knockin.alarm.entity.AlarmSettingType;
 import org.example.knockin.chat.entity.ChatRoomMember;
 import org.example.knockin.chat.entity.ChattingRoom;
 import org.example.knockin.member.entity.BasicInformation;

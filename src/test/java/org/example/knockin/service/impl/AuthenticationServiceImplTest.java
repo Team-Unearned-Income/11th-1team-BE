@@ -1,8 +1,8 @@
 package org.example.knockin.service.impl;
 
 import org.example.knockin.verification.dto.MyVerificationListDto;
-import org.example.knockin.meta.service.impl.AlarmServiceImpl;
-import org.example.knockin.meta.service.impl.PushNotificationServiceImpl;
+import org.example.knockin.alarm.service.impl.AlarmServiceImpl;
+import org.example.knockin.alarm.service.impl.PushNotificationServiceImpl;
 import org.example.knockin.verification.dto.BoVerificationApproveListDto;
 import org.example.knockin.verification.dto.BoVerificationCancelListDto;
 import org.example.knockin.verification.dto.BoVerificationWaitingDetailDto;

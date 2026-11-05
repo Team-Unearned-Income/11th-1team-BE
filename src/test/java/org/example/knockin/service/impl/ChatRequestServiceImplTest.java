@@ -14,19 +14,19 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.example.knockin.meta.service.impl.AlarmServiceImpl;
+import org.example.knockin.alarm.service.impl.AlarmServiceImpl;
 import org.example.knockin.board.service.impl.RoommateBoardServiceImpl;
 import org.example.knockin.chat.dto.ChatRequestDetailDto;
 import org.example.knockin.chat.dto.ChatRequestListDto;
 import org.example.knockin.chat.dto.ChatRequestDto;
-import org.example.knockin.meta.entity.AlarmType;
+import org.example.knockin.alarm.entity.AlarmType;
 import org.example.knockin.board.entity.RoommateBoard;
 import org.example.knockin.chat.entity.ChattingRequired;
-import org.example.knockin.chat.entity.ChattingRequiredAlarm;
+import org.example.knockin.alarm.entity.ChattingRequiredAlarm;
 import org.example.knockin.chat.entity.ChattingRequiredStatus;
 import org.example.knockin.chat.entity.ChattingRoom;
 import org.example.knockin.chat.service.impl.ChatRequestServiceImpl;
-import org.example.knockin.chat.service.impl.ChattingRequiredAlarmServiceImpl;
+import org.example.knockin.alarm.service.impl.ChattingRequiredAlarmServiceImpl;
 import org.example.knockin.chat.service.impl.ChattingRequiredServiceImpl;
 import org.example.knockin.life.service.impl.MemberLifePatternService;
 import org.example.knockin.life.entity.LifePatternType;
@@ -41,7 +41,7 @@ import org.example.knockin.global.exception.RoommateBoardErrorCode;
 import org.example.knockin.global.util.DateUtils;
 import org.example.knockin.board.repository.RoommateBoardRepository;
 import org.example.knockin.chat.repository.ChatRoomMemberRepository;
-import org.example.knockin.chat.repository.ChattingRequiredAlarmRepository;
+import org.example.knockin.alarm.repository.ChattingRequiredAlarmRepository;
 import org.example.knockin.chat.repository.ChattingRequiredRepository;
 import org.example.knockin.chat.repository.ChattingRoomRepository;
 import org.example.knockin.chat.repository.row.ChatRequestListRow;
@@ -135,7 +135,9 @@ class ChatRequestServiceImplTest {
                 null
         );
         ChattingRequiredAlarmServiceImpl chattingRequiredAlarmService =
-                new ChattingRequiredAlarmServiceImpl(basicInformationService, alarmService);
+                new ChattingRequiredAlarmServiceImpl(
+                        basicInformationService,
+                        alarmService);
         ReflectionTestUtils.setField(chattingRequiredAlarmService, "requestAlarmExpireDays", 7);
 
         chatRequestService = new ChatRequestServiceImpl(
