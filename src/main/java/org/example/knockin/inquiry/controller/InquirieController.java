@@ -9,7 +9,7 @@ import org.example.knockin.inquiry.dto.InquiryDto;
 import org.example.knockin.inquiry.dto.InquiryListDto;
 import org.example.knockin.global.api.CommonResponse;
 import org.example.knockin.global.auth.dto.PrincipalDetails;
-import org.example.knockin.inquiry.service.impl.InquirieServiceImpl;
+import org.example.knockin.inquiry.service.impl.InquiryServiceImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -22,24 +22,24 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @Tag(name = "9. 알림/고객센터")
 public class InquirieController {
-    private final InquirieServiceImpl inquirieService;
+    private final InquiryServiceImpl inquirieService;
 
     @GetMapping("")
     @Operation(summary = "문의 목록 조회")
     public CommonResponse<InquiryListDto.Response> findInquirieList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable, @AuthenticationPrincipal PrincipalDetails principalDetails) {
-        return CommonResponse.status(HttpStatus.OK).body(inquirieService.findInquirieList(pageable, principalDetails.getMember().getId()));
+        return CommonResponse.status(HttpStatus.OK).body(inquirieService.findInquiryList(pageable, principalDetails.getMember().getId()));
     }
 
     @GetMapping("/{inquiryId}")
     @Operation(summary = "문의 상세 조회")
     public CommonResponse<InquiryDetailDto.Response> findInquirie(@PathVariable Long inquiryId, @AuthenticationPrincipal PrincipalDetails principalDetails) {
-        return CommonResponse.status(HttpStatus.OK).body(inquirieService.findInquirie(inquiryId, principalDetails.getMember().getId()));
+        return CommonResponse.status(HttpStatus.OK).body(inquirieService.findInquiry(inquiryId, principalDetails.getMember().getId()));
     }
 
     @GetMapping("/categorys")
     @Operation(summary = "문의 카테고리 목록 조회")
     public CommonResponse<InquiryCategoryListDto.Response> findInquirieCategoryList() {
-        return CommonResponse.status(HttpStatus.OK).body(inquirieService.findInquirieCategoryList());
+        return CommonResponse.status(HttpStatus.OK).body(inquirieService.findInquiryCategoryList());
     }
 
     @PostMapping("")

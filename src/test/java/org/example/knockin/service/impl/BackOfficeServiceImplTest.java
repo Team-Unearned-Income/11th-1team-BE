@@ -57,7 +57,7 @@ import org.example.knockin.global.exception.AuthErrorCode;
 import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.DeclarationErrorCode;
 import org.example.knockin.global.util.ReportType;
-import org.example.knockin.inquiry.service.impl.InquirieServiceImpl;
+import org.example.knockin.inquiry.service.impl.InquiryServiceImpl;
 import org.example.knockin.room.service.impl.RoomTypeServiceImpl;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -112,7 +112,7 @@ class BackOfficeServiceImplTest {
     private MemberServiceImpl memberService;
 
     @Mock
-    private InquirieServiceImpl inquirieService;
+    private InquiryServiceImpl inquirieService;
 
     @Mock
     private DeclarationService declarationService;
@@ -715,7 +715,7 @@ class BackOfficeServiceImplTest {
         // then
         assertThat(response).isNotNull();
         assertThat(response.getUpdatedAt()).isNotNull();
-        verify(inquirieService).saveInquirieReply(any(InquiryComment.class));
+        verify(inquirieService).saveInquiryReply(any(InquiryComment.class));
     }
 
     @Test

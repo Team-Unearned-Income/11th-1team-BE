@@ -26,7 +26,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class InquirieServiceImpl {
+public class InquiryServiceImpl {
     private final InquiryCategoryRepository inquiryCategoryRepository;
     private final InquiryRepository inquiryRepository;
     private final InquiryCommentRepository inquiryCommentRepository;
@@ -44,22 +44,22 @@ public class InquirieServiceImpl {
         return InquiryDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
-    public InquiryCategoryListDto.Response findInquirieCategoryList() {
+    public InquiryCategoryListDto.Response findInquiryCategoryList() {
         List<InquiryCategoryListDto.Response.Category> categoryList = inquiryCategoryRepository.findAllByIsDeleted(false).stream().map(item -> InquiryCategoryListDto.Response.Category.builder().id(item.getId()).name(item.getTitle()).build()).toList();
         return InquiryCategoryListDto.Response.builder().inquirieCategorys(categoryList).build();
     }
 
-    public InquiryListDto.Response findInquirieList(Pageable pageable, Long memberId) {
+    public InquiryListDto.Response findInquiryList(Pageable pageable, Long memberId) {
         List<InquiryListDto.Response.InquiryItem> inquiryItemList = inquiryRepository.findMyInquiryList(false, memberId, pageable);
         return InquiryListDto.Response.builder().inquiries(inquiryItemList).build();
     }
 
-    public InquiryDetailDto.Response findInquirie(Long inquiryId, Long memberId) {
+    public InquiryDetailDto.Response findInquiry(Long inquiryId, Long memberId) {
         return InquiryDetailDto.Response.builder().inquirie(inquiryRepository.findMyInquiry(false, memberId, inquiryId)).build();
     }
 
     @Transactional
-    public InquiryComment saveInquirieReply(InquiryComment inquiryComment) {
+    public InquiryComment saveInquiryReply(InquiryComment inquiryComment) {
         InquiryComment inquiryCommentEntity = inquiryCommentRepository.save(inquiryComment);
 
         Long memberId = inquiryCommentEntity.getInquiry().getMemberId();

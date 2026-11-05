@@ -20,7 +20,7 @@ import org.example.knockin.global.exception.InquiryErrorCode;
 import org.example.knockin.inquiry.repository.InquiryCategoryRepository;
 import org.example.knockin.inquiry.repository.InquiryCommentRepository;
 import org.example.knockin.inquiry.repository.InquiryRepository;
-import org.example.knockin.inquiry.service.impl.InquirieServiceImpl;
+import org.example.knockin.inquiry.service.impl.InquiryServiceImpl;
 import org.example.knockin.member.service.impl.MemberServiceImpl;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -43,7 +43,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("1:1 문의 서비스 테스트")
-class InquirieServiceImplTest {
+class InquiryServiceImplTest {
 
     @Mock
     private MemberServiceImpl memberService;
@@ -64,7 +64,7 @@ class InquirieServiceImplTest {
     private PushNotificationServiceImpl pushNotificationService;
 
     @InjectMocks
-    private InquirieServiceImpl inquiriesService;
+    private InquiryServiceImpl inquiriesService;
 
     @Test
     @DisplayName("문의 저장 성공 테스트 (saveInquiry)")
@@ -160,7 +160,7 @@ class InquirieServiceImplTest {
         given(inquiryCategoryRepository.findAllByIsDeleted(false)).willReturn(List.of(category1, category2));
 
         // when
-        InquiryCategoryListDto.Response response = inquiriesService.findInquirieCategoryList();
+        InquiryCategoryListDto.Response response = inquiriesService.findInquiryCategoryList();
 
         // then
         assertThat(response).isNotNull();
@@ -185,7 +185,7 @@ class InquirieServiceImplTest {
         given(inquiryRepository.findMyInquiryList(false, memberId, pageable)).willReturn(List.of(item));
 
         // when
-        InquiryListDto.Response response = inquiriesService.findInquirieList(pageable, memberId);
+        InquiryListDto.Response response = inquiriesService.findInquiryList(pageable, memberId);
 
         // then
         assertThat(response).isNotNull();
@@ -210,7 +210,7 @@ class InquirieServiceImplTest {
         given(inquiryRepository.findMyInquiry(false, memberId, inquiryId)).willReturn(detail);
 
         // when
-        InquiryDetailDto.Response response = inquiriesService.findInquirie(inquiryId, memberId);
+        InquiryDetailDto.Response response = inquiriesService.findInquiry(inquiryId, memberId);
 
         // then
         assertThat(response).isNotNull();
@@ -232,7 +232,7 @@ class InquirieServiceImplTest {
         given(memberService.findById(member.getId())).willReturn(Optional.of(member));
 
         // when
-        InquiryComment result = inquiriesService.saveInquirieReply(comment);
+        InquiryComment result = inquiriesService.saveInquiryReply(comment);
 
         // then
         assertThat(result).isNotNull();
