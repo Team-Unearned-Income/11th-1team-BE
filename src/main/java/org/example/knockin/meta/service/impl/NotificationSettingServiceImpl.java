@@ -20,7 +20,6 @@ import java.util.List;
 public class NotificationSettingServiceImpl {
     private final MemberServiceImpl memberService;
     private final AlarmSettingRepository alarmSettingRepository;
-    private final NotificationServiceImpl notificationService;
 
     public MyNotificationSettingsDto.Response findAlaramSettingList(Long memberId) {
         Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));

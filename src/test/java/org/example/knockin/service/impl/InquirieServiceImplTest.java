@@ -81,7 +81,7 @@ class InquirieServiceImplTest {
         given(inquiryCategoryRepository.findById(1L)).willReturn(Optional.of(category));
 
         // when
-        inquiriesService.saveInquiry(request, member);
+        inquiriesService.saveInquiry(request, member.getId());
 
         // then
         ArgumentCaptor<Inquiry> inquiryCaptor = ArgumentCaptor.forClass(Inquiry.class);
@@ -101,7 +101,7 @@ class InquirieServiceImplTest {
         given(inquiryCategoryRepository.findById(1L)).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> inquiriesService.saveInquiry(request, member))
+        assertThatThrownBy(() -> inquiriesService.saveInquiry(request, member.getId()))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", InquiryErrorCode.INQUIRY_CATEGORY_NOT_FOUND);
 
