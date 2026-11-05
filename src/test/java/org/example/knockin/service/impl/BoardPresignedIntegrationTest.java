@@ -69,8 +69,8 @@ class BoardPresignedIntegrationTest {
     @MockitoBean org.example.knockin.life.service.impl.PreferenceConditionServiceImpl preferences;
     @MockitoBean org.example.knockin.life.service.impl.MemberLifePatternService patterns;
     @MockitoBean org.example.knockin.verification.service.impl.AuthenticationServiceImpl authentication;
-    @MockitoBean org.example.knockin.meta.service.impl.AlarmServiceImpl alarms;
-    @MockitoBean org.example.knockin.meta.service.impl.PushNotificationServiceImpl notifications;
+    @MockitoBean org.example.knockin.alarm.service.impl.AlarmServiceImpl alarms;
+    @MockitoBean org.example.knockin.alarm.service.impl.PushNotificationServiceImpl notifications;
     @MockitoBean org.example.knockin.declaration.service.impl.DeclarationServiceImpl declarations;
     private Member member;
     private RoomType roomType;

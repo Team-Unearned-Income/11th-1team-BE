@@ -1,11 +1,11 @@
 package org.example.knockin.inquiry.service.impl;
 
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.meta.service.impl.AlarmServiceImpl;
-import org.example.knockin.meta.service.impl.PushNotificationServiceImpl;
-import org.example.knockin.meta.entity.Alarm;
-import org.example.knockin.meta.entity.AlarmSettingType;
-import org.example.knockin.meta.entity.AlarmType;
+import org.example.knockin.alarm.service.impl.AlarmServiceImpl;
+import org.example.knockin.alarm.service.impl.PushNotificationServiceImpl;
+import org.example.knockin.alarm.entity.Alarm;
+import org.example.knockin.alarm.entity.AlarmSettingType;
+import org.example.knockin.alarm.entity.AlarmType;
 import org.example.knockin.inquiry.dto.BoInquiryDetailDto;
 import org.example.knockin.inquiry.dto.BoInquiryListDto;
 import org.example.knockin.inquiry.dto.InquiryCategoryListDto;

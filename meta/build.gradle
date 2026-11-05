@@ -25,11 +25,9 @@ dependencyManagement {
 
 dependencies {
     api project(':common')
-    api project(':member')
     testImplementation project(':board')
 
     implementation 'software.amazon.awssdk:s3:2.28.23'
-    implementation 'com.google.firebase:firebase-admin:9.9.0'
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-security'
