@@ -62,6 +62,7 @@ import org.example.knockin.room.service.impl.RoomTypeServiceImpl;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -703,8 +704,8 @@ class BackOfficeServiceImplTest {
         request.setInquirieId(100L);
         request.setContents("답변 내용");
 
-        Member member = mock(Member.class);
-        Inquiry inquiry = mock(Inquiry.class);
+        Member member = Member.builder().id(memberId).build();
+        Inquiry inquiry = Inquiry.builder().id(100L).memberId(42L).build();
 
         given(memberService.findById(memberId)).willReturn(Optional.of(member));
         given(inquirieService.findInquiryById(100L)).willReturn(inquiry);
@@ -715,7 +716,12 @@ class BackOfficeServiceImplTest {
         // then
         assertThat(response).isNotNull();
         assertThat(response.getUpdatedAt()).isNotNull();
-        verify(inquirieService).saveInquiryReply(any(InquiryComment.class));
+        ArgumentCaptor<InquiryComment> commentCaptor = ArgumentCaptor.forClass(InquiryComment.class);
+        verify(inquirieService).saveInquiryReply(commentCaptor.capture());
+        InquiryComment comment = commentCaptor.getValue();
+        assertThat(comment.getMemberId()).isEqualTo(memberId);
+        assertThat(comment.getInquiry()).isSameAs(inquiry);
+        assertThat(comment.getContents()).isEqualTo(request.getContents());
     }
 
     @Test
@@ -729,7 +735,10 @@ class BackOfficeServiceImplTest {
         given(memberService.findById(memberId)).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> backOfficeService.saveInquiryReply(request, memberId));
+        assertThatThrownBy(() -> backOfficeService.saveInquiryReply(request, memberId))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.MEMBER_NOT_FOUND);
+        verifyNoInteractions(inquirieService);
     }
 
     @DisplayName("회원 목록 조회 성공 테스트 (findMemberList)")

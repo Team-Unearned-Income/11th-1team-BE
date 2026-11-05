@@ -1,9 +1,7 @@
-package org.example.knockin.service.impl;
+package org.example.knockin.inquiry.service.impl;
 
-import org.example.knockin.alarm.service.impl.AlarmServiceImpl;
-import org.example.knockin.alarm.service.impl.PushNotificationServiceImpl;
-import org.example.knockin.alarm.entity.Alarm;
-import org.example.knockin.global.entity.InquiryAlarmTemplate;
+import org.example.knockin.global.exception.BusinessException;
+import org.example.knockin.global.exception.InquiryErrorCode;
 import org.example.knockin.inquiry.dto.BoInquiryDetailDto;
 import org.example.knockin.inquiry.dto.BoInquiryListDto;
 import org.example.knockin.inquiry.dto.InquiryCategoryListDto;
@@ -13,22 +11,19 @@ import org.example.knockin.inquiry.dto.InquiryListDto;
 import org.example.knockin.inquiry.entity.Inquiry;
 import org.example.knockin.inquiry.entity.InquiryCategory;
 import org.example.knockin.inquiry.entity.InquiryComment;
-import org.example.knockin.member.entity.Member;
-import org.example.knockin.global.exception.AuthErrorCode;
-import org.example.knockin.global.exception.BusinessException;
-import org.example.knockin.global.exception.InquiryErrorCode;
 import org.example.knockin.inquiry.repository.InquiryCategoryRepository;
 import org.example.knockin.inquiry.repository.InquiryCommentRepository;
 import org.example.knockin.inquiry.repository.InquiryRepository;
-import org.example.knockin.inquiry.service.impl.InquiryServiceImpl;
-import org.example.knockin.member.service.impl.MemberServiceImpl;
+import org.example.knockin.inquiry.service.InquiryReplyEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
@@ -37,16 +32,12 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("1:1 문의 서비스 테스트")
 class InquiryServiceImplTest {
-
-    @Mock
-    private MemberServiceImpl memberService;
 
     @Mock
     private InquiryCategoryRepository inquiryCategoryRepository;
@@ -58,10 +49,7 @@ class InquiryServiceImplTest {
     private InquiryCommentRepository inquiryCommentRepository;
 
     @Mock
-    private AlarmServiceImpl alarmService;
-
-    @Mock
-    private PushNotificationServiceImpl pushNotificationService;
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private InquiryServiceImpl inquiriesService;
@@ -75,18 +63,22 @@ class InquiryServiceImplTest {
         request.setTitle("Inquiry Title");
         request.setContents("Inquiry Contents");
 
-        Member member = Member.builder().id(42L).build();
+        Long memberId = 42L;
         InquiryCategory category = mock(InquiryCategory.class);
 
         given(inquiryCategoryRepository.findById(1L)).willReturn(Optional.of(category));
 
         // when
-        inquiriesService.saveInquiry(request, member.getId());
+        inquiriesService.saveInquiry(request, memberId);
 
         // then
         ArgumentCaptor<Inquiry> inquiryCaptor = ArgumentCaptor.forClass(Inquiry.class);
         verify(inquiryRepository).save(inquiryCaptor.capture());
-        assertThat(inquiryCaptor.getValue().getMemberId()).isEqualTo(42L);
+        Inquiry inquiry = inquiryCaptor.getValue();
+        assertThat(inquiry.getMemberId()).isEqualTo(memberId);
+        assertThat(inquiry.getInquiryCategory()).isSameAs(category);
+        assertThat(inquiry.getTitle()).isEqualTo(request.getTitle());
+        assertThat(inquiry.getContents()).isEqualTo(request.getContents());
     }
 
     @Test
@@ -96,12 +88,10 @@ class InquiryServiceImplTest {
         InquiryDto.Request request = new InquiryDto.Request();
         request.setCategoryId(1L);
 
-        Member member = mock(Member.class);
-
         given(inquiryCategoryRepository.findById(1L)).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> inquiriesService.saveInquiry(request, member.getId()))
+        assertThatThrownBy(() -> inquiriesService.saveInquiry(request, 42L))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", InquiryErrorCode.INQUIRY_CATEGORY_NOT_FOUND);
 
@@ -118,10 +108,8 @@ class InquiryServiceImplTest {
         request.setTitle("Inquiry Title");
         request.setContents("Inquiry Contents");
 
-        Member member = mock(Member.class);
         InquiryCategory category = mock(InquiryCategory.class);
 
-        given(memberService.findById(memberId)).willReturn(Optional.of(member));
         given(inquiryCategoryRepository.findById(1L)).willReturn(Optional.of(category));
 
         // when
@@ -130,23 +118,25 @@ class InquiryServiceImplTest {
         // then
         assertThat(response).isNotNull();
         assertThat(response.getUpdatedAt()).isNotNull();
-        verify(inquiryRepository).save(any(Inquiry.class));
+        ArgumentCaptor<Inquiry> inquiryCaptor = ArgumentCaptor.forClass(Inquiry.class);
+        verify(inquiryRepository).save(inquiryCaptor.capture());
+        assertThat(inquiryCaptor.getValue().getMemberId()).isEqualTo(memberId);
     }
 
     @Test
-    @DisplayName("문의 저장 로직 실행 시 회원이 없으면 BusinessException 발생")
-    void saveInquiryLogicMemberNotFoundTest() {
+    @DisplayName("문의 저장 로직 실행 시 카테고리가 없으면 BusinessException 발생")
+    void saveInquiryLogicCategoryNotFoundTest() {
         // given
         Long memberId = 1L;
         InquiryDto.Request request = new InquiryDto.Request();
-        given(memberService.findById(memberId)).willReturn(Optional.empty());
+        request.setCategoryId(1L);
+        given(inquiryCategoryRepository.findById(1L)).willReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> inquiriesService.saveInquiryLogic(request, memberId))
                 .isInstanceOf(BusinessException.class)
-                .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.MEMBER_NOT_FOUND);
+                .hasFieldOrPropertyWithValue("errorCode", InquiryErrorCode.INQUIRY_CATEGORY_NOT_FOUND);
 
-        verifyNoInteractions(inquiryCategoryRepository);
         verifyNoInteractions(inquiryRepository);
     }
 
@@ -174,14 +164,12 @@ class InquiryServiceImplTest {
     void findInquiryListSuccessTest() {
         // given
         Long memberId = 1L;
-        Member member = mock(Member.class);
         Pageable pageable = PageRequest.of(0, 10);
         InquiryListDto.Response.InquiryItem item = InquiryListDto.Response.InquiryItem.builder()
                 .id(100L)
                 .title("Inquiry Title")
                 .build();
 
-        given(memberService.findById(memberId)).willReturn(Optional.of(member));
         given(inquiryRepository.findMyInquiryList(false, memberId, pageable)).willReturn(List.of(item));
 
         // when
@@ -191,6 +179,7 @@ class InquiryServiceImplTest {
         assertThat(response).isNotNull();
         assertThat(response.getInquiries()).hasSize(1);
         assertThat(response.getInquiries().get(0).getId()).isEqualTo(100L);
+        verify(inquiryRepository).findMyInquiryList(false, memberId, pageable);
     }
 
     @Test
@@ -199,14 +188,12 @@ class InquiryServiceImplTest {
         // given
         Long memberId = 1L;
         Long inquiryId = 100L;
-        Member member = mock(Member.class);
         InquiryDetailDto.Response.InquiryDetail detail = InquiryDetailDto.Response.InquiryDetail.builder()
                 .id(inquiryId)
                 .title("Title")
                 .contents("Contents")
                 .build();
 
-        given(memberService.findById(memberId)).willReturn(Optional.of(member));
         given(inquiryRepository.findMyInquiry(false, memberId, inquiryId)).willReturn(detail);
 
         // when
@@ -215,33 +202,56 @@ class InquiryServiceImplTest {
         // then
         assertThat(response).isNotNull();
         assertThat(response.getInquirie()).isEqualTo(detail);
+        verify(inquiryRepository).findMyInquiry(false, memberId, inquiryId);
     }
 
     @Test
-    @DisplayName("문의 답변 저장 성공 테스트 (saveInquirieReply)")
-    void saveInquirieReplySuccessTest() {
+    @DisplayName("문의 답변 저장 후 문의 작성자와 문의 ID로 답변 이벤트 발행")
+    void saveInquiryReplySuccessTest() {
         // given
-        Member member = Member.builder().id(10L).fcmToken("token").build();
-        Inquiry inquiry = Inquiry.builder().memberId(member.getId()).build();
+        Inquiry inquiry = Inquiry.builder().id(100L).memberId(10L).build();
         InquiryComment comment = InquiryComment.builder()
                 .inquiry(inquiry)
                 .memberId(20L)
                 .contents("답변 내용")
                 .build();
-        given(inquiryCommentRepository.save(any(InquiryComment.class))).willReturn(comment);
-        given(memberService.findById(member.getId())).willReturn(Optional.of(member));
+        InquiryComment savedComment = InquiryComment.builder()
+                .id(200L)
+                .inquiry(inquiry)
+                .memberId(20L)
+                .contents("답변 내용")
+                .build();
+        given(inquiryCommentRepository.save(comment)).willReturn(savedComment);
 
         // when
         InquiryComment result = inquiriesService.saveInquiryReply(comment);
 
         // then
-        assertThat(result).isNotNull();
+        assertThat(result).isSameAs(savedComment);
         assertThat(result.getContents()).isEqualTo("답변 내용");
-        verify(inquiryCommentRepository).save(comment);
-        ArgumentCaptor<Alarm> alarmCaptor = ArgumentCaptor.forClass(Alarm.class);
-        verify(alarmService).sendToClient(eq(member.getId()), eq(InquiryAlarmTemplate.INQUIRIE_REPLY.name()), alarmCaptor.capture());
-        assertThat(alarmCaptor.getValue().getMember()).isSameAs(member);
-        verify(memberService).findById(10L);
+        InOrder inOrder = inOrder(inquiryCommentRepository, eventPublisher);
+        inOrder.verify(inquiryCommentRepository).save(comment);
+        inOrder.verify(eventPublisher).publishEvent(new InquiryReplyEvent(10L, 100L));
+        verifyNoMoreInteractions(eventPublisher);
+    }
+
+    @Test
+    @DisplayName("문의 답변 저장 실패 시 답변 이벤트를 발행하지 않음")
+    void saveInquiryReplyFailureDoesNotPublishEventTest() {
+        // given
+        Inquiry inquiry = Inquiry.builder().id(100L).memberId(10L).build();
+        InquiryComment comment = InquiryComment.builder()
+                .inquiry(inquiry)
+                .memberId(20L)
+                .contents("답변 내용")
+                .build();
+        RuntimeException exception = new RuntimeException("답변 저장 실패");
+        given(inquiryCommentRepository.save(comment)).willThrow(exception);
+
+        // when & then
+        assertThatThrownBy(() -> inquiriesService.saveInquiryReply(comment))
+                .isSameAs(exception);
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
