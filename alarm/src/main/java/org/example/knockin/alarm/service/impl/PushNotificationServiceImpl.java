@@ -2,6 +2,7 @@ package org.example.knockin.alarm.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.alarm.entity.AlarmSettingType;
+import org.example.knockin.global.entity.AlarmMessageTemplate;
 import org.example.knockin.member.entity.Member;
 import org.example.knockin.alarm.repository.AlarmSettingRepository;
 import org.springframework.stereotype.Service;
@@ -19,5 +20,9 @@ public class PushNotificationServiceImpl {
         boolean isEnabled = alarmSettingRepository.existsByMemberAndAlarmSettingTypeAndIsEnabledTrue(receiver, alarmSettingType);
         if (!isEnabled) return;
         fcmService.send(title, body, fcmToken, deepLink);
+    }
+
+    public void send(Member receiver, AlarmSettingType alarmSettingType, AlarmMessageTemplate alarmMessageTemplate) {
+        send(receiver, alarmSettingType, alarmMessageTemplate.formatTitle(), alarmMessageTemplate.formatContents(), alarmMessageTemplate.formatDeepLink());
     }
 }

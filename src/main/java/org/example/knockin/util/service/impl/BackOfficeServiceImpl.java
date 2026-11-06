@@ -64,7 +64,7 @@ import org.example.knockin.room.entity.RoomTypeFile;
 import org.example.knockin.global.exception.AuthErrorCode;
 import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.FileErrorCode;
-import org.example.knockin.inquiry.service.impl.InquirieServiceImpl;
+import org.example.knockin.inquiry.service.impl.InquiryServiceImpl;
 import org.example.knockin.room.service.impl.RoomExtraOptionServiceImpl;
 import org.example.knockin.room.service.impl.RoomTypeServiceImpl;
 import org.example.knockin.meta.service.FileService;
@@ -87,7 +87,7 @@ public class BackOfficeServiceImpl {
     private final AuthenticationServiceImpl authenticationService;
     private final NotificationServiceImpl notificationService;
     private final MemberServiceImpl memberService;
-    private final InquirieServiceImpl inquirieService;
+    private final InquiryServiceImpl inquirieService;
     private final DeclarationService declarationService;
     private final RoommateBoardServiceImpl roommateBoardService;
     private final RoomExtraOptionServiceImpl roomExtraOptionService;
@@ -324,7 +324,7 @@ public class BackOfficeServiceImpl {
     public BoInquiryReplyDto.Response saveInquiryReply(BoInquiryReplyDto.Request request, Long memberId) {
         Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
         Inquiry inquiry = inquirieService.findInquiryById(request.getInquirieId());
-        inquirieService.saveInquirieReply(InquiryComment.builder().memberId(member.getId()).inquiry(inquiry).contents(request.getContents()).build());
+        inquirieService.saveInquiryReply(InquiryComment.builder().memberId(member.getId()).inquiry(inquiry).contents(request.getContents()).build());
         return BoInquiryReplyDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
