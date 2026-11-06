@@ -1,8 +1,6 @@
 package org.example.knockin.service.impl;
 
 import org.example.knockin.verification.dto.MyVerificationListDto;
-import org.example.knockin.alarm.service.impl.AlarmServiceImpl;
-import org.example.knockin.alarm.service.impl.PushNotificationServiceImpl;
 import org.example.knockin.verification.dto.BoVerificationApproveListDto;
 import org.example.knockin.verification.dto.BoVerificationCancelListDto;
 import org.example.knockin.verification.dto.BoVerificationWaitingDetailDto;
@@ -14,21 +12,21 @@ import org.example.knockin.verification.entity.ApproveType;
 import org.example.knockin.verification.entity.Authentication;
 import org.example.knockin.verification.entity.AuthenticationApprove;
 import org.example.knockin.verification.entity.AuthenticationType;
-import org.example.knockin.member.entity.Member;
 import org.example.knockin.global.exception.AuthenticationErrorCode;
 import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.EmailErrorCode;
-import org.example.knockin.global.exception.MemberErrorCode;
-import org.example.knockin.member.service.impl.MemberServiceImpl;
 import org.example.knockin.verification.repository.AuthenticationApproveRepository;
 import org.example.knockin.verification.repository.AuthenticationRepository;
 import org.example.knockin.verification.service.MailSendService;
+import org.example.knockin.verification.service.VerificationDeleteEvent;
+import org.example.knockin.verification.service.VerificationSaveEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.data.domain.PageRequest;
@@ -45,7 +43,6 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
@@ -61,19 +58,13 @@ class AuthenticationServiceImplTest {
     private AuthenticationApproveRepository authenticationApproveRepository;
 
     @Mock
-    private MemberServiceImpl memberService;
-
-    @Mock
     private MailSendService mailSendService;
 
     @Mock
     private ResourceLoader resourceLoader;
 
     @Mock
-    private AlarmServiceImpl alarmService;
-
-    @Mock
-    private PushNotificationServiceImpl pushNotificationService;
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private AuthenticationServiceImpl authenticationService;
@@ -102,9 +93,6 @@ class AuthenticationServiceImplTest {
         // given
         Long memberId = 1L;
         EmailSendDto.Request request = new EmailSendDto.Request("student@univ.ac.kr");
-
-        Member member = mock(Member.class);
-        given(memberService.findById(memberId)).willReturn(Optional.of(member));
 
         Resource resource = mock(Resource.class);
         String mockHtml = "<html>${authToken}</html>";
@@ -135,9 +123,6 @@ class AuthenticationServiceImplTest {
         Long memberId = 1L;
         EmailSendDto.Request request = new EmailSendDto.Request("company@company.com");
 
-        Member member = mock(Member.class);
-        given(memberService.findById(memberId)).willReturn(Optional.of(member));
-
         Resource resource = mock(Resource.class);
         String mockHtml = "<html>${authToken}</html>";
         given(resourceLoader.getResource("classpath:templates/mail/auth_template.html")).willReturn(resource);
@@ -161,28 +146,11 @@ class AuthenticationServiceImplTest {
     }
 
     @Test
-    @DisplayName("이메일 발송 시 회원이 없으면 MemberErrorCode.MEMBER_NOT_FOUND 예외 발생")
-    void sendAuthNumMemberNotFoundTest() {
-        // given
-        Long memberId = 1L;
-        EmailSendDto.Request request = new EmailSendDto.Request("test@test.com");
-        given(memberService.findById(memberId)).willReturn(Optional.empty());
-
-        // when & then
-        assertThatThrownBy(() -> authenticationService.sendAuthNumStudent(request, memberId))
-                .isInstanceOf(BusinessException.class)
-                .hasFieldOrPropertyWithValue("errorCode", MemberErrorCode.MEMBER_NOT_FOUND);
-    }
-
-    @Test
     @DisplayName("학생 이메일 인증번호 검증 성공 테스트")
     void confirmAuthNumStudentSuccessTest() {
         // given
         Long memberId = 1L;
         EmailConfirmDto.Request request = new EmailConfirmDto.Request("student@univ.ac.kr", "123456");
-
-        Member member = mock(Member.class);
-        given(memberService.findById(memberId)).willReturn(Optional.of(member));
 
         Authentication authentication = spy(Authentication.builder()
                 .email("student@univ.ac.kr")
@@ -210,9 +178,6 @@ class AuthenticationServiceImplTest {
         // given
         Long memberId = 1L;
         EmailConfirmDto.Request request = new EmailConfirmDto.Request("company@company.com", "123456");
-
-        Member member = mock(Member.class);
-        given(memberService.findById(memberId)).willReturn(Optional.of(member));
 
         Authentication authentication = spy(Authentication.builder()
                 .email("company@company.com")
@@ -257,9 +222,6 @@ class AuthenticationServiceImplTest {
         Long memberId = 1L;
         EmailConfirmDto.Request request = new EmailConfirmDto.Request("student@univ.ac.kr", "123456");
 
-        Member member = mock(Member.class);
-        given(memberService.findById(memberId)).willReturn(Optional.of(member));
-
         Authentication authentication = Authentication.builder()
                 .email("student@univ.ac.kr")
                 .code("123456")
@@ -282,9 +244,6 @@ class AuthenticationServiceImplTest {
         // given
         Long memberId = 1L;
         EmailConfirmDto.Request request = new EmailConfirmDto.Request("student@univ.ac.kr", "wrong_code");
-
-        Member member = mock(Member.class);
-        given(memberService.findById(memberId)).willReturn(Optional.of(member));
 
         Authentication authentication = Authentication.builder()
                 .email("student@univ.ac.kr")
@@ -365,19 +324,18 @@ class AuthenticationServiceImplTest {
     }
 
     @Test
-    @DisplayName("인증 승인 등록 성공 테스트")
+    @DisplayName("인증 승인 상태를 변경하고 승인 이벤트에 회원 ID를 담아 발행한다")
     void saveVerificationsSuccessTest() {
         // given
         Long id = 1L;
-        Member member = Member.builder().id(10L).fcmToken("token").build();
-        Authentication authentication = Authentication.builder().memberId(member.getId()).build();
+        Long memberId = 10L;
+        Authentication authentication = Authentication.builder().memberId(memberId).build();
         AuthenticationApprove approve = AuthenticationApprove.builder()
                 .id(id)
                 .authentication(authentication)
                 .status(ApproveType.PENDING)
                 .build();
         given(authenticationApproveRepository.findById(id)).willReturn(Optional.of(approve));
-        given(memberService.findById(member.getId())).willReturn(Optional.of(member));
 
         // when
         authenticationService.saveVerifications(id);
@@ -385,6 +343,8 @@ class AuthenticationServiceImplTest {
         // then
         assertThat(approve.getStatus()).isEqualTo(ApproveType.ACCEPTED);
         assertThat(approve.getRejectReason()).isNull();
+        verify(eventPublisher).publishEvent(new VerificationSaveEvent(memberId));
+        verifyNoMoreInteractions(eventPublisher);
     }
 
     @Test
@@ -398,12 +358,27 @@ class AuthenticationServiceImplTest {
         assertThatThrownBy(() -> authenticationService.saveVerifications(id))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", AuthenticationErrorCode.AUTHENTICATION_NOT_FOUNT);
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
-    @DisplayName("인증에 연결된 회원이 없으면 승인 알림을 발송하지 않는다")
-    void saveVerificationsRejectsMissingMember() {
+    @DisplayName("인증 반려 시 대상 인증건이 없으면 이벤트를 발행하지 않는다")
+    void deleteVerificationsNotFoundTest() {
         Long id = 1L;
+        given(authenticationApproveRepository.findById(id)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authenticationService.deleteVerifications(id, "반려사유"))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", AuthenticationErrorCode.AUTHENTICATION_NOT_FOUNT);
+        verifyNoInteractions(eventPublisher);
+    }
+
+    @Test
+    @DisplayName("인증 반려 상태를 변경하고 반려 이벤트에 회원 ID와 사유를 담아 발행한다")
+    void deleteVerificationsSuccessTest() {
+        // given
+        Long id = 1L;
+        String rejectReason = "반려사유";
         Long memberId = 10L;
         Authentication authentication = Authentication.builder().memberId(memberId).build();
         AuthenticationApprove approve = AuthenticationApprove.builder()
@@ -412,29 +387,6 @@ class AuthenticationServiceImplTest {
                 .status(ApproveType.PENDING)
                 .build();
         given(authenticationApproveRepository.findById(id)).willReturn(Optional.of(approve));
-        given(memberService.findById(memberId)).willReturn(Optional.empty());
-
-        assertThatThrownBy(() -> authenticationService.saveVerifications(id))
-                .isInstanceOf(BusinessException.class)
-                .hasFieldOrPropertyWithValue("errorCode", MemberErrorCode.MEMBER_NOT_FOUND);
-        verifyNoInteractions(alarmService, pushNotificationService);
-    }
-
-    @Test
-    @DisplayName("인증 반려 등록 성공 테스트")
-    void deleteVerificationsSuccessTest() {
-        // given
-        Long id = 1L;
-        String rejectReason = "반려사유";
-        Member member = Member.builder().id(10L).fcmToken("token").build();
-        Authentication authentication = Authentication.builder().memberId(member.getId()).build();
-        AuthenticationApprove approve = AuthenticationApprove.builder()
-                .id(id)
-                .authentication(authentication)
-                .status(ApproveType.PENDING)
-                .build();
-        given(authenticationApproveRepository.findById(id)).willReturn(Optional.of(approve));
-        given(memberService.findById(member.getId())).willReturn(Optional.of(member));
 
         // when
         authenticationService.deleteVerifications(id, rejectReason);
@@ -442,6 +394,8 @@ class AuthenticationServiceImplTest {
         // then
         assertThat(approve.getStatus()).isEqualTo(ApproveType.REJECT);
         assertThat(approve.getRejectReason()).isEqualTo(rejectReason);
+        verify(eventPublisher).publishEvent(new VerificationDeleteEvent(memberId, rejectReason));
+        verifyNoMoreInteractions(eventPublisher);
     }
 
     @Test
