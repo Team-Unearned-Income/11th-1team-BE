@@ -130,8 +130,6 @@ class RoommateMatchingServiceImplTest {
         AuthenticationServiceImpl authenticationService = new AuthenticationServiceImpl(
                 authenticationRepository,
                 null,
-                memberService,
-                null,
                 null,
                 null,
                 null
