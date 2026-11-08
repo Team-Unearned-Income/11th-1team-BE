@@ -31,7 +31,7 @@ public class AuthenticationEventListener {
                 .title(AuthenticateAlarmTemplate.SAVE_VERIFICATION.formatTitle())
                 .contents(AuthenticateAlarmTemplate.SAVE_VERIFICATION.formatContents())
                 .isRead(false)
-                .member(member)
+                .memberId(member.getId())
                 .expiredAt(LocalDateTime.now().plusDays(1))
                 .type(AlarmType.DEFAULT)
                 .build();
@@ -48,7 +48,7 @@ public class AuthenticationEventListener {
                 .title(AuthenticateAlarmTemplate.DELETE_VERIFICATION.formatTitle())
                 .contents(AuthenticateAlarmTemplate.DELETE_VERIFICATION.formatContents(rejectReason))
                 .isRead(false)
-                .member(member)
+                .memberId(member.getId())
                 .expiredAt(LocalDateTime.now().plusDays(1))
                 .type(AlarmType.DEFAULT)
                 .build();

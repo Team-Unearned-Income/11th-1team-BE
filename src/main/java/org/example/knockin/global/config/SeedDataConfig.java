@@ -9,7 +9,7 @@ import org.example.knockin.agreement.entity.MemberAgreement;
 import org.example.knockin.alarm.entity.Alarm;
 import org.example.knockin.alarm.entity.AlarmSetting;
 import org.example.knockin.alarm.entity.AlarmSettingType;
-import org.example.knockin.meta.entity.Notification;
+import org.example.knockin.alarm.entity.Notification;
 import org.example.knockin.alarm.entity.NotificationAlarm;
 import org.example.knockin.verification.entity.ApproveType;
 import org.example.knockin.verification.entity.Authentication;
@@ -114,7 +114,7 @@ import org.example.knockin.agreement.repository.MemberAgreementRepository;
 import org.example.knockin.alarm.repository.AlarmRepository;
 import org.example.knockin.alarm.repository.AlarmSettingRepository;
 import org.example.knockin.alarm.repository.NotificationAlarmRepository;
-import org.example.knockin.meta.repository.NotificationRepository;
+import org.example.knockin.alarm.repository.NotificationRepository;
 import org.example.knockin.verification.repository.AuthenticationApproveRepository;
 import org.example.knockin.verification.repository.AuthenticationRepository;
 import org.example.knockin.meta.repository.FaqRepository;
@@ -862,14 +862,14 @@ public class SeedDataConfig implements CommandLineRunner {
 
         // 19. 알림 설정, 푸시 알림, 연관 알림 및 공지사항 (AlarmSetting, Alarm, Notification, NotificationAlarm, ChattingRequiredAlarm, MatchingRequiredAlarm, CalendarAlarm)
         AlarmSetting setting1 = AlarmSetting.builder()
-                .member(user1)
+                .memberId(user1.getId())
                 .alarmSettingType(AlarmSettingType.NOTIFICATION)
                 .isEnabled(true)
                 .build();
         alarmSettingRepository.save(setting1);
 
         Alarm alarm1 = Alarm.builder()
-                .member(user1)
+                .memberId(user1.getId())
                 .title("채팅 알림")
                 .contents("이인인 님으로부터 새로운 메시지가 도착했습니다.")
                 .expiredAt(LocalDateTime.now().plusDays(30))
@@ -886,9 +886,9 @@ public class SeedDataConfig implements CommandLineRunner {
         notificationRepository.save(notice1);
 
         notificationAlarmRepository.save(NotificationAlarm.builder().alarm(alarm1).notification(notice1).build());
-        chattingRequiredAlarmRepository.save(ChattingRequiredAlarm.builder().member(user1).title("채팅 신청 알림").expiredAt(LocalDateTime.now().plusDays(30)).chattingRequired(chatReq).build());
-        roommateMatchingRequiredAlarmRepository.save(RoommateMatchingRequiredAlarm.builder().member(user1).title("매칭 확정 알림").expiredAt(LocalDateTime.now().plusDays(30)).roommateMatchingRequired(matchingReq).build());
-        roommateCalendarAlarmRepository.save(RoommateCalendarAlarm.builder().member(user1).title("일정 알림").expiredAt(LocalDateTime.now().plusDays(30)).roommateCalendar(calendar).build());
+        chattingRequiredAlarmRepository.save(ChattingRequiredAlarm.builder().memberId(user1.getId()).title("채팅 신청 알림").expiredAt(LocalDateTime.now().plusDays(30)).chattingRequiredId(chatReq.getId()).build());
+        roommateMatchingRequiredAlarmRepository.save(RoommateMatchingRequiredAlarm.builder().memberId(user1.getId()).title("매칭 확정 알림").expiredAt(LocalDateTime.now().plusDays(30)).roommateMatchingRequiredId(matchingReq.getId()).build());
+        roommateCalendarAlarmRepository.save(RoommateCalendarAlarm.builder().memberId(user1.getId()).title("일정 알림").expiredAt(LocalDateTime.now().plusDays(30)).roommateCalendarId(calendar.getId()).build());
 
         // 20. 결제, 포인트 및 포인트 거래이력 (Payment, Point, PointLog)
         Payment payment = Payment.builder()
@@ -1301,9 +1301,9 @@ public class SeedDataConfig implements CommandLineRunner {
             excludedCalendarOccurrences.add(ExcludeRoommateCalendar.builder().repeatRoommateCalendar(repeat)
                     .excludeAt(LocalDateTime.now().plusDays(7)).build());
 
-            alarmSettings.add(AlarmSetting.builder().member(member)
+            alarmSettings.add(AlarmSetting.builder().memberId(member.getId())
                     .alarmSettingType(AlarmSettingType.NOTIFICATION).isEnabled(true).build());
-            Alarm alarm = Alarm.builder().member(member).title("부하 테스트 알림 " + (i + 1))
+            Alarm alarm = Alarm.builder().memberId(member.getId()).title("부하 테스트 알림 " + (i + 1))
                     .contents("nGrinder 알림 조회 테스트 데이터입니다.")
                     .expiredAt(LocalDateTime.now().plusDays(30)).isRead(false).build();
             alarms.add(alarm);
@@ -1312,12 +1312,8 @@ public class SeedDataConfig implements CommandLineRunner {
                     .isDeleted(false).build();
             notifications.add(notification);
             notificationAlarms.add(NotificationAlarm.builder().alarm(alarm).notification(notification).build());
-            chattingAlarms.add(ChattingRequiredAlarm.builder().member(member).title("부하 테스트 채팅 알림")
-                    .expiredAt(LocalDateTime.now().plusDays(30)).chattingRequired(chattingRequired).build());
-            matchingAlarms.add(RoommateMatchingRequiredAlarm.builder().member(member).title("부하 테스트 매칭 알림")
-                    .expiredAt(LocalDateTime.now().plusDays(30)).roommateMatchingRequired(matching).build());
-            calendarAlarms.add(RoommateCalendarAlarm.builder().member(member).title("부하 테스트 일정 알림")
-                    .expiredAt(LocalDateTime.now().plusDays(30)).roommateCalendar(calendar).build());
+            chattingAlarms.add(ChattingRequiredAlarm.builder().memberId(member.getId()).title("부하 테스트 채팅 알림")
+                    .expiredAt(LocalDateTime.now().plusDays(30)).chattingRequiredId(chattingRequired.getId()).build());
         }
 
         memberInterestRepository.saveAll(interests);
@@ -1352,6 +1348,20 @@ public class SeedDataConfig implements CommandLineRunner {
         roommateCalendarMemberRepository.saveAll(calendarMembers);
         repeatRoommateCalendarRepository.saveAll(repeatingCalendars);
         excludeRoommateCalendarRepository.saveAll(excludedCalendarOccurrences);
+
+        // ID 참조는 대상 엔티티를 저장한 뒤 복사해야 한다.
+        for (int i = 0; i < recordCount; i++) {
+            Long memberId = members.get(i).getId();
+            matchingAlarms.add(RoommateMatchingRequiredAlarm.builder()
+                    .memberId(memberId).title("부하 테스트 매칭 알림")
+                    .expiredAt(LocalDateTime.now().plusDays(30))
+                    .roommateMatchingRequiredId(matchingRequirements.get(i).getId()).build());
+            calendarAlarms.add(RoommateCalendarAlarm.builder()
+                    .memberId(memberId).title("부하 테스트 일정 알림")
+                    .expiredAt(LocalDateTime.now().plusDays(30))
+                    .roommateCalendarId(calendars.get(i).getId()).build());
+        }
+
         alarmSettingRepository.saveAll(alarmSettings);
         alarmRepository.saveAll(alarms);
         notificationRepository.saveAll(notifications);

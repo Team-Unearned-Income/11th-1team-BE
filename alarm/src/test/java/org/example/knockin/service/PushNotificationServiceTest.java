@@ -34,8 +34,8 @@ class PushNotificationServiceTest {
     void sendPushNotificationWhenEnabled() {
         // given
         Member receiver = member("fcm-token");
-        given(alarmSettingRepository.existsByMemberAndAlarmSettingTypeAndIsEnabledTrue(
-                receiver,
+        given(alarmSettingRepository.existsByMemberIdAndAlarmSettingTypeAndIsEnabledTrue(
+                receiver.getId(),
                 AlarmSettingType.NOTIFICATION
         )).willReturn(true);
 
@@ -62,8 +62,8 @@ class PushNotificationServiceTest {
     void doesNotSendPushNotificationWhenDisabled() {
         // given
         Member receiver = member("fcm-token");
-        given(alarmSettingRepository.existsByMemberAndAlarmSettingTypeAndIsEnabledTrue(
-                receiver,
+        given(alarmSettingRepository.existsByMemberIdAndAlarmSettingTypeAndIsEnabledTrue(
+                receiver.getId(),
                 AlarmSettingType.NOTIFICATION
         )).willReturn(false);
 

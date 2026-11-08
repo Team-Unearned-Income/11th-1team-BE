@@ -1,7 +1,5 @@
 package org.example.knockin.alarm.entity;
 
-import org.example.knockin.chat.entity.ChattingRequired;
-
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -20,8 +18,6 @@ import org.hibernate.annotations.OnDeleteAction;
 @DiscriminatorValue(AlarmType.Values.CHATTING_REQUIRED)
 @OnDelete(action = OnDeleteAction.CASCADE)
 public class ChattingRequiredAlarm extends Alarm{
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "chatting_required_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    private ChattingRequired chattingRequired;
+    @Column(name = "chatting_required_id", nullable = false)
+    private Long chattingRequiredId;
 }

@@ -1,13 +1,7 @@
 package org.example.knockin.alarm.entity;
 
-import org.example.knockin.mate.entity.RoommateCalendar;
+import jakarta.persistence.*;
 
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -27,8 +21,6 @@ import org.hibernate.annotations.OnDeleteAction;
 @DiscriminatorValue(Values.ROOMMATE_CALENDAR)
 @OnDelete(action = OnDeleteAction.CASCADE)
 public class RoommateCalendarAlarm extends Alarm {
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "roommate_calendar_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    private RoommateCalendar roommateCalendar;
+    @Column(name = "roommate_calendar_id", nullable = false)
+    private Long roommateCalendarId;
 }

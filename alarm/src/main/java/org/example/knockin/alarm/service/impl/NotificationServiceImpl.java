@@ -1,12 +1,12 @@
-package org.example.knockin.meta.service.impl;
+package org.example.knockin.alarm.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.meta.dto.BoNoticeDetailDto;
 import org.example.knockin.meta.dto.BoNoticeListDto;
 import org.example.knockin.meta.dto.NoticeDetailDto;
 import org.example.knockin.meta.dto.NoticeListDto;
-import org.example.knockin.meta.entity.Notification;
-import org.example.knockin.meta.repository.NotificationRepository;
+import org.example.knockin.alarm.entity.Notification;
+import org.example.knockin.alarm.repository.NotificationRepository;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

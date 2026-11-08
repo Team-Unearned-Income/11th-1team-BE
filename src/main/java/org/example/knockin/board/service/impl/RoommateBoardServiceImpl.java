@@ -815,7 +815,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
                 .title(BoardAlarmTemplate.DELETE_BOARD.formatTitle())
                 .contents(BoardAlarmTemplate.DELETE_BOARD.formatContents(rejectReason))
                 .isRead(false)
-                .member(member)
+                .memberId(member.getId())
                 .expiredAt(LocalDateTime.now().plusDays(1))
                 .type(AlarmType.DEFAULT)
                 .build();
@@ -837,7 +837,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
                 .title(BoardAlarmTemplate.RECOVER_BOARD.formatTitle())
                 .contents(BoardAlarmTemplate.RECOVER_BOARD.formatContents())
                 .isRead(false)
-                .member(member)
+                .memberId(member.getId())
                 .expiredAt(LocalDateTime.now().plusDays(1))
                 .type(AlarmType.DEFAULT)
                 .build();

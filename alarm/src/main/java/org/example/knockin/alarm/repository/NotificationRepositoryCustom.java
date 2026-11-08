@@ -1,4 +1,4 @@
-package org.example.knockin.meta.repository;
+package org.example.knockin.alarm.repository;
 
 import org.example.knockin.meta.dto.BoNoticeDetailDto;
 import org.example.knockin.meta.dto.BoNoticeListDto;

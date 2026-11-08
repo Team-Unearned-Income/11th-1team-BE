@@ -35,7 +35,7 @@ import org.example.knockin.meta.dto.NoticeListDto;
 import org.example.knockin.room.dto.ModifyProfileRoomInfoDto;
 import org.example.knockin.room.dto.SaveProfileRoomInfoDto;
 import org.example.knockin.member.service.impl.MemberServiceImpl;
-import org.example.knockin.meta.service.impl.NotificationServiceImpl;
+import org.example.knockin.alarm.service.impl.NotificationServiceImpl;
 import org.example.knockin.alarm.service.impl.NotificationSettingServiceImpl;
 import org.example.knockin.util.service.impl.OnBoardingServiceImpl;
 import org.springframework.data.domain.Pageable;

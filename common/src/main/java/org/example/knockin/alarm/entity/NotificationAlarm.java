@@ -1,7 +1,5 @@
 package org.example.knockin.alarm.entity;
 
-import org.example.knockin.meta.entity.Notification;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

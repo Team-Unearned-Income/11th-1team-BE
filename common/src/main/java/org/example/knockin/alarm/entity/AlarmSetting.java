@@ -19,9 +19,8 @@ public class AlarmSetting {
     @Column(name = "id")
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE) private Member member;
+    @Column(name = "member_id", nullable = false)
+    private Long memberId;
 
     @Builder.Default
     @ColumnDefault("true")

@@ -51,7 +51,7 @@ class NotificationSettingServiceImplTest {
                 .build();
 
         given(memberRepository.findById(memberId)).willReturn(Optional.of(member));
-        given(alarmSettingRepository.findByMember(member)).willReturn(List.of(setting));
+        given(alarmSettingRepository.findByMemberId(memberId)).willReturn(List.of(setting));
 
         // when
         MyNotificationSettingsDto.Response response = notificationSettingService.findAlaramSettingList(memberId);
@@ -95,7 +95,7 @@ class NotificationSettingServiceImplTest {
                 .build());
 
         given(memberRepository.findById(memberId)).willReturn(Optional.of(member));
-        given(alarmSettingRepository.findByIdAndMember(100L, member)).willReturn(setting);
+        given(alarmSettingRepository.findByIdAndMemberId(100L, memberId)).willReturn(setting);
 
         // when
         AlarmSettingDto.Response response = notificationSettingService.modifyAlarmSetting(request, memberId);

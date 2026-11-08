@@ -18,7 +18,6 @@ import org.example.knockin.global.auth.dto.PrincipalDetails;
 import org.example.knockin.board.service.RoommateBoardService;
 import org.example.knockin.mate.service.RoommateMatchingService;
 import org.springdoc.core.annotations.ParameterObject;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
