@@ -84,7 +84,7 @@ public class MemberServiceImpl {
                             .build();
 
                     Member resultMember = memberRepository.save(newMember);
-                    List<AlarmSetting> alarmSettingList = Arrays.stream(AlarmSettingType.values()).map(item -> AlarmSetting.builder().member(resultMember).isEnabled(true).alarmSettingType(item).build()).toList();
+                    List<AlarmSetting> alarmSettingList = Arrays.stream(AlarmSettingType.values()).map(item -> AlarmSetting.builder().memberId(resultMember.getId()).isEnabled(true).alarmSettingType(item).build()).toList();
                     alarmSettingRepository.saveAll(alarmSettingList);
                     stateRepository.save(State.builder().states(MemberState.ACTIVE).member(resultMember).build());
                     return resultMember;
@@ -268,7 +268,7 @@ public class MemberServiceImpl {
                     .title(MemberAlarmTemplate.MEMBER_ACTIVE.formatTitle())
                     .contents(MemberAlarmTemplate.MEMBER_ACTIVE.formatContents())
                     .isRead(false)
-                    .member(member)
+                    .memberId(member.getId())
                     .expiredAt(LocalDateTime.now().plusDays(1))
                     .type(AlarmType.DEFAULT)
                     .build();

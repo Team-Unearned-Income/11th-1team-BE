@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.example.knockin.alarm.dto.AlarmSettingDto;
 import org.example.knockin.alarm.dto.MyNotificationSettingsDto;
 import org.example.knockin.alarm.entity.AlarmSetting;
-import org.example.knockin.member.entity.Member;
 import org.example.knockin.global.exception.AuthErrorCode;
 import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.alarm.repository.AlarmSettingRepository;
@@ -22,15 +21,15 @@ public class NotificationSettingServiceImpl {
     private final AlarmSettingRepository alarmSettingRepository;
 
     public MyNotificationSettingsDto.Response findAlaramSettingList(Long memberId) {
-        Member member = memberRepository.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
-        List<MyNotificationSettingsDto.Response.AlarmSettingItem> alarmSettingList = alarmSettingRepository.findByMember(member).stream().map(item -> MyNotificationSettingsDto.Response.AlarmSettingItem.builder().id(item.getId()).name(item.getAlarmSettingType().getMessage()).isEnable(item.getIsEnabled()).build()).toList();
+        memberRepository.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+        List<MyNotificationSettingsDto.Response.AlarmSettingItem> alarmSettingList = alarmSettingRepository.findByMemberId(memberId).stream().map(item -> MyNotificationSettingsDto.Response.AlarmSettingItem.builder().id(item.getId()).name(item.getAlarmSettingType().getMessage()).isEnable(item.getIsEnabled()).build()).toList();
         return MyNotificationSettingsDto.Response.builder().alarmsSettings(alarmSettingList).build();
     }
 
     @Transactional
     public AlarmSettingDto.Response modifyAlarmSetting(AlarmSettingDto.Request request, Long memberId) {
-        Member member = memberRepository.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
-        AlarmSetting alarmSetting = alarmSettingRepository.findByIdAndMember(request.getSettingId(), member);
+        memberRepository.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+        AlarmSetting alarmSetting = alarmSettingRepository.findByIdAndMemberId(request.getSettingId(), memberId);
         alarmSetting.updateEnable(request.getEnabled());
         return AlarmSettingDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }

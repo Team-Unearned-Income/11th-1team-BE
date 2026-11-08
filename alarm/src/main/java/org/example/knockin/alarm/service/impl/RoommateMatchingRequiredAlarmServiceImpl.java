@@ -18,12 +18,12 @@ public class RoommateMatchingRequiredAlarmServiceImpl {
 
     public void send(Member receiver, String title, String contents, RoommateMatchingRequired required) {
         RoommateMatchingRequiredAlarm alarm = RoommateMatchingRequiredAlarm.builder()
-                .member(receiver)
+                .memberId(receiver.getId())
                 .title(title)
                 .contents(contents)
                 .expiredAt(LocalDateTime.now().plusDays(requestAlarmExpireDays))
                 .type(AlarmType.ROOM_MATCHING)
-                .roommateMatchingRequired(required)
+                .roommateMatchingRequiredId(required.getId())
                 .build();
 
         alarmService.sendToClient(receiver.getId(), AlarmType.ROOM_MATCHING.name(), alarm);

@@ -25,13 +25,13 @@ public class ChattingRequiredAlarmServiceImpl {
         String message = String.format(alarmTemplate, actorName);
 
         ChattingRequiredAlarm alarm = ChattingRequiredAlarm.builder()
-                .member(receiver)
+                .memberId(receiver.getId())
                 .title(message)
                 .contents(message)
                 .isRead(false)
                 .expiredAt(LocalDateTime.now().plusDays(requestAlarmExpireDays))
                 .type(AlarmType.CHATTING_REQUIRED)
-                .chattingRequired(chattingRequired)
+                .chattingRequiredId(chattingRequired.getId())
                 .build();
 
         alarmService.sendToClient(receiver.getId(), AlarmType.CHATTING_REQUIRED.name(), alarm);

@@ -1,9 +1,9 @@
-package org.example.knockin.meta.repository.impl;
+package org.example.knockin.alarm.repository.impl;
 
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.meta.repository.NotificationRepositoryCustom;
+import org.example.knockin.alarm.repository.NotificationRepositoryCustom;
 import org.example.knockin.meta.dto.BoNoticeDetailDto;
 import org.example.knockin.meta.dto.BoNoticeListDto;
 import org.example.knockin.meta.dto.NoticeDetailDto;
@@ -13,7 +13,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-import static org.example.knockin.meta.entity.QNotification.notification;
+import static org.example.knockin.alarm.entity.QNotification.notification;
 import static org.example.knockin.member.entity.QMember.member;
 import static org.example.knockin.member.entity.QBasicInformation.basicInformation;
 

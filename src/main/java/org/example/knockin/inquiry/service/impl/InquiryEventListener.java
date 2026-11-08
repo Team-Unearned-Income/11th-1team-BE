@@ -32,7 +32,7 @@ public class InquiryEventListener {
                 .title(InquiryAlarmTemplate.INQUIRIE_REPLY.formatTitle())
                 .contents(InquiryAlarmTemplate.INQUIRIE_REPLY.formatContents())
                 .isRead(false)
-                .member(member)
+                .memberId(member.getId())
                 .expiredAt(LocalDateTime.now().plusDays(1))
                 .type(AlarmType.DEFAULT)
                 .build();

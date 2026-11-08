@@ -177,7 +177,7 @@ class AlarmServiceImplTest {
         ReflectionTestUtils.setField(alarm, "createdAt", LocalDateTime.now());
 
         given(memberRepository.findById(memberId)).willReturn(Optional.of(member));
-        given(alarmRepository.findByMember(member, pageable)).willReturn(List.of(alarm));
+        given(alarmRepository.findByMemberId(memberId, pageable)).willReturn(List.of(alarm));
 
         // when
         AlarmListDto.Response response = alarmService.findAlarmList(pageable, memberId);
@@ -202,7 +202,7 @@ class AlarmServiceImplTest {
                 .build());
 
         given(memberRepository.findById(memberId)).willReturn(Optional.of(member));
-        given(alarmRepository.findByIdAndMember(alarmId, member)).willReturn(Optional.of(alarm));
+        given(alarmRepository.findByIdAndMemberId(alarmId, memberId)).willReturn(Optional.of(alarm));
 
         // when
         AlarmReadDto.Response response = alarmService.modifyAlarmRead(alarmId, memberId);
@@ -222,7 +222,7 @@ class AlarmServiceImplTest {
         Member member = mock(Member.class);
 
         given(memberRepository.findById(memberId)).willReturn(Optional.of(member));
-        given(alarmRepository.findByIdAndMember(alarmId, member)).willReturn(Optional.empty());
+        given(alarmRepository.findByIdAndMemberId(alarmId, memberId)).willReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> alarmService.modifyAlarmRead(alarmId, memberId))
@@ -241,7 +241,7 @@ class AlarmServiceImplTest {
         Alarm alarm2 = spy(Alarm.builder().id(101L).isRead(false).build());
 
         given(memberRepository.findById(memberId)).willReturn(Optional.of(member));
-        given(alarmRepository.findByMemberAndIsRead(member, false)).willReturn(List.of(alarm1, alarm2));
+        given(alarmRepository.findByMemberIdAndIsRead(memberId, false)).willReturn(List.of(alarm1, alarm2));
 
         // when
         AlarmReadAllDto.Response response = alarmService.modifyAllAlarmRead(memberId);

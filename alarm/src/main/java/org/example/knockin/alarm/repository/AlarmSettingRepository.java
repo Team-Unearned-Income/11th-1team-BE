@@ -2,15 +2,14 @@ package org.example.knockin.alarm.repository;
 
 import org.example.knockin.alarm.entity.AlarmSetting;
 import org.example.knockin.alarm.entity.AlarmSettingType;
-import org.example.knockin.member.entity.Member;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
 public interface AlarmSettingRepository extends JpaRepository<AlarmSetting, Long> {
-    List<AlarmSetting> findByMember(Member member);
+    List<AlarmSetting> findByMemberId(Long memberId);
 
-    AlarmSetting findByIdAndMember(Long id, Member member);
+    AlarmSetting findByIdAndMemberId(Long id, Long memberId);
 
-    boolean existsByMemberAndAlarmSettingTypeAndIsEnabledTrue(Member member, AlarmSettingType alarmSettingType);
+    boolean existsByMemberIdAndAlarmSettingTypeAndIsEnabledTrue(Long memberId, AlarmSettingType alarmSettingType);
 }

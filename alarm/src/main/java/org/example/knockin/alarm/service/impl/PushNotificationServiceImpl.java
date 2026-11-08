@@ -17,7 +17,7 @@ public class PushNotificationServiceImpl {
     public void send(Member receiver, AlarmSettingType alarmSettingType, String title, String body, String deepLink) {
         String fcmToken = receiver.getFcmToken();
         if (!StringUtils.hasText(fcmToken)) return;
-        boolean isEnabled = alarmSettingRepository.existsByMemberAndAlarmSettingTypeAndIsEnabledTrue(receiver, alarmSettingType);
+        boolean isEnabled = alarmSettingRepository.existsByMemberIdAndAlarmSettingTypeAndIsEnabledTrue(receiver.getId(), alarmSettingType);
         if (!isEnabled) return;
         fcmService.send(title, body, fcmToken, deepLink);
     }

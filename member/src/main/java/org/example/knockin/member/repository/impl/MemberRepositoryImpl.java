@@ -259,9 +259,9 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
         JPQLSubQuery<Long> matchingRequestIds = JPAExpressions.select(roommateMatchingRequired.id).from(roommateMatchingRequired).where(roommateMatchingRequired.requester.id.in(eligibleIds).or(roommateMatchingRequired.requestee.id.in(eligibleIds)).or(roommateMatchingRequired.chattingRoom.chattingRequired.id.in(chatRequestIds)));
         JPQLSubQuery<Long> calendarIds = JPAExpressions.select(roommateCalendar.id).from(roommateCalendar).join(roommateCalendar.myRoommate, myRoommate).where(myRoommate.roommateMatchingRequired.id.in(matchingRequestIds));
 
-        jpaQueryFactory.delete(chattingRequiredAlarm).where(chattingRequiredAlarm.chattingRequired.id.in(chatRequestIds)).execute();
-        jpaQueryFactory.delete(roommateMatchingRequiredAlarm).where(roommateMatchingRequiredAlarm.roommateMatchingRequired.id.in(matchingRequestIds)).execute();
-        jpaQueryFactory.delete(roommateCalendarAlarm).where(roommateCalendarAlarm.roommateCalendar.id.in(calendarIds)).execute();
+        jpaQueryFactory.delete(chattingRequiredAlarm).where(chattingRequiredAlarm.chattingRequiredId.in(chatRequestIds)).execute();
+        jpaQueryFactory.delete(roommateMatchingRequiredAlarm).where(roommateMatchingRequiredAlarm.roommateMatchingRequiredId.in(matchingRequestIds)).execute();
+        jpaQueryFactory.delete(roommateCalendarAlarm).where(roommateCalendarAlarm.roommateCalendarId.in(calendarIds)).execute();
 
         deleteExternalMemberReferences(eligibleIds);
         return jpaQueryFactory.delete(member).where(member.id.in(eligibleIds)).execute();

@@ -1,4 +1,4 @@
-package org.example.knockin.meta.entity;
+package org.example.knockin.alarm.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

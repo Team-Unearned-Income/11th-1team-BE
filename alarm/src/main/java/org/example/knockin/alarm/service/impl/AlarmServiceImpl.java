@@ -7,7 +7,6 @@ import org.example.knockin.alarm.dto.AlarmReadAllDto;
 import org.example.knockin.alarm.dto.AlarmReadDto;
 import org.example.knockin.alarm.dto.AlarmSendDto;
 import org.example.knockin.alarm.entity.Alarm;
-import org.example.knockin.member.entity.Member;
 import org.example.knockin.global.exception.AuthErrorCode;
 import org.example.knockin.alarm.exception.AlarmErrorCode;
 import org.example.knockin.global.exception.BusinessException;
@@ -65,24 +64,24 @@ public class AlarmServiceImpl {
     }
 
     public AlarmListDto.Response findAlarmList(Pageable pageable, Long memberId) {
-        Member member = memberRepository.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
-        List<AlarmListDto.Response.Alarm> alarmList = alarmRepository.findByMember(member, pageable).stream().map(item ->
+        memberRepository.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+        List<AlarmListDto.Response.Alarm> alarmList = alarmRepository.findByMemberId(memberId, pageable).stream().map(item ->
                 AlarmListDto.Response.Alarm.builder().id(item.getId()).title(item.getTitle()).contents(item.getContents()).isRead(item.getIsRead()).expiredAt(item.getExpiredAt()).createAt(item.getCreatedAt()).build()).toList();
         return AlarmListDto.Response.builder().alarms(alarmList).build();
     }
 
     @Transactional
     public AlarmReadDto.Response modifyAlarmRead(Long id, Long memberId) {
-        Member member = memberRepository.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
-        Alarm alarm = alarmRepository.findByIdAndMember(id, member).orElseThrow(() -> new BusinessException(AlarmErrorCode.ALARM_NOT_FOUND));
+        memberRepository.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+        Alarm alarm = alarmRepository.findByIdAndMemberId(id, memberId).orElseThrow(() -> new BusinessException(AlarmErrorCode.ALARM_NOT_FOUND));
         alarm.readAlarm();
         return AlarmReadDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
     @Transactional
     public AlarmReadAllDto.Response modifyAllAlarmRead(Long memberId) {
-        Member member = memberRepository.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
-        List<Alarm> alarmList = alarmRepository.findByMemberAndIsRead(member, false);
+        memberRepository.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+        List<Alarm> alarmList = alarmRepository.findByMemberIdAndIsRead(memberId, false);
         alarmList.forEach(Alarm::readAlarm);
         return AlarmReadAllDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
