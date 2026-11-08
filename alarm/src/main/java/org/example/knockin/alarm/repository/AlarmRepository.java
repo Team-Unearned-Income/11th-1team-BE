@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;
 
-public interface AlarmRepository extends JpaRepository<Alarm, Long> {
+public interface AlarmRepository extends JpaRepository<Alarm, Long>, AlarmRepositoryCustom {
     List<Alarm> findByMemberId(Long memberId, Pageable pageable);
 
     Optional<Alarm> findByIdAndMemberId(Long id, Long memberId);

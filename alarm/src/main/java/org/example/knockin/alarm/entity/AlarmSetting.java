@@ -2,10 +2,7 @@ package org.example.knockin.alarm.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.example.knockin.member.entity.Member;
 import org.hibernate.annotations.ColumnDefault;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
 @Getter
 @Entity

@@ -39,13 +39,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static org.example.knockin.chat.entity.QChattingRequired.chattingRequired;
-import static org.example.knockin.alarm.entity.QChattingRequiredAlarm.chattingRequiredAlarm;
-import static org.example.knockin.mate.entity.QRoommateMatchingRequired.roommateMatchingRequired;
-import static org.example.knockin.alarm.entity.QRoommateMatchingRequiredAlarm.roommateMatchingRequiredAlarm;
-import static org.example.knockin.mate.entity.QRoommateCalendar.roommateCalendar;
-import static org.example.knockin.alarm.entity.QRoommateCalendarAlarm.roommateCalendarAlarm;
-import static org.example.knockin.mate.entity.QMyRoommate.myRoommate;
 
 import static org.example.knockin.member.entity.QBlock.block;
 import static org.example.knockin.member.entity.QMember.member;
@@ -250,25 +243,25 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
     }
 
     @Override
-    public long deleteMembersByDelete(List<Long> memberIds, LocalDateTime thresholdDate) {
-        List<Long> eligibleIds = jpaQueryFactory.select(member.id).from(member).where(member.id.in(memberIds), member.isDelete.isTrue(), member.deletedAt.lt(thresholdDate)).orderBy(member.id.asc()).setLockMode(LockModeType.PESSIMISTIC_WRITE).fetch();
+    public List<Long> findDeletionTargetIdsForUpdate(List<Long> memberIds, LocalDateTime thresholdDate) {
+        if (memberIds.isEmpty()) return List.of();
 
-        if (eligibleIds.isEmpty()) return 0;
+        return jpaQueryFactory.select(member.id).from(member)
+                .where(member.id.in(memberIds), member.isDelete.isTrue(), member.deletedAt.lt(thresholdDate))
+                .orderBy(member.id.asc())
+                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
+                .fetch();
+    }
 
-        JPQLSubQuery<Long> chatRequestIds = JPAExpressions.select(chattingRequired.id).from(chattingRequired).where(chattingRequired.requester.id.in(eligibleIds).or(chattingRequired.requestee.id.in(eligibleIds)));
-        JPQLSubQuery<Long> matchingRequestIds = JPAExpressions.select(roommateMatchingRequired.id).from(roommateMatchingRequired).where(roommateMatchingRequired.requester.id.in(eligibleIds).or(roommateMatchingRequired.requestee.id.in(eligibleIds)).or(roommateMatchingRequired.chattingRoom.chattingRequired.id.in(chatRequestIds)));
-        JPQLSubQuery<Long> calendarIds = JPAExpressions.select(roommateCalendar.id).from(roommateCalendar).join(roommateCalendar.myRoommate, myRoommate).where(myRoommate.roommateMatchingRequired.id.in(matchingRequestIds));
+    @Override
+    public long deleteMembersByIds(List<Long> memberIds) {
+        if (memberIds.isEmpty()) return 0;
 
-        jpaQueryFactory.delete(chattingRequiredAlarm).where(chattingRequiredAlarm.chattingRequiredId.in(chatRequestIds)).execute();
-        jpaQueryFactory.delete(roommateMatchingRequiredAlarm).where(roommateMatchingRequiredAlarm.roommateMatchingRequiredId.in(matchingRequestIds)).execute();
-        jpaQueryFactory.delete(roommateCalendarAlarm).where(roommateCalendarAlarm.roommateCalendarId.in(calendarIds)).execute();
-
-        deleteExternalMemberReferences(eligibleIds);
-        return jpaQueryFactory.delete(member).where(member.id.in(eligibleIds)).execute();
+        deleteExternalMemberReferences(memberIds);
+        return jpaQueryFactory.delete(member).where(member.id.in(memberIds)).execute();
     }
 
     private void deleteExternalMemberReferences(List<Long> memberIds) {
-        // Use the locked, revalidated IDs so a recovered member keeps all of its data.
         JPQLSubQuery<Long> boardIds = JPAExpressions.select(roommateBoard.id).from(roommateBoard)
                 .where(roommateBoard.member.id.in(memberIds));
         jpaQueryFactory.delete(roommateBoardDeclaration)

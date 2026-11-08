@@ -115,9 +115,13 @@ public class MemberServiceImpl {
 
     @Transactional(propagation = Propagation.MANDATORY)
     public void hardDeleteMember(List<Long> memberIds, LocalDateTime thresholdDate) {
-        if (!memberIds.isEmpty()) {
-            memberRepository.deleteMembersByDelete(memberIds, thresholdDate);
-        }
+        if (memberIds.isEmpty()) return;
+
+        List<Long> targetIds = memberRepository.findDeletionTargetIdsForUpdate(memberIds, thresholdDate);
+        if (targetIds.isEmpty()) return;
+
+        alarmService.deleteForMembers(targetIds);
+        memberRepository.deleteMembersByIds(targetIds);
     }
 
     public Optional<Member> findById(Long id) {

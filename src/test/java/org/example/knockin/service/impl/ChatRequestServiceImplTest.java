@@ -783,10 +783,10 @@ class ChatRequestServiceImplTest {
     private void assertChattingRequiredAlarm(Member receiver, String message, ChattingRequired chattingRequired) {
         ArgumentCaptor<ChattingRequiredAlarm> alarmCaptor = ArgumentCaptor.forClass(ChattingRequiredAlarm.class);
         verify(alarmService).sendToClient(eq(receiver.getId()), eq(AlarmType.CHATTING_REQUIRED.name()), alarmCaptor.capture());
-        assertThat(alarmCaptor.getValue().getMember()).isSameAs(receiver);
+        assertThat(alarmCaptor.getValue().getMemberId()).isEqualTo(receiver.getId());
         assertThat(alarmCaptor.getValue().getTitle()).isEqualTo(message);
         assertThat(alarmCaptor.getValue().getContents()).isEqualTo(message);
         assertThat(alarmCaptor.getValue().getType()).isEqualTo(AlarmType.CHATTING_REQUIRED);
-        assertThat(alarmCaptor.getValue().getChattingRequired()).isSameAs(chattingRequired);
+        assertThat(alarmCaptor.getValue().getChattingRequiredId()).isEqualTo(chattingRequired.getId());
     }
 }

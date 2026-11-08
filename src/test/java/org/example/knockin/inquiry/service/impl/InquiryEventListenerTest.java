@@ -60,7 +60,7 @@ class InquiryEventListenerTest {
         verify(alarmService).sendToClient(
                 eq(member.getId()), eq(InquiryAlarmTemplate.INQUIRIE_REPLY.name()), alarmCaptor.capture());
         Alarm alarm = alarmCaptor.getValue();
-        assertThat(alarm.getMember()).isSameAs(member);
+        assertThat(alarm.getMemberId()).isEqualTo(member.getId());
         assertThat(alarm.getTitle()).isEqualTo(InquiryAlarmTemplate.INQUIRIE_REPLY.formatTitle());
         assertThat(alarm.getContents()).isEqualTo(InquiryAlarmTemplate.INQUIRIE_REPLY.formatContents());
         assertThat(alarm.getIsRead()).isFalse();

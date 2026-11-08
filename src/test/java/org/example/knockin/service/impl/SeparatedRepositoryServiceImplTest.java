@@ -302,6 +302,7 @@ class SeparatedRepositoryServiceImplTest {
         Member receiver = Member.builder().id(2L).build();
         Member actor = Member.builder().id(1L).build();
         ChattingRequired required = ChattingRequired.builder()
+                .id(100L)
                 .requester(actor)
                 .requestee(receiver)
                 .status(ChattingRequiredStatus.PENDING)
@@ -317,11 +318,11 @@ class SeparatedRepositoryServiceImplTest {
         ArgumentCaptor<ChattingRequiredAlarm> captor = ArgumentCaptor.forClass(ChattingRequiredAlarm.class);
         verify(alarmService).sendToClient(eq(receiver.getId()), eq(AlarmType.CHATTING_REQUIRED.name()), captor.capture());
         ChattingRequiredAlarm alarm = captor.getValue();
-        assertThat(alarm.getMember()).isSameAs(receiver);
+        assertThat(alarm.getMemberId()).isEqualTo(receiver.getId());
         assertThat(alarm.getTitle()).isEqualTo("김중민님이 매칭을 요청했어요");
         assertThat(alarm.getContents()).isEqualTo("김중민님이 매칭을 요청했어요");
         assertThat(alarm.getType()).isEqualTo(AlarmType.CHATTING_REQUIRED);
-        assertThat(alarm.getChattingRequired()).isSameAs(required);
+        assertThat(alarm.getChattingRequiredId()).isEqualTo(required.getId());
         assertThat(alarm.getExpiredAt()).isAfter(LocalDateTime.now().plusDays(6));
     }
 
@@ -355,12 +356,12 @@ class SeparatedRepositoryServiceImplTest {
         ArgumentCaptor<RoommateMatchingRequiredAlarm> captor = ArgumentCaptor.forClass(RoommateMatchingRequiredAlarm.class);
         verify(alarmService).sendToClient(eq(receiver.getId()), eq(AlarmType.ROOM_MATCHING.name()), captor.capture());
         RoommateMatchingRequiredAlarm alarm = captor.getValue();
-        assertThat(alarm.getMember()).isSameAs(receiver);
+        assertThat(alarm.getMemberId()).isEqualTo(receiver.getId());
         assertThat(alarm.getTitle()).isEqualTo("이수현님의 매칭 요청");
         assertThat(alarm.getContents()).isEqualTo("이수현님이 매칭을 요청했어요.");
         assertThat(alarm.getIsRead()).isFalse();
         assertThat(alarm.getType()).isEqualTo(AlarmType.ROOM_MATCHING);
-        assertThat(alarm.getRoommateMatchingRequired()).isSameAs(required);
+        assertThat(alarm.getRoommateMatchingRequiredId()).isEqualTo(required.getId());
         assertThat(alarm.getExpiredAt()).isAfter(LocalDateTime.now().plusDays(6));
     }
 

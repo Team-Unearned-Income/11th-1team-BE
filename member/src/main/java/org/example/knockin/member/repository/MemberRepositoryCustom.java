@@ -23,7 +23,8 @@ public interface MemberRepositoryCustom {
     Optional<Member> findMemberByProvider(String providerId, LoginProviderType providerType);
     Optional<AuthResponse> findMemberInfo(Member member);
     Optional<Member> findByProviderId(String providerId);
-    long deleteMembersByDelete(List<Long> memberIds, LocalDateTime thresholdDate);
+    List<Long> findDeletionTargetIdsForUpdate(List<Long> memberIds, LocalDateTime thresholdDate);
+    long deleteMembersByIds(List<Long> memberIds);
     MyProfileAllDto.Response.UserInfo findByProfile(Member memberEntity);
     List<MyProfileAllDto.Response.Lifestyle> findByLifePattern(Member memberEntity);
     Optional<RoomProfile> findByRoomProfile(Member memberEntity);
