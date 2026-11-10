@@ -2,7 +2,6 @@ package org.example.knockin.chat.repository.impl;
 
 import static org.example.knockin.chat.entity.QChattingRoom.chattingRoom;
 import static org.example.knockin.chat.entity.QChatRoomMember.chatRoomMember;
-import static org.example.knockin.member.entity.QMember.member;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
@@ -12,7 +11,6 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.chat.entity.ChatRoomMember;
 import org.example.knockin.chat.entity.ChattingRoom;
-import org.example.knockin.member.entity.Member;
 import org.example.knockin.chat.repository.ChatRoomMemberRepositoryCustom;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.stereotype.Repository;
@@ -30,7 +28,7 @@ public class ChatRoomMemberRepositoryImpl implements ChatRoomMemberRepositoryCus
                 .from(chatRoomMember)
                 .where(
                         chatRoomMember.chattingRoom.id.eq(chatRoomId),
-                        chatRoomMember.member.id.eq(memberId),
+                        chatRoomMember.memberId.eq(memberId),
                         chatRoomMember.isLeft.isFalse()
                 )
                 .fetchFirst();
@@ -45,19 +43,18 @@ public class ChatRoomMemberRepositoryImpl implements ChatRoomMemberRepositoryCus
                 .from(chatRoomMember)
                 .where(
                         chatRoomMember.chattingRoom.id.eq(chatRoomId),
-                        chatRoomMember.member.id.eq(memberId),
+                        chatRoomMember.memberId.eq(memberId),
                         chatRoomMember.isLeft.isFalse())
                 .fetchFirst()
         );
     }
 
     @Override
-    public Member findPartnerMember(ChatRoomMember me, ChattingRoom chattingRoomEntity) {
+    public Long findPartnerMemberId(ChatRoomMember me, ChattingRoom chattingRoomEntity) {
         return Objects.requireNonNull(jpaQueryFactory
-                .select(member)
+                .select(chatRoomMember.memberId)
                 .from(chatRoomMember)
                 .join(chatRoomMember.chattingRoom, chattingRoom)
-                .join(chatRoomMember.member, member)
                 .where(
                         chatRoomMember.chattingRoom.eq(chattingRoomEntity),
                         chatRoomMember.ne(me)
@@ -66,12 +63,11 @@ public class ChatRoomMemberRepositoryImpl implements ChatRoomMemberRepositoryCus
     }
 
     @Override
-    public Member findPartnerMember(ChatRoomMember me, Long chattingRoomId) {
+    public Long findPartnerMemberId(ChatRoomMember me, Long chattingRoomId) {
         return Objects.requireNonNull(jpaQueryFactory
-                .select(member)
+                .select(chatRoomMember.memberId)
                 .from(chatRoomMember)
                 .join(chatRoomMember.chattingRoom, chattingRoom)
-                .join(chatRoomMember.member, member)
                 .where(
                         chatRoomMember.chattingRoom.id.eq(chattingRoomId),
                         chatRoomMember.ne(me)

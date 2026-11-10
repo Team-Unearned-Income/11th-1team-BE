@@ -3,13 +3,20 @@ package org.example.knockin.chat.repository;
 import java.util.List;
 import java.util.Optional;
 import org.example.knockin.chat.entity.ChattingRequired;
-import org.example.knockin.member.entity.Member;
 import org.example.knockin.chat.repository.row.ChatRequestListRow;
 
 public interface ChattingRequiredRepositoryCustom {
-    boolean existsBetweenMembers(Member memberA, Member memberB);
+    List<Long> findIdsForMembers(List<Long> memberIds);
 
-    Optional<ChattingRequired> findLatest(Member memberA, Member memberB);
+    List<Long> findRoomIdsByRequestIds(List<Long> requestIds);
 
-    List<ChatRequestListRow> findAllPendingByRequestee(Member requestee);
+    List<Long> findScoreIdsByRequestIds(List<Long> requestIds);
+
+    void deleteForMembers(List<Long> memberIds);
+
+    boolean existsBetweenMembers(Long memberAId, Long memberBId);
+
+    Optional<ChattingRequired> findLatest(Long memberAId, Long memberBId);
+
+    List<ChatRequestListRow> findAllPendingByRequesteeId(Long requesteeId);
 }

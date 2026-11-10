@@ -56,7 +56,7 @@ public class ChattingRoomRepositoryImpl implements ChattingRoomRepositoryCustom 
                                         .selectOne()
                                         .from(myRoommate)
                                         .where(
-                                                myRoommate.roommateMatchingRequired.chattingRoom.eq(chattingRoom),
+                                                myRoommate.roommateMatchingRequired.chattingRoomId.eq(chattingRoom.id),
                                                 myRoommate.isDeleted.isFalse()
                                         )
                                         .exists())
@@ -70,16 +70,16 @@ public class ChattingRoomRepositoryImpl implements ChattingRoomRepositoryCustom 
                 .join(viewerRoomMember)
                 .on(
                         viewerRoomMember.chattingRoom.eq(chattingRoom),
-                        viewerRoomMember.member.id.eq(memberId),
+                        viewerRoomMember.memberId.eq(memberId),
                         viewerRoomMember.isLeft.isFalse()
                 )
-                .join(viewerRoomMember.member, viewerMember)
+                .join(viewerMember).on(viewerRoomMember.memberId.eq(viewerMember.id))
                 .join(opponentRoomMember)
                 .on(
                         opponentRoomMember.chattingRoom.eq(chattingRoom),
-                        opponentRoomMember.member.id.ne(memberId)
+                        opponentRoomMember.memberId.ne(memberId)
                 )
-                .join(opponentRoomMember.member, opponentMember)
+                .join(opponentMember).on(opponentRoomMember.memberId.eq(opponentMember.id))
                 .leftJoin(basicInformation)
                 .on(basicInformation.id.eq(
                         JPAExpressions
@@ -100,7 +100,7 @@ public class ChattingRoomRepositoryImpl implements ChattingRoomRepositoryCustom 
                         JPAExpressions
                                 .select(latestRoommateRequiredSub.id.max())
                                 .from(latestRoommateRequiredSub)
-                                .where(latestRoommateRequiredSub.chattingRoom.eq(chattingRoom))
+                                .where(latestRoommateRequiredSub.chattingRoomId.eq(chattingRoom.id))
                 ))
                 .leftJoin(latestMessage)
                 .on(latestMessage.id.eq(
@@ -127,11 +127,11 @@ public class ChattingRoomRepositoryImpl implements ChattingRoomRepositoryCustom 
                 .join(memberB)
                 .on(
                         memberB.chattingRoom.eq(memberA.chattingRoom),
-                        memberB.member.id.eq(memberBId),
+                        memberB.memberId.eq(memberBId),
                         memberB.isLeft.isFalse()
                 )
                 .where(
-                        memberA.member.id.eq(memberAId),
+                        memberA.memberId.eq(memberAId),
                         memberA.isLeft.isFalse()
                 )
                 .fetchFirst();
@@ -147,7 +147,7 @@ public class ChattingRoomRepositoryImpl implements ChattingRoomRepositoryCustom 
                 .select(roomMember.chattingRoom.id.countDistinct())
                 .from(roomMember)
                 .where(
-                        roomMember.member.id.eq(memberId),
+                        roomMember.memberId.eq(memberId),
                         roomMember.isLeft.isFalse()
                 )
                 .fetchOne();

@@ -110,6 +110,9 @@ class RoommateRequestServiceImplTest {
     @Mock
     private ChattingScoreServiceImpl chattingScoreService;
 
+    @Mock
+    private org.example.knockin.member.service.impl.MemberServiceImpl memberService;
+
     @InjectMocks
     private RoommateRequestServiceImpl roommateRequestService;
 
@@ -138,7 +141,7 @@ class RoommateRequestServiceImplTest {
                 myRoomMateService,
                 memberPrivacyService,
                 pushNotificationService,
-                basicInformationService
+                basicInformationService, memberService
         );
     }
 
@@ -157,7 +160,9 @@ class RoommateRequestServiceImplTest {
 
         when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatRoomId, requesterId))
                 .thenReturn(Optional.of(roomMember));
-        when(chatRoomMemberRepository.findPartnerMember(roomMember, chatRoomId)).thenReturn(requestee);
+        when(chatRoomMemberRepository.findPartnerMemberId(roomMember, chatRoomId)).thenReturn(requestee.getId());
+        when(memberService.findByIdOrThrow(requester.getId())).thenReturn(requester);
+        when(memberService.findByIdOrThrow(requestee.getId())).thenReturn(requestee);
         when(roommateMatchingRequiredRepository.findLatest(chatRoomId)).thenReturn(Optional.empty());
         when(roommateMatchingRequiredRepository.save(any(RoommateMatchingRequired.class)))
                 .thenAnswer(invocation -> persistedRoommateRequest(invocation.getArgument(0), 1000L));
@@ -181,7 +186,7 @@ class RoommateRequestServiceImplTest {
         verify(roommateMatchingRequiredRepository).save(requestCaptor.capture());
         assertThat(requestCaptor.getValue().getRequester()).isSameAs(requester);
         assertThat(requestCaptor.getValue().getRequestee()).isSameAs(requestee);
-        assertThat(requestCaptor.getValue().getChattingRoom()).isSameAs(chattingRoom);
+        assertThat(requestCaptor.getValue().getChattingRoomId()).isEqualTo(chattingRoom.getId());
         assertThat(requestCaptor.getValue().getStatus()).isEqualTo(RoommateRequiredStatus.PENDING);
 
         ArgumentCaptor<RoommateMatchingRequiredAlarm> alarmCaptor = ArgumentCaptor.forClass(RoommateMatchingRequiredAlarm.class);
@@ -234,7 +239,9 @@ class RoommateRequestServiceImplTest {
 
         when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatRoomId, requesterId))
                 .thenReturn(Optional.of(roomMember));
-        when(chatRoomMemberRepository.findPartnerMember(roomMember, chatRoomId)).thenReturn(requestee);
+        when(chatRoomMemberRepository.findPartnerMemberId(roomMember, chatRoomId)).thenReturn(requestee.getId());
+        when(memberService.findByIdOrThrow(requester.getId())).thenReturn(requester);
+        when(memberService.findByIdOrThrow(requestee.getId())).thenReturn(requestee);
         when(roommateMatchingRequiredRepository.findLatest(chatRoomId)).thenReturn(Optional.of(previous));
 
         // When & Then
@@ -262,7 +269,9 @@ class RoommateRequestServiceImplTest {
 
         when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatRoomId, requesterId))
                 .thenReturn(Optional.of(roomMember));
-        when(chatRoomMemberRepository.findPartnerMember(roomMember, chatRoomId)).thenReturn(requestee);
+        when(chatRoomMemberRepository.findPartnerMemberId(roomMember, chatRoomId)).thenReturn(requestee.getId());
+        when(memberService.findByIdOrThrow(requester.getId())).thenReturn(requester);
+        when(memberService.findByIdOrThrow(requestee.getId())).thenReturn(requestee);
         when(roommateMatchingRequiredRepository.findLatest(chatRoomId)).thenReturn(Optional.of(previous));
         when(roommateMatchingRequiredRepository.save(any(RoommateMatchingRequired.class)))
                 .thenAnswer(invocation -> persistedRoommateRequest(invocation.getArgument(0), 1001L));
@@ -293,7 +302,9 @@ class RoommateRequestServiceImplTest {
 
         when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatRoomId, requesterId))
                 .thenReturn(Optional.of(roomMember));
-        when(chatRoomMemberRepository.findPartnerMember(roomMember, chatRoomId)).thenReturn(requestee);
+        when(chatRoomMemberRepository.findPartnerMemberId(roomMember, chatRoomId)).thenReturn(requestee.getId());
+        when(memberService.findByIdOrThrow(requester.getId())).thenReturn(requester);
+        when(memberService.findByIdOrThrow(requestee.getId())).thenReturn(requestee);
         when(roommateMatchingRequiredRepository.findLatest(chatRoomId)).thenReturn(Optional.empty());
         when(roommateMatchingRequiredRepository.save(any(RoommateMatchingRequired.class)))
                 .thenAnswer(invocation -> persistedRoommateRequest(invocation.getArgument(0), 1000L));
@@ -660,7 +671,7 @@ class RoommateRequestServiceImplTest {
 
     private ChatRoomMember roomMember(Member member, ChattingRoom chattingRoom) {
         return ChatRoomMember.builder()
-                .member(member)
+                .memberId(member.getId())
                 .chattingRoom(chattingRoom)
                 .isLeft(false)
                 .build();
@@ -675,7 +686,7 @@ class RoommateRequestServiceImplTest {
         return RoommateMatchingRequired.builder()
                 .requester(requester)
                 .requestee(requestee)
-                .chattingRoom(chattingRoom)
+                .chattingRoomId(chattingRoom.getId())
                 .status(status)
                 .build();
     }

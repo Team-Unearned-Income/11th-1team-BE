@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.example.knockin.alarm.service.impl.AlarmServiceImpl;
-import org.example.knockin.board.service.impl.RoommateBoardServiceImpl;
 import org.example.knockin.chat.dto.ChatRequestDetailDto;
 import org.example.knockin.chat.dto.ChatRequestListDto;
 import org.example.knockin.chat.dto.ChatRequestDto;
@@ -52,7 +51,6 @@ import org.example.knockin.member.repository.BasicInformationRepository;
 import org.example.knockin.member.repository.MemberRepository;
 import org.example.knockin.member.repository.row.ChattingRoomBasicInfoRow;
 import org.example.knockin.member.service.impl.BasicInformationServiceImpl;
-import org.example.knockin.member.service.impl.MemberServiceImpl;
 import org.example.knockin.util.service.RoommateScoreService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -103,37 +101,9 @@ class ChatRequestServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        MemberServiceImpl memberService = new MemberServiceImpl(
-                memberRepository,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null
-        );
         BasicInformationServiceImpl basicInformationService = new BasicInformationServiceImpl(basicInformationRepository, org.mockito.Mockito.mock(
                 BasicInformationFileRepository.class));
         MemberLifePatternService memberLifePatternService = new MemberLifePatternService(memberLifePatternRepository, null, null);
-        RoommateBoardServiceImpl roommateBoardService = new RoommateBoardServiceImpl(
-                roommateBoardRepository,
-                memberService,
-                null,
-                roommateScoreService,
-                null,
-                null,
-                memberLifePatternService,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null
-        );
         ChattingRequiredAlarmServiceImpl chattingRequiredAlarmService =
                 new ChattingRequiredAlarmServiceImpl(
                         basicInformationService,
@@ -141,9 +111,9 @@ class ChatRequestServiceImplTest {
         ReflectionTestUtils.setField(chattingRequiredAlarmService, "requestAlarmExpireDays", 7);
 
         chatRequestService = new ChatRequestServiceImpl(
-                memberService,
+                memberRepository,
                 new ChattingRequiredServiceImpl(chattingRequiredRepository),
-                roommateBoardService,
+                roommateBoardRepository,
                 chattingRequiredAlarmService,
                 basicInformationService,
                 memberLifePatternService,
@@ -170,7 +140,7 @@ class ChatRequestServiceImplTest {
         );
 
         when(memberRepository.findById(memberId)).thenReturn(Optional.of(requestee));
-        when(chattingRequiredRepository.findAllPendingByRequestee(requestee)).thenReturn(List.of(row));
+        when(chattingRequiredRepository.findAllPendingByRequesteeId(requestee.getId())).thenReturn(List.of(row));
         when(roommateScoreService.calculateSimpleScores(memberId, List.of(row.memberId()))).thenReturn(Map.of(row.memberId(), 100));
 
         // When
@@ -187,7 +157,7 @@ class ChatRequestServiceImplTest {
         assertThat(response.getGender()).isEqualTo(Gender.FEMALE);
         assertThat(response.getScore()).isEqualTo(100);
         assertThat(response.getCreatedAt()).isEqualTo(createdAt);
-        verify(chattingRequiredRepository).findAllPendingByRequestee(requestee);
+        verify(chattingRequiredRepository).findAllPendingByRequesteeId(requestee.getId());
         verifyNoInteractions(roommateBoardRepository, chattingRoomRepository, chatRoomMemberRepository,
                 basicInformationRepository, chattingRequiredAlarmRepository, alarmService);
     }
@@ -199,14 +169,14 @@ class ChatRequestServiceImplTest {
         Long memberId = 1L;
         Member requestee = Member.builder().id(memberId).isDelete(false).build();
         when(memberRepository.findById(memberId)).thenReturn(Optional.of(requestee));
-        when(chattingRequiredRepository.findAllPendingByRequestee(requestee)).thenReturn(List.of());
+        when(chattingRequiredRepository.findAllPendingByRequesteeId(requestee.getId())).thenReturn(List.of());
 
         // When
         List<ChatRequestListDto.Response> responses = chatRequestService.getPendingChatRequestList(memberId);
 
         // Then
         assertThat(responses).isEmpty();
-        verify(chattingRequiredRepository).findAllPendingByRequestee(requestee);
+        verify(chattingRequiredRepository).findAllPendingByRequesteeId(requestee.getId());
         verifyNoInteractions(roommateBoardRepository, chattingRoomRepository, chatRoomMemberRepository,
                 basicInformationRepository, chattingRequiredAlarmRepository, alarmService);
     }
@@ -382,7 +352,7 @@ class ChatRequestServiceImplTest {
 
         when(memberRepository.findById(requesterId)).thenReturn(Optional.of(requester));
         when(memberRepository.findById(requesteeId)).thenReturn(Optional.of(requestee));
-        when(chattingRequiredRepository.findLatest(requester, requestee)).thenReturn(Optional.empty());
+        when(chattingRequiredRepository.findLatest(requester.getId(), requestee.getId())).thenReturn(Optional.empty());
         when(roommateBoardRepository.findById(boardId)).thenReturn(Optional.of(roommateBoard));
         when(chattingRequiredRepository.save(any(ChattingRequired.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -396,9 +366,9 @@ class ChatRequestServiceImplTest {
         ArgumentCaptor<ChattingRequired> requiredCaptor = ArgumentCaptor.forClass(ChattingRequired.class);
         verify(chattingRequiredRepository).save(requiredCaptor.capture());
         ChattingRequired chattingRequired = requiredCaptor.getValue();
-        assertThat(chattingRequired.getRequester()).isSameAs(requester);
-        assertThat(chattingRequired.getRequestee()).isSameAs(requestee);
-        assertThat(chattingRequired.getRoommateBoard()).isSameAs(roommateBoard);
+        assertThat(chattingRequired.getRequesterId()).isEqualTo(requester.getId());
+        assertThat(chattingRequired.getRequesteeId()).isEqualTo(requestee.getId());
+        assertThat(chattingRequired.getRoommateBoardId()).isEqualTo(roommateBoard.getId());
         assertThat(chattingRequired.getStatus()).isEqualTo(ChattingRequiredStatus.PENDING);
         assertChattingRequiredAlarm(requestee, "김중민님이 매칭을 요청했어요", chattingRequired);
         verify(alarmService).sendToClient(eq(requesteeId), eq(AlarmType.CHATTING_REQUIRED.name()), any(ChattingRequiredAlarm.class));
@@ -419,7 +389,7 @@ class ChatRequestServiceImplTest {
 
         when(memberRepository.findById(requesterId)).thenReturn(Optional.of(requester));
         when(memberRepository.findById(requesteeId)).thenReturn(Optional.of(requestee));
-        when(chattingRequiredRepository.findLatest(requester, requestee)).thenReturn(Optional.empty());
+        when(chattingRequiredRepository.findLatest(requester.getId(), requestee.getId())).thenReturn(Optional.empty());
         when(chattingRequiredRepository.save(any(ChattingRequired.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(basicInformationRepository.findLatestBasicInformation(requester))
@@ -432,9 +402,9 @@ class ChatRequestServiceImplTest {
         ArgumentCaptor<ChattingRequired> requiredCaptor = ArgumentCaptor.forClass(ChattingRequired.class);
         verify(chattingRequiredRepository).save(requiredCaptor.capture());
         ChattingRequired chattingRequired = requiredCaptor.getValue();
-        assertThat(chattingRequired.getRequester()).isSameAs(requester);
-        assertThat(chattingRequired.getRequestee()).isSameAs(requestee);
-        assertThat(chattingRequired.getRoommateBoard()).isNull();
+        assertThat(chattingRequired.getRequesterId()).isEqualTo(requester.getId());
+        assertThat(chattingRequired.getRequesteeId()).isEqualTo(requestee.getId());
+        assertThat(chattingRequired.getRoommateBoardId()).isNull();
         assertThat(chattingRequired.getStatus()).isEqualTo(ChattingRequiredStatus.PENDING);
         assertChattingRequiredAlarm(requestee, "김중민님이 매칭을 요청했어요", chattingRequired);
         verify(alarmService).sendToClient(eq(requesteeId), eq(AlarmType.CHATTING_REQUIRED.name()), any(ChattingRequiredAlarm.class));
@@ -545,13 +515,13 @@ class ChatRequestServiceImplTest {
         Member requestee = Member.builder().id(requesteeId).isDelete(false).build();
         ChatRequestDto.Request request = chatRequest(requesteeId, 10L);
         ChattingRequired pendingRequest = ChattingRequired.builder()
-                .requester(requestee)
-                .requestee(requester)
+                .requesterId(requestee.getId())
+                .requesteeId(requester.getId())
                 .status(ChattingRequiredStatus.PENDING)
                 .build();
         when(memberRepository.findById(requesterId)).thenReturn(Optional.of(requester));
         when(memberRepository.findById(requesteeId)).thenReturn(Optional.of(requestee));
-        when(chattingRequiredRepository.findLatest(requester, requestee)).thenReturn(Optional.of(pendingRequest));
+        when(chattingRequiredRepository.findLatest(requester.getId(), requestee.getId())).thenReturn(Optional.of(pendingRequest));
 
         // When & Then
         assertThatThrownBy(() -> chatRequestService.saveChatRequest(requesterId, request))
@@ -575,7 +545,7 @@ class ChatRequestServiceImplTest {
         ChatRequestDto.Request request = chatRequest(requesteeId, boardId);
         when(memberRepository.findById(requesterId)).thenReturn(Optional.of(requester));
         when(memberRepository.findById(requesteeId)).thenReturn(Optional.of(requestee));
-        when(chattingRequiredRepository.findLatest(requester, requestee)).thenReturn(Optional.empty());
+        when(chattingRequiredRepository.findLatest(requester.getId(), requestee.getId())).thenReturn(Optional.empty());
         when(roommateBoardRepository.findById(boardId)).thenReturn(Optional.empty());
 
         // When & Then
@@ -602,6 +572,9 @@ class ChatRequestServiceImplTest {
         when(basicInformationRepository.findLatestBasicInformation(requestee))
                 .thenReturn(Optional.of(basicInformation(requestee, "이수현")));
 
+        when(memberRepository.findById(requesterId)).thenReturn(Optional.of(requester));
+        when(memberRepository.findById(requesteeId)).thenReturn(Optional.of(requestee));
+
         // When
         ChatRequestDto.Response response = chatRequestService.acceptRequired(requesteeId, requestId);
 
@@ -627,6 +600,9 @@ class ChatRequestServiceImplTest {
         when(basicInformationRepository.findLatestBasicInformation(requestee))
                 .thenReturn(Optional.of(basicInformation(requestee, "이수현")));
 
+        when(memberRepository.findById(requesterId)).thenReturn(Optional.of(requester));
+        when(memberRepository.findById(requesteeId)).thenReturn(Optional.of(requestee));
+
         // When
         ChatRequestDto.Response response = chatRequestService.rejectRequired(requesteeId, requestId);
 
@@ -651,6 +627,9 @@ class ChatRequestServiceImplTest {
         when(chattingRequiredRepository.findById(requestId)).thenReturn(Optional.of(chattingRequired));
         when(basicInformationRepository.findLatestBasicInformation(requester))
                 .thenReturn(Optional.of(basicInformation(requester, "김중민")));
+
+        when(memberRepository.findById(requesterId)).thenReturn(Optional.of(requester));
+        when(memberRepository.findById(requesteeId)).thenReturn(Optional.of(requestee));
 
         // When
         ChatRequestDto.Response response = chatRequestService.cancelRequired(requesterId, requestId);
@@ -729,8 +708,8 @@ class ChatRequestServiceImplTest {
 
     private ChattingRequired chatRequest(Member requester, Member requestee, ChattingRequiredStatus status) {
         return ChattingRequired.builder()
-                .requester(requester)
-                .requestee(requestee)
+                .requesterId(requester.getId())
+                .requesteeId(requestee.getId())
                 .status(status)
                 .build();
     }

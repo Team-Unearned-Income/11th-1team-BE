@@ -13,16 +13,12 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.util.dto.Compatibility;
-import org.example.knockin.chat.entity.ChattingRequired;
-import org.example.knockin.chat.entity.ChattingScore;
 import org.example.knockin.life.entity.LifePatternInformation;
 import org.example.knockin.life.entity.LifePatternType;
 import org.example.knockin.life.entity.MemberLifePatternLog;
 import org.example.knockin.life.entity.MemberLifePatternLogDegree;
 import org.example.knockin.life.entity.PreferenceConditionLog;
-import org.example.knockin.life.entity.PreferenceConditionLogDegree;
 import org.example.knockin.life.entity.PreferenceConditionWeightLog;
-import org.example.knockin.life.entity.PreferenceConditionWeightLogDegree;
 import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.LifePatternErrorCode;
 import org.example.knockin.life.repository.LifePatternInformationRepository;
@@ -138,22 +134,7 @@ public class JavaRoommateScoreService implements RoommateScoreService {
         return compatibility == null ? null : compatibility.getTotalScore();
     }
 
-    @Override
-    public List<ChattingScore> createChattingScores(ChattingRequired chattingRequired) {
-        if (chattingRequired == null) {
-            return List.of();
-        }
-
-        Long requesterId = chattingRequired.getRequester().getId();
-        Long requesteeId = chattingRequired.getRequestee().getId();
-
-        return List.of(
-                createScoreSnapshot(requesterId, requesteeId).toChattingScore(chattingRequired),
-                createScoreSnapshot(requesteeId, requesterId).toChattingScore(chattingRequired)
-        );
-    }
-
-    private ScoreSnapshot createScoreSnapshot(Long evaluatorId, Long targetId) {
+    public Integer calculateSnapshotScore(Long evaluatorId, Long targetId) {
         List<MemberLifePatternLog> evaluatorLogs = memberLifePatternLogRepository.findLatestLogsWithFetchByMemberId(evaluatorId);
         if (evaluatorLogs.isEmpty()) throw new BusinessException(LifePatternErrorCode.DEGREE_NOT_FOUND);
 
@@ -164,7 +145,6 @@ public class JavaRoommateScoreService implements RoommateScoreService {
         Map<Long, MemberLifePatternLog> targetLogByPatternId = toLifePatternLogMap(targetLogs);
 
         Map<Long, List<PreferenceConditionLog>> preferenceLogsByPatternId = findLatestPreferenceLogsByPatternId(evaluatorId);
-        List<PreferenceConditionLog> allPreferenceLogs = preferenceLogsByPatternId.values().stream().flatMap(Collection::stream).toList();
 
         List<PreferenceConditionWeightLog> weightLogs = preferenceConditionWeightLogRepository.findLatestLogsWithFetchByMemberId(evaluatorId);
         Map<Long, PreferenceConditionWeightLog> weightLogByPatternId = toWeightLogMap(weightLogs);
@@ -192,12 +172,7 @@ public class JavaRoommateScoreService implements RoommateScoreService {
                     .map(preferenceLog -> toScoreCandidate(evaluatorLog, preferenceLog, weightLog, targetLog, scaleRangesByPatternId))
                     .forEach(candidates::add);
         }
-        return new ScoreSnapshot(
-                memberLifePatternLogDegree,
-                allPreferenceLogs.isEmpty() ? null : allPreferenceLogs.getFirst().getPreferenceConditionLogDegree(),
-                weightLogs.isEmpty() ? null : weightLogs.getFirst().getPreferenceConditionWeightLogDegree(),
-                calculateFinalScore(candidates)
-        );
+        return calculateFinalScore(candidates);
     }
 
     private int calculateFinalScore(List<ScoreCandidate> candidates) {
@@ -551,20 +526,4 @@ public class JavaRoommateScoreService implements RoommateScoreService {
     ) {
     }
 
-    private record ScoreSnapshot(
-            MemberLifePatternLogDegree memberLifePatternLogDegree,
-            @Nullable PreferenceConditionLogDegree preferenceConditionLogDegree,
-            @Nullable PreferenceConditionWeightLogDegree preferenceConditionWeightLogDegree,
-            Integer score
-    ) {
-        ChattingScore toChattingScore(ChattingRequired chattingRequired) {
-            return ChattingScore.builder()
-                    .chattingRequired(chattingRequired)
-                    .memberLifePatternLogDegree(memberLifePatternLogDegree)
-                    .preferenceConditionLogDegree(preferenceConditionLogDegree)
-                    .preferenceConditionWeightLogDegree(preferenceConditionWeightLogDegree)
-                    .score(score)
-                    .build();
-        }
-    }
 }

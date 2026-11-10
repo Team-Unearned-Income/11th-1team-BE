@@ -742,9 +742,9 @@ public class SeedDataConfig implements CommandLineRunner {
 
         // 14. 채팅 신청, 채팅방, 채팅 멤버 및 채팅 메세지, 채팅방 이미지 (ChattingRequired, ChattingRoom, Member, Message, ChatRoomFile)
         ChattingRequired chatReq = ChattingRequired.builder()
-                .requester(user2)
-                .requestee(user1)
-                .roommateBoard(board1)
+                .requesterId(user2.getId())
+                .requesteeId(user1.getId())
+                .roommateBoardId(board1.getId())
                 .status(ChattingRequiredStatus.ACCEPTED)
                 .build();
         chattingRequiredRepository.save(chatReq);
@@ -754,20 +754,20 @@ public class SeedDataConfig implements CommandLineRunner {
                 .build();
         chattingRoomRepository.save(chatRoom);
 
-        ChatRoomMember mem1 = ChatRoomMember.of(chatRoom, user1);
-        ChatRoomMember mem2 = ChatRoomMember.of(chatRoom, user2);
+        ChatRoomMember mem1 = ChatRoomMember.of(chatRoom, user1.getId());
+        ChatRoomMember mem2 = ChatRoomMember.of(chatRoom, user2.getId());
         chatRoomMemberRepository.saveAll(List.of(mem1, mem2));
 
         ChatRoomMessage msg1 = ChatRoomMessage.builder()
                 .chattingRoom(chatRoom)
-                .member(user2)
+                .memberId(user2.getId())
                 .contents("안녕하세요! 강남역 게시글 보고 문의드립니다.")
                 .type(MessageType.TEXT)
                 .isRead(true)
                 .build();
         ChatRoomMessage msg2 = ChatRoomMessage.builder()
                 .chattingRoom(chatRoom)
-                .member(user1)
+                .memberId(user1.getId())
                 .contents("네 안녕하세요! 언제 보러 오시겠어요?")
                 .type(MessageType.TEXT)
                 .isRead(false)
@@ -787,14 +787,14 @@ public class SeedDataConfig implements CommandLineRunner {
         PreferenceConditionWeightLog pcwLog = preferenceConditionWeightLogRepository.save(
                 PreferenceConditionWeightLog.builder().memberId(user1.getId()).lifePattern(bedtime).preferenceConditionWeightLogDegree(preferenceConditionWeightLogDegree).build());
 
-        chatRoomFileRepository.save(ChatRoomFile.builder().chatRoomMessage(msg1).file(chatRoomPic).build());
-        ChattingScore chattingScore = chattingScoreRepository.save(ChattingScore.builder().chattingRequired(chatReq).memberLifePatternLogDegree(memberLifePatternLogDegree).preferenceConditionLogDegree(preferenceConditionLogDegree).preferenceConditionWeightLogDegree(preferenceConditionWeightLogDegree).score(90).build());
+        chatRoomFileRepository.save(ChatRoomFile.builder().chatRoomMessage(msg1).fileId(chatRoomPic.getId()).build());
+        ChattingScore chattingScore = chattingScoreRepository.save(ChattingScore.builder().chattingRequired(chatReq).memberLifePatternLogDegreeId(memberLifePatternLogDegree.getId()).preferenceConditionLogDegreeId(preferenceConditionLogDegree.getId()).preferenceConditionWeightLogDegreeId(preferenceConditionWeightLogDegree.getId()).score(90).build());
 
         // 16. 룸메이트 매칭 확정 및 내 룸메이트 (RoommateMatchingRequired, MyRoommate)
         RoommateMatchingRequired matchingReq = RoommateMatchingRequired.builder()
                 .requester(user2)
                 .requestee(user1)
-                .chattingRoom(chatRoom)
+                .chattingRoomId(chatRoom.getId())
                 .status(RoommateRequiredStatus.ACCEPTED)
                 .build();
         roommateMatchingRequiredRepository.save(matchingReq);
@@ -807,7 +807,7 @@ public class SeedDataConfig implements CommandLineRunner {
 
         roommateScoreRepository.save(RoommateScore.builder()
                 .myRoommate(myRoommate)
-                .chattingScore(chattingScore)
+                .chattingScoreId(chattingScore.getId())
                 .build());
 
         // 17. 룸메이트 하우스 룰 (RoommateHouseRule)
@@ -1044,34 +1044,7 @@ public class SeedDataConfig implements CommandLineRunner {
                     .isDeleted(false)
                     .build());
 
-            ChattingRequired chattingRequired = ChattingRequired.builder()
-                    .requester(member)
-                    .requestee(supportMember)
-                    .roommateBoard(board)
-                    .status(ChattingRequiredStatus.ACCEPTED)
-                    .build();
-            chattingRequirements.add(chattingRequired);
-            ChattingRoom chattingRoom = ChattingRoom.builder().chattingRequired(chattingRequired).build();
-            chattingRooms.add(chattingRoom);
-            chatRoomMembers.add(ChatRoomMember.of(chattingRoom, member));
-            chatRoomMembers.add(ChatRoomMember.of(chattingRoom, supportMember));
-            ChatRoomMessage firstMessage = ChatRoomMessage.builder()
-                    .chattingRoom(chattingRoom)
-                    .member(member)
-                    .contents("부하 테스트 메시지 " + (i + 1) + "-1")
-                    .type(MessageType.TEXT)
-                    .isRead(true)
-                    .build();
-            ChatRoomMessage secondMessage = ChatRoomMessage.builder()
-                    .chattingRoom(chattingRoom)
-                    .member(supportMember)
-                    .contents("부하 테스트 메시지 " + (i + 1) + "-2")
-                    .type(MessageType.TEXT)
-                    .isRead(false)
-                    .build();
-            chatMessages.add(firstMessage);
-            chatMessages.add(secondMessage);
-            chatRoomFiles.add(ChatRoomFile.builder().chatRoomMessage(firstMessage).file(chatFile).build());
+
 
             payments.add(Payment.builder()
                     .member(member)
@@ -1103,6 +1076,38 @@ public class SeedDataConfig implements CommandLineRunner {
         searchRepository.saveAll(searches);
         inquiryRepository.saveAll(inquiries);
         inquiryCommentRepository.saveAll(inquiryComments);
+        for (int i = 0; i < recordCount; i++) {
+            Member member = members.get(i);
+            RoommateBoard board = boards.get(i);
+            ChattingRequired chattingRequired = ChattingRequired.builder()
+                    .requesterId(member.getId())
+                    .requesteeId(supportMember.getId())
+                    .roommateBoardId(board.getId())
+                    .status(ChattingRequiredStatus.ACCEPTED)
+                    .build();
+            chattingRequirements.add(chattingRequired);
+            ChattingRoom chattingRoom = ChattingRoom.builder().chattingRequired(chattingRequired).build();
+            chattingRooms.add(chattingRoom);
+            chatRoomMembers.add(ChatRoomMember.of(chattingRoom, member.getId()));
+            chatRoomMembers.add(ChatRoomMember.of(chattingRoom, supportMember.getId()));
+            ChatRoomMessage firstMessage = ChatRoomMessage.builder()
+                    .chattingRoom(chattingRoom)
+                    .memberId(member.getId())
+                    .contents("부하 테스트 메시지 " + (i + 1) + "-1")
+                    .type(MessageType.TEXT)
+                    .isRead(true)
+                    .build();
+            ChatRoomMessage secondMessage = ChatRoomMessage.builder()
+                    .chattingRoom(chattingRoom)
+                    .memberId(supportMember.getId())
+                    .contents("부하 테스트 메시지 " + (i + 1) + "-2")
+                    .type(MessageType.TEXT)
+                    .isRead(false)
+                    .build();
+            chatMessages.add(firstMessage);
+            chatMessages.add(secondMessage);
+            chatRoomFiles.add(ChatRoomFile.builder().chatRoomMessage(firstMessage).fileId(chatFile.getId()).build());
+        }
         chattingRequiredRepository.saveAll(chattingRequirements);
         chattingRoomRepository.saveAll(chattingRooms);
         chatRoomMemberRepository.saveAll(chatRoomMembers);
@@ -1269,18 +1274,15 @@ public class SeedDataConfig implements CommandLineRunner {
                     .lifePatternInformation(patternInformation).preferenceConditionLogDegree(preferenceDegree).build());
             preferenceWeightLogs.add(PreferenceConditionWeightLog.builder().memberId(member.getId())
                     .lifePattern(lifePattern).preferenceConditionWeightLogDegree(weightDegree).build());
-            ChattingScore chattingScore = ChattingScore.builder().chattingRequired(chattingRequired)
-                    .memberLifePatternLogDegree(memberDegree).preferenceConditionLogDegree(preferenceDegree)
-                    .preferenceConditionWeightLogDegree(weightDegree).score(50 + i % 51).build();
-            chattingScores.add(chattingScore);
+
 
             RoommateMatchingRequired matching = RoommateMatchingRequired.builder()
-                    .requester(member).requestee(supportMember).chattingRoom(chattingRoom)
+                    .requester(member).requestee(supportMember).chattingRoomId(chattingRoom.getId())
                     .status(RoommateRequiredStatus.ACCEPTED).build();
             matchingRequirements.add(matching);
             MyRoommate roommate = MyRoommate.builder().roommateMatchingRequired(matching).isDeleted(false).build();
             roommates.add(roommate);
-            roommateScores.add(RoommateScore.builder().myRoommate(roommate).chattingScore(chattingScore).build());
+
             houseRules.add(RoommateHouseRule.builder().member(member).myRoommate(roommate)
                     .title("부하 테스트 생활 규칙 " + (i + 1)).contents("공용 공간을 깨끗하게 사용합니다.")
                     .isDeleted(false).build());
@@ -1338,9 +1340,20 @@ public class SeedDataConfig implements CommandLineRunner {
         memberLifePatternLogRepository.saveAll(memberLifePatternLogs);
         preferenceConditionLogRepository.saveAll(preferenceConditionLogs);
         preferenceConditionWeightLogRepository.saveAll(preferenceWeightLogs);
+        for (int i = 0; i < recordCount; i++) {
+            chattingScores.add(ChattingScore.builder().chattingRequired(chattingRequirements.get(i))
+                    .memberLifePatternLogDegreeId(memberLogDegrees.get(i).getId())
+                    .preferenceConditionLogDegreeId(preferenceLogDegrees.get(i).getId())
+                    .preferenceConditionWeightLogDegreeId(weightLogDegrees.get(i).getId())
+                    .score(50 + i % 51).build());
+        }
         chattingScoreRepository.saveAll(chattingScores);
         roommateMatchingRequiredRepository.saveAll(matchingRequirements);
         myRoommateRepository.saveAll(roommates);
+        for (int i = 0; i < roommates.size(); i++) {
+            roommateScores.add(RoommateScore.builder().myRoommate(roommates.get(i))
+                    .chattingScoreId(chattingScores.get(i).getId()).build());
+        }
         roommateScoreRepository.saveAll(roommateScores);
         roommateHouseRuleRepository.saveAll(houseRules);
         roommateCalendarCategoryRepository.saveAll(calendarCategories);

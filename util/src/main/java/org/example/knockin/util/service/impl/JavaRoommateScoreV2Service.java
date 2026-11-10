@@ -1,15 +1,13 @@
 package org.example.knockin.util.service.impl;
 
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.chat.entity.ChattingRequired;
-import org.example.knockin.chat.entity.ChattingScore;
 import org.example.knockin.global.exception.AuthErrorCode;
 import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.EtcErrorCode;
 import org.example.knockin.life.entity.*;
 import org.example.knockin.life.repository.*;
 import org.example.knockin.member.entity.Member;
-import org.example.knockin.member.service.impl.MemberServiceImpl;
+import org.example.knockin.member.repository.MemberRepository;
 import org.example.knockin.util.dto.Compatibility;
 import org.example.knockin.util.service.LifePatternTypeScoreCalc;
 import org.example.knockin.util.service.RoommateScoreService;
@@ -23,13 +21,10 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class JavaRoommateScoreV2Service implements RoommateScoreService {
     private final MemberLifePatternRepository memberLifePatternRepository;
-    private final MemberLifePatternLogRepository memberLifePatternLogRepository;
     private final PreferenceConditionRepository preferenceConditionRepository;
-    private final PreferenceConditionLogRepository preferenceConditionLogRepository;
     private final PreferenceConditionWeightRepository preferenceConditionWeightRepository;
-    private final PreferenceConditionWeightLogRepository preferenceConditionWeightLogRepository;
     private final List<LifePatternTypeScoreCalc> lifePatternTypeScoreCalcList;
-    private final MemberServiceImpl memberServiceImpl;
+    private final MemberRepository memberRepository;
 
     private static final Long TOTAL_POINT = 100L;
     private static final Integer NON_PREFERENCE_WEIGHT = 1;
@@ -40,14 +35,14 @@ public class JavaRoommateScoreV2Service implements RoommateScoreService {
         if (requesterId == null || targetMemberIds == null || targetMemberIds.isEmpty()) return Map.of();
 
         Map<Long, Compatibility> resultArray = new HashMap<>();
-        memberServiceImpl.findById(requesterId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+        memberRepository.findById(requesterId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
         List<LifePatternInformation> myPreferenceList = preferenceConditionRepository.findByMemberId(requesterId).stream().map(PreferenceCondition::getLifePatternInformation).filter(Objects::nonNull).toList();
         List<LifePatternInformation> myDefaultList = memberLifePatternRepository.findByMemberId(requesterId).stream().map(MemberLifePattern::getLifePatternInformation).filter(Objects::nonNull).toList();
         List<LifePatternInformation> myFinalLifePatternInformationList = Stream.concat(myPreferenceList.stream(), myDefaultList.stream()).filter(item -> item != null && item.getLifePattern() != null && item.getLifePattern().getId() != null)
                 .collect(Collectors.toMap(item -> item.getLifePattern().getId(), item -> item, (preferenceVal, defaultVal) -> preferenceVal)).values().stream().toList();
         List<PreferenceConditionWeight> preferenceConditionWeightList = preferenceConditionWeightRepository.findAllByMemberId(requesterId);
 
-        List<Member> targetList = memberServiceImpl.findAllById(targetMemberIds);
+        List<Member> targetList = memberRepository.findAllById(targetMemberIds);
         Map<Long, List<LifePatternInformation>> targetDefaultPatternMapById = memberLifePatternRepository.findAllByMemberIdIn(targetList.stream().map(Member::getId).toList()).stream().filter(item -> item.getMemberId() != null && item.getLifePatternInformation() != null)
                 .collect(Collectors.groupingBy(MemberLifePattern::getMemberId, Collectors.mapping(MemberLifePattern::getLifePatternInformation, Collectors.toList())));
 
@@ -76,33 +71,6 @@ public class JavaRoommateScoreV2Service implements RoommateScoreService {
     public Integer calculateSimpleScore(Long requesterId, Long targetMemberId) {
         Compatibility compatibility = calculateScore(requesterId, targetMemberId);
         return compatibility == null ? null : compatibility.getTotalScore();
-    }
-
-    @Override
-    public List<ChattingScore> createChattingScores(ChattingRequired chattingRequired) {
-        Long requesterId = chattingRequired.getRequester().getId();
-        Long requesteeId = chattingRequired.getRequestee().getId();
-
-        ChattingScore requesterChattingScore = createChattingScore(requesterId, requesteeId, chattingRequired);
-        ChattingScore requesteeChattingScore = createChattingScore(requesteeId, requesterId, chattingRequired);
-
-        return List.of(requesterChattingScore, requesteeChattingScore);
-    }
-
-    private ChattingScore createChattingScore(Long requesterId, Long requesteeId, ChattingRequired chattingRequired) {
-        int score = calculateScore(requesterId, requesteeId).getTotalScore();
-        List<MemberLifePatternLog> memberLifePatternLogList = memberLifePatternLogRepository.findLatestLogsWithFetchByMemberId(requesterId);
-        MemberLifePatternLogDegree memberLifePatternLogDegree = memberLifePatternLogList.isEmpty() ? null : memberLifePatternLogList.getFirst().getMemberLifePatternLogDegree();
-        List<PreferenceConditionLog> preferenceConditionLogList = preferenceConditionLogRepository.findLatestLogsWithFetchByMemberId(requesterId);
-        PreferenceConditionLogDegree preferenceConditionLogDegree = preferenceConditionLogList.isEmpty() ? null : preferenceConditionLogList.getFirst().getPreferenceConditionLogDegree();
-        List<PreferenceConditionWeightLog> preferenceConditionWeightLogList = preferenceConditionWeightLogRepository.findLatestLogsWithFetchByMemberId(requesterId);
-        PreferenceConditionWeightLogDegree preferenceConditionWeightLogDegree = preferenceConditionWeightLogList.isEmpty() ? null : preferenceConditionWeightLogList.getFirst().getPreferenceConditionWeightLogDegree();
-
-        return ChattingScore.builder().chattingRequired(chattingRequired)
-                .memberLifePatternLogDegree(memberLifePatternLogDegree)
-                .preferenceConditionLogDegree(preferenceConditionLogDegree)
-                .preferenceConditionWeightLogDegree(preferenceConditionWeightLogDegree)
-                .score(score).build();
     }
 
     public Compatibility calculateScores(List<LifePatternInformation> me, List<LifePatternInformation> target, List<PreferenceConditionWeight> preferenceConditionWeightList) {

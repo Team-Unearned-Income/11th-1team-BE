@@ -19,7 +19,7 @@ import org.example.knockin.global.auth.util.TokenProvider;
 import org.example.knockin.global.config.StompAuthenticationChannelInterceptor;
 import org.example.knockin.global.config.StompDestinationResolver;
 import org.example.knockin.global.exception.BusinessException;
-import org.example.knockin.global.exception.ChattingErrorCode;
+import org.example.knockin.chat.exception.ChattingErrorCode;
 import org.example.knockin.chat.service.impl.ChatRoomMemberServiceImpl;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.knockin.chat.entity.ChattingRequired;
 import org.example.knockin.chat.entity.ChattingRoom;
 import org.example.knockin.global.exception.BusinessException;
-import org.example.knockin.global.exception.ChattingErrorCode;
+import org.example.knockin.chat.exception.ChattingErrorCode;
 import org.example.knockin.chat.repository.ChattingRoomRepository;
 import org.example.knockin.chat.repository.row.ChatRoomListRow;
 import org.springframework.stereotype.Service;

@@ -25,6 +25,15 @@ dependencyManagement {
 
 dependencies {
     api project(':common')
+    implementation project(':global')
+    implementation project(':member')
+    implementation project(':board')
+    implementation project(':life')
+    implementation project(':meta')
+    implementation project(':verification')
+    implementation project(':alarm')
+    implementation project(':mate')
+    implementation project(':util')
 
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
@@ -53,4 +62,9 @@ tasks.named('test') {
     }
     maxHeapSize = '2g'
     maxParallelForks = 1
+}
+
+// Keep MVC argument names and constructor bean selection when compiling outside the Boot module.
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs.add('-parameters')
 }

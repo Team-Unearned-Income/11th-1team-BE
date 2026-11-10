@@ -25,6 +25,7 @@ dependencyManagement {
 
 dependencies {
     api project(':common')
+    implementation project(':member')
     api project(':life')
 
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'

@@ -7,10 +7,18 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import org.example.knockin.global.exception.AuthErrorCode;
+import org.example.knockin.global.exception.BusinessException;
+import org.example.knockin.life.entity.MemberLifePattern;
+import org.example.knockin.life.entity.PreferenceCondition;
+import org.example.knockin.member.repository.MemberRepository;
+import org.example.knockin.util.service.impl.JavaRoommateScoreV2Service;
+import org.example.knockin.util.service.impl.SingleChoiceScoreCalc;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import org.example.knockin.util.dto.Compatibility;
-import org.example.knockin.chat.entity.ChattingRequired;
-import org.example.knockin.chat.entity.ChattingRequiredStatus;
-import org.example.knockin.chat.entity.ChattingScore;
 import org.example.knockin.life.entity.LifePattern;
 import org.example.knockin.life.entity.LifePatternInformation;
 import org.example.knockin.life.entity.LifePatternType;
@@ -222,16 +230,11 @@ class RoommateScoreServiceTest {
     }
 
     @Test
-    @DisplayName("채팅 요청 기준 양방향 최종점수 row를 각각 하나씩 생성한다")
-    void createChattingScoresCreatesBidirectionalRowsAndCalculatesCompatibilityBySavedScores() {
+    @DisplayName("저장된 로그로 양방향 궁합 점수를 계산한다")
+    void calculateSnapshotScorePreservesEvaluatorDirectionAndPreferences() {
         // Given
         Member requester = member(1L);
         Member requestee = member(2L);
-        ChattingRequired chattingRequired = ChattingRequired.builder()
-                .requester(requester)
-                .requestee(requestee)
-                .status(ChattingRequiredStatus.PENDING)
-                .build();
 
         LifePattern smoking = lifePattern(101L, "흡연", LifePatternType.SINGLE_CHOICE, 1);
         LifePattern pet = lifePattern(102L, "반려동물", LifePatternType.SINGLE_CHOICE, 2);
@@ -267,11 +270,53 @@ class RoommateScoreServiceTest {
                 .thenReturn(List.of());
 
         // When
-        List<ChattingScore> scores = roommateScoreService.createChattingScores(chattingRequired);
+        List<Integer> scores = List.of(
+                roommateScoreService.calculateSnapshotScore(requester.getId(), requestee.getId()),
+                roommateScoreService.calculateSnapshotScore(requestee.getId(), requester.getId()));
         // Then
-        assertThat(scores).hasSize(2);
-        assertThat(scores).extracting(ChattingScore::getScore).containsExactly(100, 50);
-        assertThat(scores).allSatisfy(score -> assertThat(score.getMemberLifePatternLogDegree()).isNotNull());
+        assertThat(scores).containsExactly(100, 50);
+    }
+
+    @Test
+    @DisplayName("V2는 회원 Repository로 대상을 조회하고 선호조건을 우선하여 계산한다")
+    void v2CalculatesScoresUsingExistingMembersAndPreferenceOverride() {
+        MemberRepository members = mock(MemberRepository.class);
+        JavaRoommateScoreV2Service service = new JavaRoommateScoreV2Service(
+                memberLifePatternRepository, preferenceConditionRepository, preferenceConditionWeightRepository,
+                List.of(new SingleChoiceScoreCalc()), members);
+        Member requester = member(1L);
+        Member target = member(2L);
+        LifePattern smoking = lifePattern(101L, "흡연", LifePatternType.SINGLE_CHOICE, 1);
+        LifePatternInformation nonSmoking = information(1001L, smoking, "NON_SMOKING");
+        LifePatternInformation smokingEveryday = information(1002L, smoking, "SMOKING");
+        when(members.findById(1L)).thenReturn(Optional.of(requester));
+        when(members.findAllById(List.of(2L, 99L))).thenReturn(List.of(target));
+        when(memberLifePatternRepository.findByMemberId(1L)).thenReturn(List.of(
+                MemberLifePattern.builder().memberId(1L).lifePatternInformation(nonSmoking).build()));
+        when(preferenceConditionRepository.findByMemberId(1L)).thenReturn(List.of(
+                PreferenceCondition.builder().memberId(1L).lifePatternInformation(smokingEveryday).build()));
+        when(memberLifePatternRepository.findAllByMemberIdIn(List.of(2L))).thenReturn(List.of(
+                MemberLifePattern.builder().memberId(2L).lifePatternInformation(smokingEveryday).build()));
+
+        Map<Long, Integer> scores = service.calculateSimpleScores(1L, List.of(2L, 99L));
+
+        assertThat(scores).containsExactlyEntriesOf(Map.of(2L, 100));
+        verifyNoInteractions(memberLifePatternLogRepository, preferenceConditionLogRepository, preferenceConditionWeightLogRepository);
+    }
+
+    @Test
+    @DisplayName("V2는 요청 회원이 없으면 기존 회원 없음 오류를 유지한다")
+    void v2RejectsMissingRequester() {
+        MemberRepository members = mock(MemberRepository.class);
+        JavaRoommateScoreV2Service service = new JavaRoommateScoreV2Service(
+                memberLifePatternRepository, preferenceConditionRepository, preferenceConditionWeightRepository,
+                List.of(), members);
+        when(members.findById(1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.calculateScore(1L, 2L))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.MEMBER_NOT_FOUND);
+        verifyNoInteractions(memberLifePatternRepository, preferenceConditionRepository, preferenceConditionWeightRepository);
     }
 
     private MatchingLifestyleRow lifestyle(
@@ -349,7 +394,7 @@ class RoommateScoreServiceTest {
         return MemberLifePatternLog.builder()
                 .memberId(member.getId())
                 .lifePatternInformation(information)
-                .memberLifePatternLogDegree(MemberLifePatternLogDegree.builder().degree(1L).build())
+                .memberLifePatternLogDegree(MemberLifePatternLogDegree.builder().id(member.getId()).degree(1L).build())
                 .build();
     }
 

@@ -2,6 +2,13 @@ package org.example.knockin.global.batch;
 
 import org.example.knockin.support.IsolatedExternalServices;
 import org.example.knockin.alarm.entity.Alarm;
+import org.example.knockin.chat.entity.ChatRoomMember;
+import org.example.knockin.chat.entity.ChatRoomMessage;
+import org.example.knockin.chat.entity.ChatRoomFile;
+import org.example.knockin.chat.entity.ChattingRequired;
+import org.example.knockin.chat.entity.ChattingRequiredStatus;
+import org.example.knockin.chat.entity.ChattingRoom;
+import org.example.knockin.chat.dto.MessageType;
 import org.example.knockin.alarm.entity.AlarmSetting;
 import org.example.knockin.alarm.entity.AlarmSettingType;
 import org.example.knockin.alarm.entity.AlarmType;
@@ -74,7 +81,9 @@ class MemberDeleteBatchIntegrationTest {
             "member_life_pattern_log", "preference_condition", "preference_condition_log",
             "preference_condition_weight", "preference_condition_weight_log",
             "alarm", "alarm_setting", "notification_alarm", "chatting_required_alarm",
-            "roommate_matching_required_alarm", "roommate_calendar_alarm");
+            "roommate_matching_required_alarm", "roommate_calendar_alarm",
+            "roommate_matching_required", "roommate_score", "my_roommate",
+            "chatting_required", "chatting_room", "chatting_score", "chat_room_member", "chat_room_message", "chat_room_file");
 
     @Autowired JobOperator jobOperator;
     @Autowired Job memberDeleteJob;
@@ -219,6 +228,46 @@ class MemberDeleteBatchIntegrationTest {
         assertNoOrphanedExternalReferences();
     }
 
+    @Test
+    void deletingBoardOwnerClearsChatReferencesAndPreservesOtherMembersRoom() {
+        LocalDateTime cutoff = LocalDateTime.of(2026, 11, 10, 0, 0);
+        Long ownerId = member(true, cutoff.minusDays(1));
+        Long requesterId = member(false, null);
+        Long requesteeId = member(false, null);
+        new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+            RoommateBoard board = RoommateBoard.builder().member(entityManager.find(Member.class, ownerId))
+                    .roomType(first(RoomType.class)).region(first(Region.class)).build();
+            entityManager.persist(board);
+            ChattingRequired request = ChattingRequired.builder().requesterId(requesterId).requesteeId(requesteeId)
+                    .roommateBoardId(board.getId()).status(ChattingRequiredStatus.ACCEPTED).build();
+            entityManager.persist(request);
+            ChattingRoom room = ChattingRoom.builder().chattingRequired(request).build();
+            entityManager.persist(room);
+            ChatRoomMember ownerMembership = ChatRoomMember.of(room, ownerId);
+            ChatRoomMessage ownerMessage = ChatRoomMessage.builder().chattingRoom(room).memberId(ownerId)
+                    .contents("deleted member message").type(MessageType.TEXT).build();
+            ChatRoomMessage survivingMessage = ChatRoomMessage.builder().chattingRoom(room).memberId(requesterId)
+                    .contents("surviving message").type(MessageType.TEXT).build();
+            entityManager.persist(ownerMembership);
+            entityManager.persist(ownerMessage);
+            entityManager.persist(survivingMessage);
+            ChatRoomFile attachment = ChatRoomFile.builder().chatRoomMessage(ownerMessage).build();
+            entityManager.persist(attachment);
+            entityManager.flush();
+
+            memberService.hardDeleteMember(List.of(ownerId), cutoff);
+            entityManager.clear();
+
+            assertThat(entityManager.find(Member.class, ownerId)).isNull();
+            assertThat(entityManager.find(ChattingRoom.class, room.getId())).isNotNull();
+            assertThat(entityManager.find(ChattingRequired.class, request.getId()).getRoommateBoardId()).isNull();
+            assertThat(entityManager.find(ChatRoomMember.class, ownerMembership.getId())).isNull();
+            assertThat(entityManager.find(ChatRoomMessage.class, ownerMessage.getId())).isNull();
+            assertThat(entityManager.find(ChatRoomFile.class, attachment.getId())).isNull();
+            assertThat(entityManager.find(ChatRoomMessage.class, survivingMessage.getId())).isNotNull();
+        });
+    }
+
     private Map<String, Long> externalReferenceCounts() {
         Map<String, Long> counts = new LinkedHashMap<>();
         EXTERNAL_REFERENCE_TABLES.forEach(table ->
@@ -228,6 +277,14 @@ class MemberDeleteBatchIntegrationTest {
 
     private void assertNoOrphanedExternalReferences() {
         for (String[] reference : new String[][]{
+                {"chatting_required", "requester", "member"},
+                {"chatting_required", "requestee", "member"},
+                {"chatting_required", "roommate_board_id", "roommate_board"},
+                {"chat_room_member", "member_id", "member"},
+                {"chat_room_message", "member_id", "member"},
+                {"chatting_score", "member_life_pattern_log_degree_id", "member_life_pattern_log_degree"},
+                {"roommate_matching_required", "chatting_room_id", "chatting_room"},
+                {"roommate_score", "chatting_score_id", "chatting_score"},
                 {"alarm", "member_id", "member"},
                 {"alarm_setting", "member_id", "member"},
                 {"notification_alarm", "alarm_id", "alarm"},

@@ -9,7 +9,6 @@ import static org.example.knockin.alarm.entity.QChattingRequiredAlarm.chattingRe
 import static org.example.knockin.alarm.entity.QNotificationAlarm.notificationAlarm;
 import static org.example.knockin.alarm.entity.QRoommateCalendarAlarm.roommateCalendarAlarm;
 import static org.example.knockin.alarm.entity.QRoommateMatchingRequiredAlarm.roommateMatchingRequiredAlarm;
-import static org.example.knockin.chat.entity.QChattingRequired.chattingRequired;
 import static org.example.knockin.mate.entity.QMyRoommate.myRoommate;
 import static org.example.knockin.mate.entity.QRoommateCalendar.roommateCalendar;
 import static org.example.knockin.mate.entity.QRoommateMatchingRequired.roommateMatchingRequired;
@@ -26,14 +25,11 @@ public class AlarmRepositoryImpl implements AlarmRepositoryCustom {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public void deleteForMembers(List<Long> memberIds) {
+    public void deleteForMembers(List<Long> memberIds, List<Long> chatRequestIds, List<Long> chatRoomIds) {
         if (memberIds.isEmpty()) return;
 
-        JPQLSubQuery<Long> chatRequestIds = JPAExpressions.select(chattingRequired.id).from(chattingRequired)
-                .where(chattingRequired.requester.id.in(memberIds).or(chattingRequired.requestee.id.in(memberIds)));
-
         JPQLSubQuery<Long> matchingRequestIds = JPAExpressions.select(roommateMatchingRequired.id).from(roommateMatchingRequired)
-                .where(roommateMatchingRequired.requester.id.in(memberIds).or(roommateMatchingRequired.requestee.id.in(memberIds)).or(roommateMatchingRequired.chattingRoom.chattingRequired.id.in(chatRequestIds)));
+                .where(roommateMatchingRequired.requester.id.in(memberIds).or(roommateMatchingRequired.requestee.id.in(memberIds)).or(roommateMatchingRequired.chattingRoomId.in(chatRoomIds)));
 
         JPQLSubQuery<Long> calendarIds = JPAExpressions.select(roommateCalendar.id).from(roommateCalendar)
                 .join(roommateCalendar.myRoommate, myRoommate).where(myRoommate.roommateMatchingRequired.id.in(matchingRequestIds).or(roommateCalendar.member.id.in(memberIds)));

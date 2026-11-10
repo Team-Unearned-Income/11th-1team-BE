@@ -6,7 +6,6 @@ import org.example.knockin.chat.dto.ChatRoomDetailDto;
 import org.example.knockin.chat.dto.MessageType;
 import org.example.knockin.chat.entity.ChatRoomMessage;
 import org.example.knockin.chat.entity.ChattingRoom;
-import org.example.knockin.member.entity.Member;
 import org.example.knockin.chat.repository.ChatRoomMessageRepository;
 import org.example.knockin.chat.repository.row.ChatRoomUnreadCountRow;
 import org.jspecify.annotations.Nullable;
@@ -18,10 +17,10 @@ public class ChatRoomMessageServiceImpl {
 
     private final ChatRoomMessageRepository chatRoomMessageRepository;
 
-    public ChatRoomMessage save(String contents, @Nullable Member member, ChattingRoom chattingRoom, MessageType type) {
+    public ChatRoomMessage save(String contents, @Nullable Long memberId, ChattingRoom chattingRoom, MessageType type) {
         ChatRoomMessage chatRoomMessage = ChatRoomMessage.builder()
                 .contents(contents)
-                .member(member)
+                .memberId(memberId)
                 .chattingRoom(chattingRoom)
                 .type(type)
                 .build();

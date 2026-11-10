@@ -26,7 +26,7 @@ public class ChatRoomMessageRepositoryImpl implements ChatRoomMessageRepositoryC
                 .select(Projections.constructor(
                         ChatMessage.class,
                         chatRoomMessage.id,
-                        chatRoomMessage.member.id,
+                        chatRoomMessage.memberId,
                         chatRoomMessage.contents,
                         chatRoomMessage.createdAt,
                         chatRoomMessage.type,
@@ -35,7 +35,7 @@ public class ChatRoomMessageRepositoryImpl implements ChatRoomMessageRepositoryC
                 .from(chatRoomMessage)
                 .leftJoin(chatRoomFile)
                 .on(chatRoomFile.chatRoomMessage.eq(chatRoomMessage))
-                .leftJoin(chatRoomFile.file, file)
+                .leftJoin(file).on(chatRoomFile.fileId.eq(file.id))
                 .where(chatRoomMessage.chattingRoom.id.eq(chatRoomId))
                 .orderBy(chatRoomMessage.createdAt.asc(), chatRoomMessage.id.asc())
                 .fetch();
@@ -58,13 +58,13 @@ public class ChatRoomMessageRepositoryImpl implements ChatRoomMessageRepositoryC
                 .join(viewerRoomMember)
                 .on(
                         viewerRoomMember.chattingRoom.eq(unreadMessage.chattingRoom),
-                        viewerRoomMember.member.id.eq(memberId),
+                        viewerRoomMember.memberId.eq(memberId),
                         viewerRoomMember.isLeft.isFalse()
                 )
                 .where(
                         unreadMessage.chattingRoom.id.in(chatRoomIds),
                         unreadMessage.isRead.isFalse(),
-                        unreadMessage.member.isNull().or(unreadMessage.member.id.ne(memberId))
+                        unreadMessage.memberId.isNull().or(unreadMessage.memberId.ne(memberId))
                 )
                 .groupBy(unreadMessage.chattingRoom.id)
                 .fetch();
@@ -78,7 +78,7 @@ public class ChatRoomMessageRepositoryImpl implements ChatRoomMessageRepositoryC
                 .where(
                         chatRoomMessage.chattingRoom.id.eq(chatRoomId),
                         chatRoomMessage.isRead.isFalse(),
-                        chatRoomMessage.member.isNull().or(chatRoomMessage.member.id.ne(memberId))
+                        chatRoomMessage.memberId.isNull().or(chatRoomMessage.memberId.ne(memberId))
                 )
                 .execute();
     }

@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.mate.dto.RoommateRequestDto.RoommateMatchingRequiredInfo;
-import org.example.knockin.chat.entity.ChattingRoom;
 import org.example.knockin.member.entity.Member;
 import org.example.knockin.mate.entity.RoommateMatchingRequired;
 import org.example.knockin.mate.entity.RoommateRequiredStatus;
@@ -14,6 +13,8 @@ import org.example.knockin.mate.repository.RoommateMatchingRequiredRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 @Service
 @RequiredArgsConstructor
@@ -21,8 +22,13 @@ public class RoommateMatchingRequiredServiceImpl {
 
     private final RoommateMatchingRequiredRepository roommateMatchingRequiredRepository;
 
-    public List<RoommateMatchingRequiredInfo> findRequiredDto(ChattingRoom chattingRoom) {
-        return roommateMatchingRequiredRepository.findRequiredDto(chattingRoom);
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void deleteForMembers(List<Long> memberIds, List<Long> chatRoomIds, List<Long> chatScoreIds) {
+        roommateMatchingRequiredRepository.deleteForMembers(memberIds, chatRoomIds, chatScoreIds);
+    }
+
+    public List<RoommateMatchingRequiredInfo> findRequiredDto(Long chattingRoomId) {
+        return roommateMatchingRequiredRepository.findRequiredDto(chattingRoomId);
     }
 
     public Optional<RoommateMatchingRequired> findLatest(Long chatRoomId) {
@@ -34,11 +40,11 @@ public class RoommateMatchingRequiredServiceImpl {
                 .orElseThrow(() -> new BusinessException(RequiredErrorCode.ROOMMATE_NOT_FOUND));
     }
 
-    public RoommateMatchingRequired savePending(Member requester, Member requestee, ChattingRoom chattingRoom) {
+    public RoommateMatchingRequired savePending(Member requester, Member requestee, Long chattingRoomId) {
         RoommateMatchingRequired roommateMatchingRequired = RoommateMatchingRequired.builder()
                 .requester(requester)
                 .requestee(requestee)
-                .chattingRoom(chattingRoom)
+                .chattingRoomId(chattingRoomId)
                 .status(RoommateRequiredStatus.PENDING)
                 .build();
 

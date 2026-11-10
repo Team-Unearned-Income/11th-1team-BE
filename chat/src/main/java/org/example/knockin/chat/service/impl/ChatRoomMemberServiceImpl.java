@@ -4,9 +4,8 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.chat.entity.ChatRoomMember;
 import org.example.knockin.chat.entity.ChattingRoom;
-import org.example.knockin.member.entity.Member;
 import org.example.knockin.global.exception.BusinessException;
-import org.example.knockin.global.exception.ChattingErrorCode;
+import org.example.knockin.chat.exception.ChattingErrorCode;
 import org.example.knockin.chat.repository.ChatRoomMemberRepository;
 import org.springframework.stereotype.Service;
 
@@ -21,11 +20,11 @@ public class ChatRoomMemberServiceImpl {
                 .orElseThrow(() -> new BusinessException(ChattingErrorCode.ROOM_MEMBER_NOT_FOUND));
     }
 
-    public Member findPartnerMember(ChatRoomMember me, Long chatRoomId) {
-        return chatRoomMemberRepository.findPartnerMember(me, chatRoomId);
+    public Long findPartnerMemberId(ChatRoomMember me, Long chatRoomId) {
+        return chatRoomMemberRepository.findPartnerMemberId(me, chatRoomId);
     }
 
-    public List<ChatRoomMember> saveAll(ChattingRoom chattingRoom, List<Member> members) {
+    public List<ChatRoomMember> saveAll(ChattingRoom chattingRoom, List<Long> members) {
         if (members.size() > 2) {
             throw new BusinessException(ChattingErrorCode.ROOM_CAPACITY_EXCEEDED);
         }
