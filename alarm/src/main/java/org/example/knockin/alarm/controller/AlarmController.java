@@ -1,4 +1,4 @@
-package org.example.knockin.meta.controller;
+package org.example.knockin.alarm.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

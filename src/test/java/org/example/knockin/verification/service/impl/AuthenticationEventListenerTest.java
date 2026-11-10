@@ -123,7 +123,7 @@ class AuthenticationEventListenerTest {
 
     private void assertAlarm(Alarm alarm, Member member, String title, String contents,
             LocalDateTime earliestExpiration, LocalDateTime latestExpiration) {
-        assertThat(alarm.getMember()).isSameAs(member);
+        assertThat(alarm.getMemberId()).isEqualTo(member.getId());
         assertThat(alarm.getTitle()).isEqualTo(title);
         assertThat(alarm.getContents()).isEqualTo(contents);
         assertThat(alarm.getIsRead()).isFalse();

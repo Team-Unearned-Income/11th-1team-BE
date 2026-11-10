@@ -186,11 +186,11 @@ class RoommateRequestServiceImplTest {
 
         ArgumentCaptor<RoommateMatchingRequiredAlarm> alarmCaptor = ArgumentCaptor.forClass(RoommateMatchingRequiredAlarm.class);
         verify(alarmService).sendToClient(eq(requesteeId), eq(AlarmType.ROOM_MATCHING.name()), alarmCaptor.capture());
-        assertThat(alarmCaptor.getValue().getMember()).isSameAs(requestee);
+        assertThat(alarmCaptor.getValue().getMemberId()).isEqualTo(requestee.getId());
         assertThat(alarmCaptor.getValue().getTitle()).isEqualTo("김중민님의 매칭 요청");
         assertThat(alarmCaptor.getValue().getContents()).isEqualTo("김중민님이 매칭을 요청했어요.");
         assertThat(alarmCaptor.getValue().getType()).isEqualTo(AlarmType.ROOM_MATCHING);
-        assertThat(alarmCaptor.getValue().getRoommateMatchingRequired().getId()).isEqualTo(1000L);
+        assertThat(alarmCaptor.getValue().getRoommateMatchingRequiredId()).isEqualTo(1000L);
         verify(pushNotificationService).send(
                 requestee,
                 AlarmSettingType.NOTIFICATION,
@@ -358,10 +358,10 @@ class RoommateRequestServiceImplTest {
 
         ArgumentCaptor<RoommateMatchingRequiredAlarm> alarmCaptor = ArgumentCaptor.forClass(RoommateMatchingRequiredAlarm.class);
         verify(alarmService).sendToClient(eq(requesterId), eq(AlarmType.ROOM_MATCHING.name()), alarmCaptor.capture());
-        assertThat(alarmCaptor.getValue().getMember()).isSameAs(requester);
+        assertThat(alarmCaptor.getValue().getMemberId()).isEqualTo(requester.getId());
         assertThat(alarmCaptor.getValue().getTitle()).isEqualTo("매칭 요청이 수락됐어요");
         assertThat(alarmCaptor.getValue().getContents()).isEqualTo("이수현님과의 룸메이트가 이뤄졌어요.");
-        assertThat(alarmCaptor.getValue().getRoommateMatchingRequired()).isSameAs(roommateRequest);
+        assertThat(alarmCaptor.getValue().getRoommateMatchingRequiredId()).isEqualTo(roommateRequest.getId());
         verify(pushNotificationService).send(
                 requester,
                 AlarmSettingType.NOTIFICATION,
@@ -432,10 +432,10 @@ class RoommateRequestServiceImplTest {
 
         ArgumentCaptor<RoommateMatchingRequiredAlarm> alarmCaptor = ArgumentCaptor.forClass(RoommateMatchingRequiredAlarm.class);
         verify(alarmService).sendToClient(eq(requesterId), eq(AlarmType.ROOM_MATCHING.name()), alarmCaptor.capture());
-        assertThat(alarmCaptor.getValue().getMember()).isSameAs(requester);
+        assertThat(alarmCaptor.getValue().getMemberId()).isEqualTo(requester.getId());
         assertThat(alarmCaptor.getValue().getTitle()).isEqualTo("매칭 요청 거절");
         assertThat(alarmCaptor.getValue().getContents()).isEqualTo("이수현님이 매칭 요청을 거절했어요.");
-        assertThat(alarmCaptor.getValue().getRoommateMatchingRequired()).isSameAs(roommateRequest);
+        assertThat(alarmCaptor.getValue().getRoommateMatchingRequiredId()).isEqualTo(roommateRequest.getId());
         verify(pushNotificationService).send(
                 requester,
                 AlarmSettingType.NOTIFICATION,

@@ -15,6 +15,7 @@ import org.example.knockin.member.repository.MemberRepository;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
@@ -30,6 +31,11 @@ public class AlarmServiceImpl {
     private final MemberRepository memberRepository;
     private final Map<Long, SseEmitter> sseEmitterMap = new ConcurrentHashMap<>();
     private final AlarmRepository alarmRepository;
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void deleteForMembers(List<Long> memberIds) {
+        alarmRepository.deleteForMembers(memberIds);
+    }
 
     public SseEmitter subscribe(Long memberId) {
         memberRepository.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));

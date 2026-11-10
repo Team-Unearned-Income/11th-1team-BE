@@ -49,7 +49,6 @@ import org.example.knockin.member.service.impl.BlockServiceImpl;
 import org.example.knockin.member.service.impl.MemberServiceImpl;
 import org.example.knockin.mate.service.impl.MyRoomMateServiceImpl;
 import org.example.knockin.mate.service.impl.RoommateMatchingRequiredServiceImpl;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;

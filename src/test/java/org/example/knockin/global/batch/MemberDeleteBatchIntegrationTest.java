@@ -1,6 +1,12 @@
 package org.example.knockin.global.batch;
 
 import org.example.knockin.support.IsolatedExternalServices;
+import org.example.knockin.alarm.entity.Alarm;
+import org.example.knockin.alarm.entity.AlarmSetting;
+import org.example.knockin.alarm.entity.AlarmSettingType;
+import org.example.knockin.alarm.entity.AlarmType;
+import org.example.knockin.alarm.entity.Notification;
+import org.example.knockin.alarm.entity.NotificationAlarm;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -66,7 +72,9 @@ class MemberDeleteBatchIntegrationTest {
             "member_declaration", "roommate_board_declaration", "inquiry", "inquiry_comment",
             "authentication", "authentication_approve", "member_agreement", "member_life_pattern",
             "member_life_pattern_log", "preference_condition", "preference_condition_log",
-            "preference_condition_weight", "preference_condition_weight_log");
+            "preference_condition_weight", "preference_condition_weight_log",
+            "alarm", "alarm_setting", "notification_alarm", "chatting_required_alarm",
+            "roommate_matching_required_alarm", "roommate_calendar_alarm");
 
     @Autowired JobOperator jobOperator;
     @Autowired Job memberDeleteJob;
@@ -89,6 +97,13 @@ class MemberDeleteBatchIntegrationTest {
         // Delete one seeded member first, preserving other members and their shared relationships.
         Long oneMember = jdbc.queryForObject("SELECT id FROM member WHERE provider_id = 'user2_provider_789'", Long.class);
         jdbc.update("UPDATE member SET is_delete = true, deleted_at = ? WHERE id = ?", cutoff.minusDays(1), oneMember);
+        List<Long> survivingRecipientsAlarmIds = jdbc.queryForList("""
+                SELECT a.id FROM alarm a
+                JOIN chatting_required_alarm ca ON ca.id = a.id
+                JOIN chatting_required r ON r.id = ca.chatting_required_id
+                WHERE a.member_id <> ? AND (r.requester = ? OR r.requestee = ?)
+                """, Long.class, oneMember, oneMember, oneMember);
+        assertThat(survivingRecipientsAlarmIds).isNotEmpty();
         long alarmsBefore = jdbc.queryForObject("SELECT COUNT(*) FROM alarm", Long.class);
         Map<String, Long> referencesBefore = externalReferenceCounts();
         jdbc.execute("CREATE TABLE seeded_delete_blocker (member_id BIGINT REFERENCES member(id))");
@@ -106,6 +121,8 @@ class MemberDeleteBatchIntegrationTest {
         partial = jobOperator.restart(partial);
         assertThat(partial.getStatus()).isEqualTo(BatchStatus.COMPLETED);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM member", Long.class)).isEqualTo(members - 1);
+        survivingRecipientsAlarmIds.forEach(id ->
+                assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM alarm WHERE id = ?", Long.class, id)).isZero());
         assertNoOrphanedExternalReferences();
         for (String[] subtype : new String[][]{{"CHATTING_REQUIRED", "chatting_required_alarm"},
                 {"ROOM_MATCHING", "roommate_matching_required_alarm"}, {"ROOMMATE_CALENDAR", "roommate_calendar_alarm"}}) {
@@ -211,6 +228,12 @@ class MemberDeleteBatchIntegrationTest {
 
     private void assertNoOrphanedExternalReferences() {
         for (String[] reference : new String[][]{
+                {"alarm", "member_id", "member"},
+                {"alarm_setting", "member_id", "member"},
+                {"notification_alarm", "alarm_id", "alarm"},
+                {"chatting_required_alarm", "chatting_required_id", "chatting_required"},
+                {"roommate_matching_required_alarm", "roommate_matching_required_id", "roommate_matching_required"},
+                {"roommate_calendar_alarm", "roommate_calendar_id", "roommate_calendar"},
                 {"member_declaration", "reporter_id", "member"},
                 {"member_declaration", "reported_id", "member"},
                 {"roommate_board_declaration", "member_id", "member"},
@@ -285,8 +308,22 @@ class MemberDeleteBatchIntegrationTest {
                     .preferenceConditionWeightLogDegree(weightDegree).build();
             List.of(submittedReport, receivedReport, submittedBoardReport, receivedBoardReport, receivedComment, submittedComment,
                     approve, agreement, lifestyle, lifestyleLog, condition, conditionLog, weight, weightLog).forEach(entityManager::persist);
+            Alarm ownAlarm = Alarm.builder().memberId(memberId).title("batch alarm")
+                    .type(AlarmType.DEFAULT).expiredAt(LocalDateTime.now().plusDays(1)).build();
+            AlarmSetting setting = AlarmSetting.builder().memberId(memberId)
+                    .alarmSettingType(AlarmSettingType.NOTIFICATION).build();
+            Notification notice = Notification.builder().member(entityManager.find(Member.class, survivorId))
+                    .title("batch notice").contents("notice").build();
+            entityManager.persist(ownAlarm);
+            entityManager.persist(setting);
+            entityManager.persist(notice);
+            NotificationAlarm noticeLink = NotificationAlarm.builder().alarm(ownAlarm).notification(notice).build();
+            entityManager.persist(noticeLink);
             entityManager.flush();
             return List.of(
+                    new RelatedRow("alarm", "id", ownAlarm.getId()),
+                    new RelatedRow("alarm_setting", "id", setting.getId()),
+                    new RelatedRow("notification_alarm", "id", noticeLink.getId()),
                     new RelatedRow("member_declaration", "id", submittedReport.getId()),
                     new RelatedRow("member_declaration", "id", receivedReport.getId()),
                     new RelatedRow("roommate_board_declaration", "id", submittedBoardReport.getId()),
