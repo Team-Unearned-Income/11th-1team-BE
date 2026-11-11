@@ -2,6 +2,7 @@ package org.example.knockin.service.impl;
 
 import org.example.knockin.life.service.impl.LifeStyleServiceImpl;
 import org.example.knockin.life.dto.BoLifeStylePatternDetailDto;
+import org.example.knockin.life.dto.BoLifeStylePatternDto;
 import org.example.knockin.life.dto.BoLifeStylePatternListDto;
 import org.example.knockin.life.entity.LifePattern;
 import org.example.knockin.life.entity.LifePatternInformation;
@@ -13,17 +14,20 @@ import org.example.knockin.life.repository.LifePatternRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
@@ -45,16 +49,79 @@ class LifeStyleServiceImplTest {
     @DisplayName("라이프스타일 패턴 등록 성공 테스트")
     void saveLifePatternSuccessTest() {
         // given
-        LifePattern lifePattern = LifePattern.builder().name("흡연 여부").dtype(LifePatternType.BOOLEAN).sort(1).build();
-        given(lifePatternRepository.save(lifePattern)).willReturn(lifePattern);
+        Long patternId = 1L;
+        BoLifeStylePatternDto.Request request = new BoLifeStylePatternDto.Request(
+                "흡연 여부", LifePatternType.BOOLEAN, 1, "흡연 습관", "선호하는 흡연 습관",
+                List.of(
+                        new BoLifeStylePatternDto.Request.DetailItem("흡연", "담배를 피움"),
+                        new BoLifeStylePatternDto.Request.DetailItem("비흡연", "담배를 피우지 않음")
+                )
+        );
+        given(lifePatternRepository.save(any(LifePattern.class))).willAnswer(invocation -> {
+            LifePattern pattern = invocation.getArgument(0);
+            ReflectionTestUtils.setField(pattern, "id", patternId);
+            return pattern;
+        });
 
         // when
-        LifePattern result = lifeStyleService.saveLifePattern(lifePattern);
+        Long result = lifeStyleService.saveLifePatternLogic(request);
 
         // then
-        assertThat(result).isNotNull();
-        assertThat(result.getName()).isEqualTo("흡연 여부");
-        verify(lifePatternRepository).save(lifePattern);
+        assertThat(result).isEqualTo(patternId);
+        ArgumentCaptor<LifePattern> patternCaptor = ArgumentCaptor.forClass(LifePattern.class);
+        verify(lifePatternRepository).save(patternCaptor.capture());
+        LifePattern savedPattern = patternCaptor.getValue();
+        assertThat(savedPattern)
+                .extracting(LifePattern::getName, LifePattern::getDtype, LifePattern::getSort,
+                        LifePattern::getLifePatternDescription, LifePattern::getPreferenceDescription)
+                .containsExactly("흡연 여부", LifePatternType.BOOLEAN, 1, "흡연 습관", "선호하는 흡연 습관");
+
+        ArgumentCaptor<LifePatternInformation> detailCaptor = ArgumentCaptor.forClass(LifePatternInformation.class);
+        verify(lifePatternInformationRepository, times(2)).save(detailCaptor.capture());
+        assertThat(detailCaptor.getAllValues())
+                .extracting(LifePatternInformation::getLifePattern, LifePatternInformation::getDvalue,
+                        LifePatternInformation::getDescription)
+                .containsExactly(tuple(savedPattern, "흡연", "담배를 피움"),
+                        tuple(savedPattern, "비흡연", "담배를 피우지 않음"));
+    }
+
+    @Test
+    @DisplayName("라이프스타일 패턴 수정 시 기존 상세를 변경하고 새 상세를 저장한다")
+    void modifyLifePatternSuccessTest() {
+        // given
+        Long patternId = 100L;
+        LifePattern pattern = LifePattern.builder().id(patternId).name("흡연 여부").build();
+        LifePatternInformation existingDetail = LifePatternInformation.builder()
+                .lifePattern(pattern)
+                .dvalue("흡연")
+                .description("이전 설명")
+                .build();
+        BoLifeStylePatternDto.Request request = new BoLifeStylePatternDto.Request(
+                "흡연 습관", LifePatternType.BOOLEAN, 2, "생활패턴 설명", "선호조건 설명",
+                List.of(
+                        new BoLifeStylePatternDto.Request.DetailItem("흡연", "담배를 피움"),
+                        new BoLifeStylePatternDto.Request.DetailItem("비흡연", "담배를 피우지 않음")
+                )
+        );
+        given(lifePatternRepository.findById(patternId)).willReturn(Optional.of(pattern));
+        given(lifePatternInformationRepository.findByLifePattern(pattern)).willReturn(List.of(existingDetail));
+
+        // when
+        lifeStyleService.modifyLifePattern(request, patternId);
+
+        // then
+        assertThat(pattern)
+                .extracting(LifePattern::getName, LifePattern::getDtype, LifePattern::getSort,
+                        LifePattern::getLifePatternDescription, LifePattern::getPreferenceDescription)
+                .containsExactly("흡연 습관", LifePatternType.BOOLEAN, 2, "생활패턴 설명", "선호조건 설명");
+        assertThat(existingDetail.getDescription()).isEqualTo("담배를 피움");
+
+        ArgumentCaptor<LifePatternInformation> detailCaptor = ArgumentCaptor.forClass(LifePatternInformation.class);
+        verify(lifePatternInformationRepository).save(detailCaptor.capture());
+        assertThat(detailCaptor.getValue())
+                .extracting(LifePatternInformation::getLifePattern, LifePatternInformation::getDvalue,
+                        LifePatternInformation::getDescription)
+                .containsExactly(pattern, "비흡연", "담배를 피우지 않음");
     }
 
     @Test
