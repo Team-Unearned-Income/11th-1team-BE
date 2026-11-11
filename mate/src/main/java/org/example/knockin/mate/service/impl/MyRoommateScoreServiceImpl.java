@@ -17,7 +17,7 @@ public class MyRoommateScoreServiceImpl {
         return roommateScoreRepository.saveAll(roommateScores);
     }
 
-    public Optional<RoommateScore> findByRoommateIdAndMemberId(Long myRoommateId, Long memberId) {
-        return roommateScoreRepository.findOneByMyRoommateIdAndMemberId(myRoommateId, memberId);
+    public Optional<RoommateScore> findByRoommateIdAndChattingScoreId(Long myRoommateId, Long chattingScoreId) {
+        return roommateScoreRepository.findOneByMyRoommateIdAndChattingScoreId(myRoommateId, chattingScoreId);
     }
 }

@@ -1,5 +1,7 @@
 package org.example.knockin.member.service.impl;
 
+import org.example.knockin.mate.service.impl.RoommateMatchingRequiredServiceImpl;
+import org.example.knockin.chat.service.impl.ChattingRequiredServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.knockin.member.dto.BoMemberDetailDto;
@@ -68,6 +70,8 @@ public class MemberServiceImpl {
     private final AlarmSettingRepository alarmSettingRepository;
     private final AlarmServiceImpl alarmService;
     private final PushNotificationServiceImpl pushNotificationService;
+    private final RoommateMatchingRequiredServiceImpl roommateMatchingRequiredService;
+    private final ChattingRequiredServiceImpl chattingRequiredService;
 
     @Transactional
     public Member getOrSave(OAuth2UserInfo oAuth2UserInfo) {
@@ -120,7 +124,12 @@ public class MemberServiceImpl {
         List<Long> targetIds = memberRepository.findDeletionTargetIdsForUpdate(memberIds, thresholdDate);
         if (targetIds.isEmpty()) return;
 
-        alarmService.deleteForMembers(targetIds);
+        List<Long> chatRequestIds = chattingRequiredService.findIdsForMembers(targetIds);
+        List<Long> chatRoomIds = chattingRequiredService.findRoomIdsByRequestIds(chatRequestIds);
+        List<Long> chatScoreIds = chattingRequiredService.findScoreIdsByRequestIds(chatRequestIds);
+        alarmService.deleteForMembers(targetIds, chatRequestIds, chatRoomIds);
+        roommateMatchingRequiredService.deleteForMembers(targetIds, chatRoomIds, chatScoreIds);
+        chattingRequiredService.deleteForMembers(targetIds);
         memberRepository.deleteMembersByIds(targetIds);
     }
 

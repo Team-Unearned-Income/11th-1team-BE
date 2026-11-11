@@ -17,7 +17,6 @@ import org.example.knockin.mate.dto.MyRoommateDto;
 import org.example.knockin.mate.dto.MyRoommateMonthlyCalendarListDto;
 import org.example.knockin.mate.dto.RepeatCalendarDto;
 import org.example.knockin.mate.dto.RepeatCalendarModifyDto;
-import org.example.knockin.chat.entity.ChattingRequired;
 import org.example.knockin.chat.entity.ChattingScore;
 import org.example.knockin.member.entity.Member;
 import org.example.knockin.member.entity.MemberPrivacy;
@@ -61,12 +60,11 @@ public class MyRoomMateServiceImpl {
                 .build();
         MyRoommate savedMyRoommate = myRoommateRepository.save(myRoommate);
 
-        ChattingRequired chattingRequired = roommateMatchingRequired.getChattingRoom().getChattingRequired();
-        List<ChattingScore> chattingScores = chattingScoreService.findByChattingRequiredId(chattingRequired.getId());
+        List<ChattingScore> chattingScores = chattingScoreService.findByChattingRoomId(roommateMatchingRequired.getChattingRoomId());
         List<RoommateScore> roommateScores = chattingScores.stream()
                 .map(chattingScore -> RoommateScore.builder()
                         .myRoommate(savedMyRoommate)
-                        .chattingScore(chattingScore)
+                        .chattingScoreId(chattingScore.getId())
                         .build()
                 )
                 .toList();
@@ -87,13 +85,11 @@ public class MyRoomMateServiceImpl {
         MyRoommateInfo myRoommateInfo = toMyRoommateInfo(basicInfoRow);
 
         Long myRoommateId = myRoommate.getId();
-        Integer score = myRoommateScoreService.findByRoommateIdAndMemberId(myRoommateId, memberId)
-                .map(roommateScore -> {
-                    ChattingScore chattingScore = roommateScore.getChattingScore();
-                    return chattingScore.getScore();
-                })
+        Integer score = chattingScoreService.findByChattingRoomIdAndMemberId(roommateMatchingRequired.getChattingRoomId(), memberId)
+                .filter(chatScore -> myRoommateScoreService.findByRoommateIdAndChattingScoreId(myRoommateId, chatScore.getId()).isPresent())
+                .map(ChattingScore::getScore)
                 .orElseGet(() -> javaRoommateScoreV2Service.calculateSimpleScore(memberId, opponentId));
-        Long chatRoomId = roommateMatchingRequired.getChattingRoom().getId();
+        Long chatRoomId = roommateMatchingRequired.getChattingRoomId();
 
         return MyRoommateCardDto.Response.builder()
                 .id(myRoommateId)

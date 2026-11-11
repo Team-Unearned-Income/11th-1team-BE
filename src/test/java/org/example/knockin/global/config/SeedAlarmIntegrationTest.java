@@ -22,6 +22,31 @@ class SeedAlarmIntegrationTest {
     private JdbcTemplate jdbc;
 
     @Test
+    void roommateReferencesUsePersistedChatIds() {
+        assertThat(jdbc.queryForObject("""
+                SELECT COUNT(*) FROM chatting_required r
+                JOIN roommate_board b ON b.id = r.roommate_board_id
+                WHERE b.title LIKE '부하 테스트 게시글 %'
+                """, Long.class)).isEqualTo(3L);
+        assertThat(jdbc.queryForObject("""
+                SELECT COUNT(*) FROM chatting_score s
+                LEFT JOIN member_life_pattern_log_degree d ON d.id = s.member_life_pattern_log_degree_id
+                WHERE d.id IS NULL
+                """, Long.class)).isZero();
+        assertThat(jdbc.queryForObject("""
+                SELECT COUNT(*) FROM roommate_matching_required r
+                LEFT JOIN chatting_room c ON c.id = r.chatting_room_id
+                WHERE c.id IS NULL
+                """, Long.class)).isZero();
+        assertThat(jdbc.queryForObject("""
+                SELECT COUNT(*) FROM roommate_score r
+                LEFT JOIN chatting_score c ON c.id = r.chatting_score_id
+                WHERE c.id IS NULL
+                """, Long.class)).isZero();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM roommate_score", Long.class)).isGreaterThanOrEqualTo(3L);
+    }
+
+    @Test
     void loadTestAlarmsReferencePersistedRequestsAndCalendars() {
         assertThat(jdbc.queryForObject("""
                 SELECT COUNT(*) FROM roommate_matching_required_alarm a

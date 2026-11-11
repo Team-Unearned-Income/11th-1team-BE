@@ -2,6 +2,12 @@ package org.example.knockin.chat.repository.impl;
 
 import static org.example.knockin.member.entity.QBasicInformation.basicInformation;
 import static org.example.knockin.chat.entity.QChattingRequired.chattingRequired;
+import static org.example.knockin.chat.entity.QChatRoomMember.chatRoomMember;
+import static org.example.knockin.chat.entity.QChatRoomMessage.chatRoomMessage;
+import static org.example.knockin.board.entity.QRoommateBoard.roommateBoard;
+import com.querydsl.jpa.JPQLSubQuery;
+import static org.example.knockin.chat.entity.QChattingRoom.chattingRoom;
+import static org.example.knockin.chat.entity.QChattingScore.chattingScore;
 
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.JPAExpressions;
@@ -11,7 +17,6 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.chat.entity.ChattingRequired;
 import org.example.knockin.chat.entity.ChattingRequiredStatus;
-import org.example.knockin.member.entity.Member;
 import org.example.knockin.chat.repository.ChattingRequiredRepositoryCustom;
 import org.example.knockin.chat.repository.row.ChatRequestListRow;
 import org.example.knockin.member.entity.QBasicInformation;
@@ -24,13 +29,51 @@ public class ChattingRequiredRepositoryImpl implements ChattingRequiredRepositor
     private final JPAQueryFactory jpaQueryFactory;
 
     @Override
-    public boolean existsBetweenMembers(Member memberA, Member memberB) {
+    public List<Long> findIdsForMembers(List<Long> memberIds) {
+        if (memberIds.isEmpty()) return List.of();
+        return jpaQueryFactory.select(chattingRequired.id).from(chattingRequired)
+                .where(chattingRequired.requesterId.in(memberIds).or(chattingRequired.requesteeId.in(memberIds)))
+                .fetch();
+    }
+
+    @Override
+    public List<Long> findRoomIdsByRequestIds(List<Long> requestIds) {
+        if (requestIds.isEmpty()) return List.of();
+        return jpaQueryFactory.select(chattingRoom.id).from(chattingRoom)
+                .where(chattingRoom.chattingRequired.id.in(requestIds)).fetch();
+    }
+
+    @Override
+    public List<Long> findScoreIdsByRequestIds(List<Long> requestIds) {
+        if (requestIds.isEmpty()) return List.of();
+        return jpaQueryFactory.select(chattingScore.id).from(chattingScore)
+                .where(chattingScore.chattingRequired.id.in(requestIds)).fetch();
+    }
+
+    @Override
+    public void deleteForMembers(List<Long> memberIds) {
+        if (memberIds.isEmpty()) return;
+
+        JPQLSubQuery<Long> boardIds = JPAExpressions.select(roommateBoard.id).from(roommateBoard)
+                .where(roommateBoard.member.id.in(memberIds));
+        jpaQueryFactory.update(chattingRequired)
+                .setNull(chattingRequired.roommateBoardId)
+                .where(chattingRequired.roommateBoardId.in(boardIds)).execute();
+        jpaQueryFactory.delete(chatRoomMessage).where(chatRoomMessage.memberId.in(memberIds)).execute();
+        jpaQueryFactory.delete(chatRoomMember).where(chatRoomMember.memberId.in(memberIds)).execute();
+        jpaQueryFactory.delete(chattingRequired)
+                .where(chattingRequired.requesterId.in(memberIds).or(chattingRequired.requesteeId.in(memberIds)))
+                .execute();
+    }
+
+    @Override
+    public boolean existsBetweenMembers(Long memberAId, Long memberBId) {
         Integer result = jpaQueryFactory
                 .selectOne()
                 .from(chattingRequired)
                 .where(
-                        chattingRequired.requester.eq(memberA).and(chattingRequired.requestee.eq(memberB))
-                                .or(chattingRequired.requester.eq(memberB).and(chattingRequired.requestee.eq(memberA)))
+                        chattingRequired.requesterId.eq(memberAId).and(chattingRequired.requesteeId.eq(memberBId))
+                                .or(chattingRequired.requesterId.eq(memberBId).and(chattingRequired.requesteeId.eq(memberAId)))
                 )
                 .fetchFirst();
 
@@ -38,19 +81,19 @@ public class ChattingRequiredRepositoryImpl implements ChattingRequiredRepositor
     }
 
     @Override
-    public Optional<ChattingRequired> findLatest(Member memberA, Member memberB) {
+    public Optional<ChattingRequired> findLatest(Long memberAId, Long memberBId) {
         return Optional.ofNullable(jpaQueryFactory
                 .selectFrom(chattingRequired)
                 .where(
-                        chattingRequired.requester.eq(memberA).and(chattingRequired.requestee.eq(memberB))
-                                .or(chattingRequired.requester.eq(memberB).and(chattingRequired.requestee.eq(memberA)))
+                        chattingRequired.requesterId.eq(memberAId).and(chattingRequired.requesteeId.eq(memberBId))
+                                .or(chattingRequired.requesterId.eq(memberBId).and(chattingRequired.requesteeId.eq(memberAId)))
                 )
                 .orderBy(chattingRequired.id.desc())
                 .fetchFirst());
     }
 
     @Override
-    public List<ChatRequestListRow> findAllPendingByRequestee(Member requestee) {
+    public List<ChatRequestListRow> findAllPendingByRequesteeId(Long requesteeId) {
         QMember requester = new QMember("requester");
         QBasicInformation basicInformationSub = new QBasicInformation("basicInformationSub");
 
@@ -66,7 +109,7 @@ public class ChattingRequiredRepositoryImpl implements ChattingRequiredRepositor
                         chattingRequired.createdAt
                 ))
                 .from(chattingRequired)
-                .join(chattingRequired.requester, requester)
+                .join(requester).on(chattingRequired.requesterId.eq(requester.id))
                 .leftJoin(basicInformation)
                 .on(basicInformation.id.eq(
                         JPAExpressions
@@ -75,7 +118,7 @@ public class ChattingRequiredRepositoryImpl implements ChattingRequiredRepositor
                                 .where(basicInformationSub.member.eq(requester))
                 ))
                 .where(
-                        chattingRequired.requestee.eq(requestee),
+                        chattingRequired.requesteeId.eq(requesteeId),
                         chattingRequired.status.eq(ChattingRequiredStatus.PENDING)
                 )
                 .orderBy(chattingRequired.createdAt.desc(), chattingRequired.id.desc())

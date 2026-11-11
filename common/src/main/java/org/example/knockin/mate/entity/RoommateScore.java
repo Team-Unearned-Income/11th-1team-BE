@@ -1,5 +1,6 @@
 package org.example.knockin.mate.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -13,9 +14,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-
-import org.example.knockin.chat.entity.ChattingScore;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -35,8 +33,6 @@ public class RoommateScore {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private MyRoommate myRoommate;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "chatting_score_id")
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    private ChattingScore chattingScore;
+    @Column(name = "chatting_score_id")
+    private Long chattingScoreId;
 }

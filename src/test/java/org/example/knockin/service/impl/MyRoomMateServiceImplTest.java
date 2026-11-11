@@ -98,8 +98,8 @@ class MyRoomMateServiceImplTest {
         Member requestee = Member.builder().id(2L).build();
         ChattingRequired chattingRequired = ChattingRequired.builder()
                 .id(10L)
-                .requester(requester)
-                .requestee(requestee)
+                .requesterId(requester.getId())
+                .requesteeId(requestee.getId())
                 .build();
         ChattingRoom chattingRoom = ChattingRoom.builder()
                 .id(100L)
@@ -108,14 +108,14 @@ class MyRoomMateServiceImplTest {
         RoommateMatchingRequired matchingRequired = RoommateMatchingRequired.builder()
                 .requester(requester)
                 .requestee(requestee)
-                .chattingRoom(chattingRoom)
+                .chattingRoomId(chattingRoom.getId())
                 .status(RoommateRequiredStatus.ACCEPTED)
                 .build();
-        ChattingScore requesterScore = ChattingScore.builder().score(80).build();
-        ChattingScore requesteeScore = ChattingScore.builder().score(70).build();
+        ChattingScore requesterScore = ChattingScore.builder().id(201L).score(80).build();
+        ChattingScore requesteeScore = ChattingScore.builder().id(202L).score(70).build();
 
         when(myRoommateRepository.save(any(MyRoommate.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(chattingScoreService.findByChattingRequiredId(10L))
+        when(chattingScoreService.findByChattingRoomId(100L))
                 .thenReturn(List.of(requesterScore, requesteeScore));
 
         // When
@@ -123,12 +123,12 @@ class MyRoomMateServiceImplTest {
 
         // Then
         assertThat(savedMyRoommate.getRoommateMatchingRequired()).isSameAs(matchingRequired);
-        verify(chattingScoreService).findByChattingRequiredId(10L);
+        verify(chattingScoreService).findByChattingRoomId(100L);
         verify(myRoommateScoreService).saveAll(org.mockito.ArgumentMatchers.argThat(roommateScores ->
                 roommateScores.size() == 2
                         && roommateScores.stream().allMatch(score -> score.getMyRoommate() == savedMyRoommate)
-                        && roommateScores.get(0).getChattingScore() == requesterScore
-                        && roommateScores.get(1).getChattingScore() == requesteeScore
+                        && roommateScores.get(0).getChattingScoreId().equals(requesterScore.getId())
+                        && roommateScores.get(1).getChattingScoreId().equals(requesteeScore.getId())
         ));
         verifyNoInteractions(roommateScoreService);
     }
@@ -155,8 +155,8 @@ class MyRoomMateServiceImplTest {
         Long opponentId = 2L;
         LocalDate opponentBirth = LocalDate.of(2000, 1, 1);
         MyRoommate myRoommate = myRoommate(10L, memberId, opponentId, 100L);
-        ChattingScore chattingScore = ChattingScore.builder().score(92).build();
-        RoommateScore roommateScore = RoommateScore.builder().chattingScore(chattingScore).build();
+        ChattingScore chattingScore = ChattingScore.builder().id(203L).score(92).build();
+        RoommateScore roommateScore = RoommateScore.builder().chattingScoreId(chattingScore.getId()).build();
         ChattingRoomBasicInfoRow basicInfoRow = new ChattingRoomBasicInfoRow(
                 opponentId,
                 "상대방",
@@ -167,7 +167,8 @@ class MyRoomMateServiceImplTest {
 
         when(myRoommateRepository.findWithRequiredByMemberId(memberId)).thenReturn(Optional.of(myRoommate));
         when(basicInformationService.findChattingRoomBasicInfoRowByMemberId(opponentId)).thenReturn(basicInfoRow);
-        when(myRoommateScoreService.findByRoommateIdAndMemberId(10L, memberId)).thenReturn(Optional.of(roommateScore));
+        when(myRoommateScoreService.findByRoommateIdAndChattingScoreId(10L, 203L)).thenReturn(Optional.of(roommateScore));
+        when(chattingScoreService.findByChattingRoomIdAndMemberId(100L, memberId)).thenReturn(Optional.of(chattingScore));
 
         // When
         MyRoommateCardDto.Response response = myRoomMateService.findMyRoommate(memberId);
@@ -182,7 +183,7 @@ class MyRoomMateServiceImplTest {
         assertThat(response.getMyRoommateInfo().getGender()).isEqualTo(Gender.FEMALE);
         assertThat(response.getMyRoommateInfo().getMemberProfileImageUrl()).isEqualTo("opponent-profile.jpg");
         verify(basicInformationService).findChattingRoomBasicInfoRowByMemberId(opponentId);
-        verify(myRoommateScoreService).findByRoommateIdAndMemberId(10L, memberId);
+        verify(myRoommateScoreService).findByRoommateIdAndChattingScoreId(10L, 203L);
         verify(roommateScoreService, never()).calculateSimpleScore(memberId, opponentId);
     }
 
@@ -203,7 +204,7 @@ class MyRoomMateServiceImplTest {
 
         when(myRoommateRepository.findWithRequiredByMemberId(memberId)).thenReturn(Optional.of(myRoommate));
         when(basicInformationService.findChattingRoomBasicInfoRowByMemberId(opponentId)).thenReturn(basicInfoRow);
-        when(myRoommateScoreService.findByRoommateIdAndMemberId(10L, memberId)).thenReturn(Optional.empty());
+        when(chattingScoreService.findByChattingRoomIdAndMemberId(100L, memberId)).thenReturn(Optional.empty());
         when(roommateScoreService.calculateSimpleScore(memberId, opponentId)).thenReturn(76);
 
         // When
@@ -586,7 +587,7 @@ class MyRoomMateServiceImplTest {
         RoommateMatchingRequired matchingRequired = RoommateMatchingRequired.builder()
                 .requester(requester)
                 .requestee(requestee)
-                .chattingRoom(chattingRoom)
+                .chattingRoomId(chattingRoom.getId())
                 .status(RoommateRequiredStatus.ACCEPTED)
                 .build();
 

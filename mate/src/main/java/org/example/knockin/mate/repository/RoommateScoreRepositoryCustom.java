@@ -4,5 +4,5 @@ import java.util.Optional;
 import org.example.knockin.mate.entity.RoommateScore;
 
 public interface RoommateScoreRepositoryCustom {
-    Optional<RoommateScore> findOneByMyRoommateIdAndMemberId(Long myRoommateId, Long memberId);
+    Optional<RoommateScore> findOneByMyRoommateIdAndChattingScoreId(Long myRoommateId, Long chattingScoreId);
 }

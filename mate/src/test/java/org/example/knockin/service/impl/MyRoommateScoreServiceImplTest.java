@@ -6,7 +6,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Optional;
-import org.example.knockin.chat.entity.ChattingScore;
 import org.example.knockin.mate.entity.RoommateScore;
 import org.example.knockin.mate.repository.RoommateScoreRepository;
 import org.example.knockin.mate.service.impl.MyRoommateScoreServiceImpl;
@@ -32,7 +31,7 @@ class MyRoommateScoreServiceImplTest {
     void saveAllSavesRoommateScores() {
         // Given
         List<RoommateScore> roommateScores = List.of(RoommateScore.builder()
-                .chattingScore(ChattingScore.builder().score(80).build())
+                .chattingScoreId(1L)
                 .build());
         when(roommateScoreRepository.saveAll(roommateScores)).thenReturn(roommateScores);
 
@@ -50,17 +49,17 @@ class MyRoommateScoreServiceImplTest {
         // Given
         Long myRoommateId = 10L;
         RoommateScore roommateScore = RoommateScore.builder()
-                .chattingScore(ChattingScore.builder().score(80).build())
+                .chattingScoreId(1L)
                 .build();
-        Long memberId = 1L;
-        when(roommateScoreRepository.findOneByMyRoommateIdAndMemberId(myRoommateId, memberId))
+        Long chattingScoreId = 1L;
+        when(roommateScoreRepository.findOneByMyRoommateIdAndChattingScoreId(myRoommateId, chattingScoreId))
                 .thenReturn(Optional.of(roommateScore));
 
         // When
-        Optional<RoommateScore> result = myRoommateScoreService.findByRoommateIdAndMemberId(myRoommateId, memberId);
+        Optional<RoommateScore> result = myRoommateScoreService.findByRoommateIdAndChattingScoreId(myRoommateId, chattingScoreId);
 
         // Then
         assertThat(result).contains(roommateScore);
-        verify(roommateScoreRepository).findOneByMyRoommateIdAndMemberId(myRoommateId, memberId);
+        verify(roommateScoreRepository).findOneByMyRoommateIdAndChattingScoreId(myRoommateId, chattingScoreId);
     }
 }

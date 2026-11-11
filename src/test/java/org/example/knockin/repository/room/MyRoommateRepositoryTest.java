@@ -114,8 +114,8 @@ class MyRoommateRepositoryTest {
 
     private MyRoommate persistMyRoommate(Member requester, Member requestee, Boolean isDeleted) {
         ChattingRequired chattingRequired = ChattingRequired.builder()
-                .requester(requester)
-                .requestee(requestee)
+                .requesterId(requester.getId())
+                .requesteeId(requestee.getId())
                 .status(ChattingRequiredStatus.ACCEPTED)
                 .build();
         entityManager.persist(chattingRequired);
@@ -128,7 +128,7 @@ class MyRoommateRepositoryTest {
         RoommateMatchingRequired matchingRequired = RoommateMatchingRequired.builder()
                 .requester(requester)
                 .requestee(requestee)
-                .chattingRoom(chattingRoom)
+                .chattingRoomId(chattingRoom.getId())
                 .status(RoommateRequiredStatus.ACCEPTED)
                 .build();
         entityManager.persist(matchingRequired);
