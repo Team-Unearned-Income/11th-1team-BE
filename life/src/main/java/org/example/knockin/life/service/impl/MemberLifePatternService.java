@@ -87,10 +87,6 @@ public class MemberLifePatternService {
         return memberLifePatternRepository.getLifeStyleDto(memberId);
     }
 
-    public Long findMaxmemberLifePatternLogDegree(Long memberId) {
-        return memberLifePatternLogDegreeRepository.findMaxmemberLifePatternLogDegree(memberId).orElse(null);
-    }
-
     @Transactional
     public MemberLifePatternLogDegree saveDegreeByMemberId(Long memberId) {
         Long maxDegree = memberLifePatternLogDegreeRepository.findMaxmemberLifePatternLogDegree(memberId).orElse(null);

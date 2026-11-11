@@ -76,18 +76,20 @@ public class PreferenceConditionServiceImpl {
 
     @Transactional
     public List<Long> saveLogsAll(Long memberId, Long degreeId) {
-        List<PreferenceCondition> preferenceConditions = findPreferenceConditionByMemberId(memberId);
-        List<Long> lifePatternInformationIds = preferenceConditions.stream()
+        List<LifePatternInformation> lifePatternInformationList = findPreferenceConditionByMemberId(memberId).stream()
                 .map(PreferenceCondition::getLifePatternInformation)
-                .map(LifePatternInformation::getId)
                 .toList();
 
-        return saveLogsAll(memberId, degreeId, lifePatternInformationIds);
+        return saveLogs(memberId, degreeId, lifePatternInformationList);
     }
 
     @Transactional
     public List<Long> saveLogsAll(Long memberId, Long degreeId, List<Long> lifePatternInformationIds) {
         List<LifePatternInformation> lifePatternInformationList = lifeStyleService.findLifePatternInformationAllById(lifePatternInformationIds);
+        return saveLogs(memberId, degreeId, lifePatternInformationList);
+    }
+
+    private List<Long> saveLogs(Long memberId, Long degreeId, List<LifePatternInformation> lifePatternInformationList) {
         PreferenceConditionLogDegree degree = preferenceConditionLogDegreeRepository.findById(degreeId)
                 .orElseThrow(() -> new BusinessException(LifePatternErrorCode.DEGREE_NOT_FOUND));
 
