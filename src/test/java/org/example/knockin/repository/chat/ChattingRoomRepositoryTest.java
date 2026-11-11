@@ -149,9 +149,9 @@ class ChattingRoomRepositoryTest {
         ChatRoomMember viewerRoomMember = persistChatRoomMember(room, viewer, false);
         ChatRoomMember opponentRoomMember = persistChatRoomMember(room, opponent, false);
         ChatRoomMessage previousMessage =
-                persistChatRoomMessage(room, viewerRoomMember.getMember(), "이전 메시지");
+                persistChatRoomMessage(room, viewer, "이전 메시지");
         ChatRoomMessage latestMessage =
-                persistChatRoomMessage(room, opponentRoomMember.getMember(), "최근 메시지");
+                persistChatRoomMessage(room, opponent, "최근 메시지");
 
         entityManager.flush();
         updateMessageCreatedAt(previousMessage, LocalDateTime.of(2026, 6, 18, 12, 10));
@@ -404,8 +404,8 @@ class ChattingRoomRepositoryTest {
 
     private ChattingRoom persistChattingRoom(Member requester, Member requestee, ChattingRequiredStatus status) {
         ChattingRequired chattingRequired = ChattingRequired.builder()
-                .requester(requester)
-                .requestee(requestee)
+                .requesterId(requester.getId())
+                .requesteeId(requestee.getId())
                 .status(status)
                 .build();
         entityManager.persist(chattingRequired);
@@ -425,7 +425,7 @@ class ChattingRoomRepositoryTest {
     private ChatRoomMember persistChatRoomMember(ChattingRoom chattingRoom, Member member, Boolean isLeft) {
         ChatRoomMember chatRoomMember = ChatRoomMember.builder()
                 .chattingRoom(chattingRoom)
-                .member(member)
+                .memberId(member == null ? null : member.getId())
                 .isLeft(isLeft)
                 .build();
         entityManager.persist(chatRoomMember);
@@ -444,7 +444,7 @@ class ChattingRoomRepositoryTest {
     ) {
         ChatRoomMessage chatRoomMessage = ChatRoomMessage.builder()
                 .chattingRoom(chattingRoom)
-                .member(member)
+                .memberId(member == null ? null : member.getId())
                 .type(MessageType.TEXT)
                 .contents(contents)
                 .isRead(isRead)
@@ -460,7 +460,7 @@ class ChattingRoomRepositoryTest {
             RoommateRequiredStatus status
     ) {
         RoommateMatchingRequired required = RoommateMatchingRequired.builder()
-                .chattingRoom(chattingRoom)
+                .chattingRoomId(chattingRoom.getId())
                 .requester(requester)
                 .requestee(requestee)
                 .status(status)

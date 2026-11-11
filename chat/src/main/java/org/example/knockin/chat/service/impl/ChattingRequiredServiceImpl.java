@@ -3,16 +3,16 @@ package org.example.knockin.chat.service.impl;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.board.entity.RoommateBoard;
 import org.example.knockin.chat.entity.ChattingRequired;
 import org.example.knockin.chat.entity.ChattingRequiredStatus;
-import org.example.knockin.member.entity.Member;
 import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.RequiredErrorCode;
 import org.example.knockin.chat.repository.ChattingRequiredRepository;
 import org.example.knockin.chat.repository.row.ChatRequestListRow;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 @Service
 @RequiredArgsConstructor
@@ -20,8 +20,25 @@ public class ChattingRequiredServiceImpl {
 
     private final ChattingRequiredRepository chattingRequiredRepository;
 
-    public List<ChatRequestListRow> findAllPendingByRequestee(Member requestee) {
-        return chattingRequiredRepository.findAllPendingByRequestee(requestee);
+    public List<Long> findIdsForMembers(List<Long> memberIds) {
+        return chattingRequiredRepository.findIdsForMembers(memberIds);
+    }
+
+    public List<Long> findRoomIdsByRequestIds(List<Long> requestIds) {
+        return chattingRequiredRepository.findRoomIdsByRequestIds(requestIds);
+    }
+
+    public List<Long> findScoreIdsByRequestIds(List<Long> requestIds) {
+        return chattingRequiredRepository.findScoreIdsByRequestIds(requestIds);
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void deleteForMembers(List<Long> memberIds) {
+        chattingRequiredRepository.deleteForMembers(memberIds);
+    }
+
+    public List<ChatRequestListRow> findAllPendingByRequesteeId(Long requesteeId) {
+        return chattingRequiredRepository.findAllPendingByRequesteeId(requesteeId);
     }
 
     public ChattingRequired findByIdOrThrow(Long requestId) {
@@ -29,23 +46,23 @@ public class ChattingRequiredServiceImpl {
                 .orElseThrow(() -> new BusinessException(RequiredErrorCode.CHATTING_NOT_FOUND));
     }
 
-    public Optional<ChattingRequired> findLatest(Member requester, Member requestee) {
-        return chattingRequiredRepository.findLatest(requester, requestee);
+    public Optional<ChattingRequired> findLatest(Long requesterId, Long requesteeId) {
+        return chattingRequiredRepository.findLatest(requesterId, requesteeId);
     }
 
-    public ChattingRequired savePending(Member requester, Member requestee, @Nullable RoommateBoard roommateBoard) {
-        return save(requester, requestee, roommateBoard, ChattingRequiredStatus.PENDING);
+    public ChattingRequired savePending(Long requesterId, Long requesteeId, @Nullable Long roommateBoardId) {
+        return save(requesterId, requesteeId, roommateBoardId, ChattingRequiredStatus.PENDING);
     }
 
-    public ChattingRequired saveAccepted(Member requester, Member requestee, @Nullable RoommateBoard roommateBoard) {
-        return save(requester, requestee, roommateBoard, ChattingRequiredStatus.ACCEPTED);
+    public ChattingRequired saveAccepted(Long requesterId, Long requesteeId, @Nullable Long roommateBoardId) {
+        return save(requesterId, requesteeId, roommateBoardId, ChattingRequiredStatus.ACCEPTED);
     }
 
-    private ChattingRequired save(Member requester, Member requestee, @Nullable RoommateBoard roommateBoard, ChattingRequiredStatus status) {
+    private ChattingRequired save(Long requesterId, Long requesteeId, @Nullable Long roommateBoardId, ChattingRequiredStatus status) {
         ChattingRequired chattingRequired = ChattingRequired.builder()
-                .requester(requester)
-                .requestee(requestee)
-                .roommateBoard(roommateBoard)
+                .requesterId(requesterId)
+                .requesteeId(requesteeId)
+                .roommateBoardId(roommateBoardId)
                 .status(status)
                 .build();
 

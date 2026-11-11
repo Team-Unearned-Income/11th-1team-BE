@@ -16,7 +16,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.example.knockin.chat.entity.ChattingRoom;
 import org.example.knockin.member.entity.Member;
 import org.example.knockin.global.entity.BaseEntity;
 import org.hibernate.annotations.OnDelete;
@@ -45,10 +44,8 @@ public class RoommateMatchingRequired extends BaseEntity {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Member requestee;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "chatting_room_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    private ChattingRoom chattingRoom;
+    @Column(name = "chatting_room_id", nullable = false)
+    private Long chattingRoomId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)

@@ -38,7 +38,7 @@ import org.example.knockin.mate.entity.RoommateMatchingRequired;
 import org.example.knockin.alarm.entity.RoommateMatchingRequiredAlarm;
 import org.example.knockin.mate.entity.RoommateRequiredStatus;
 import org.example.knockin.global.exception.BusinessException;
-import org.example.knockin.global.exception.ChattingErrorCode;
+import org.example.knockin.chat.exception.ChattingErrorCode;
 import org.example.knockin.global.exception.MemberErrorCode;
 import org.example.knockin.global.exception.MyRoommateErrorCode;
 import org.example.knockin.global.exception.RequiredErrorCode;
@@ -166,12 +166,12 @@ class SeparatedRepositoryServiceImplTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
-        ChattingRequired saved = service.savePending(requester, requestee, board);
+        ChattingRequired saved = service.savePending(requester.getId(), requestee.getId(), board.getId());
 
         // Then
-        assertThat(saved.getRequester()).isSameAs(requester);
-        assertThat(saved.getRequestee()).isSameAs(requestee);
-        assertThat(saved.getRoommateBoard()).isSameAs(board);
+        assertThat(saved.getRequesterId()).isEqualTo(requester.getId());
+        assertThat(saved.getRequesteeId()).isEqualTo(requestee.getId());
+        assertThat(saved.getRoommateBoardId()).isEqualTo(board.getId());
         assertThat(saved.getStatus()).isEqualTo(ChattingRequiredStatus.PENDING);
     }
 
@@ -184,9 +184,7 @@ class SeparatedRepositoryServiceImplTest {
 
         // When & Then
         assertThatThrownBy(() -> service.saveAll(chattingRoom, List.of(
-                Member.builder().id(1L).build(),
-                Member.builder().id(2L).build(),
-                Member.builder().id(3L).build()
+                1L, 2L, 3L
         )))
                 .isInstanceOfSatisfying(BusinessException.class,
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(ChattingErrorCode.ROOM_CAPACITY_EXCEEDED));
@@ -218,12 +216,12 @@ class SeparatedRepositoryServiceImplTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
-        RoommateMatchingRequired saved = service.savePending(requester, requestee, chattingRoom);
+        RoommateMatchingRequired saved = service.savePending(requester, requestee, chattingRoom.getId());
 
         // Then
         assertThat(saved.getRequester()).isSameAs(requester);
         assertThat(saved.getRequestee()).isSameAs(requestee);
-        assertThat(saved.getChattingRoom()).isSameAs(chattingRoom);
+        assertThat(saved.getChattingRoomId()).isEqualTo(chattingRoom.getId());
         assertThat(saved.getStatus()).isEqualTo(RoommateRequiredStatus.PENDING);
     }
 
@@ -303,8 +301,8 @@ class SeparatedRepositoryServiceImplTest {
         Member actor = Member.builder().id(1L).build();
         ChattingRequired required = ChattingRequired.builder()
                 .id(100L)
-                .requester(actor)
-                .requestee(receiver)
+                .requesterId(actor.getId())
+                .requesteeId(receiver.getId())
                 .status(ChattingRequiredStatus.PENDING)
                 .build();
 
@@ -312,7 +310,7 @@ class SeparatedRepositoryServiceImplTest {
                 .thenReturn(Optional.of(basicInformation(actor, "김중민")));
 
         // When
-        service.send(receiver, actor, required, "%s님이 매칭을 요청했어요");
+        service.send(receiver, actor, required.getId(), "%s님이 매칭을 요청했어요");
 
         // Then
         ArgumentCaptor<ChattingRequiredAlarm> captor = ArgumentCaptor.forClass(ChattingRequiredAlarm.class);
@@ -339,7 +337,7 @@ class SeparatedRepositoryServiceImplTest {
         RoommateMatchingRequired required = RoommateMatchingRequired.builder()
                 .requester(sender)
                 .requestee(receiver)
-                .chattingRoom(ChattingRoom.builder().id(10L).build())
+                .chattingRoomId(10L)
                 .status(RoommateRequiredStatus.PENDING)
                 .build();
         ReflectionTestUtils.setField(required, "id", 100L);
@@ -379,14 +377,14 @@ class SeparatedRepositoryServiceImplTest {
         Member receiver = Member.builder().id(2L).build();
         Member actor = Member.builder().id(1L).build();
         ChattingRequired required = ChattingRequired.builder()
-                .requester(actor)
-                .requestee(receiver)
+                .requesterId(actor.getId())
+                .requesteeId(receiver.getId())
                 .status(ChattingRequiredStatus.PENDING)
                 .build();
         when(basicInformationRepository.findLatestBasicInformation(actor)).thenReturn(Optional.empty());
 
         // When & Then
-        assertThatThrownBy(() -> service.send(receiver, actor, required, "%s님이 매칭을 요청했어요"))
+        assertThatThrownBy(() -> service.send(receiver, actor, required.getId(), "%s님이 매칭을 요청했어요"))
                 .isInstanceOfSatisfying(BusinessException.class,
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(MemberErrorCode.BASIC_INFO_NOT_FOUND));
         verifyNoInteractions(alarmService);

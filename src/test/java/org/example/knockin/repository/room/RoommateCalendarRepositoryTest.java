@@ -156,8 +156,8 @@ class RoommateCalendarRepositoryTest {
 
     private MyRoommate persistMyRoommate(Member requester, Member requestee) {
         ChattingRequired chattingRequired = ChattingRequired.builder()
-                .requester(requester)
-                .requestee(requestee)
+                .requesterId(requester.getId())
+                .requesteeId(requestee.getId())
                 .status(ChattingRequiredStatus.ACCEPTED)
                 .build();
         entityManager.persist(chattingRequired);
@@ -170,7 +170,7 @@ class RoommateCalendarRepositoryTest {
         RoommateMatchingRequired matchingRequired = RoommateMatchingRequired.builder()
                 .requester(requester)
                 .requestee(requestee)
-                .chattingRoom(chattingRoom)
+                .chattingRoomId(chattingRoom.getId())
                 .status(RoommateRequiredStatus.ACCEPTED)
                 .build();
         entityManager.persist(matchingRequired);

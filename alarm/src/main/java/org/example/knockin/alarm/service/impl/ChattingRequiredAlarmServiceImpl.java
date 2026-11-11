@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import org.example.knockin.member.service.impl.BasicInformationServiceImpl;
 import org.springframework.beans.factory.annotation.Value;
 import org.example.knockin.alarm.entity.AlarmType;
-import org.example.knockin.chat.entity.ChattingRequired;
 import org.example.knockin.alarm.entity.ChattingRequiredAlarm;
 import org.example.knockin.member.entity.BasicInformation;
 import org.example.knockin.member.entity.Member;
@@ -19,7 +18,7 @@ public class ChattingRequiredAlarmServiceImpl {
     @Value("${policy.request-alarm.expire-days}")
     private int requestAlarmExpireDays;
 
-    public void send(Member receiver, Member actor, ChattingRequired chattingRequired, String alarmTemplate) {
+    public void send(Member receiver, Member actor, Long chattingRequiredId, String alarmTemplate) {
         BasicInformation basicInformation = basicInformationService.findLatestBasicInformation(actor);
         String actorName = basicInformation.getName();
         String message = String.format(alarmTemplate, actorName);
@@ -31,7 +30,7 @@ public class ChattingRequiredAlarmServiceImpl {
                 .isRead(false)
                 .expiredAt(LocalDateTime.now().plusDays(requestAlarmExpireDays))
                 .type(AlarmType.CHATTING_REQUIRED)
-                .chattingRequiredId(chattingRequired.getId())
+                .chattingRequiredId(chattingRequiredId)
                 .build();
 
         alarmService.sendToClient(receiver.getId(), AlarmType.CHATTING_REQUIRED.name(), alarm);

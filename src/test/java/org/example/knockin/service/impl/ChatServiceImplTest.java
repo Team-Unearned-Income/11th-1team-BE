@@ -16,9 +16,19 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.example.knockin.util.dto.Compatibility;
+import org.example.knockin.life.entity.MemberLifePatternLog;
+import org.example.knockin.life.entity.MemberLifePatternLogDegree;
+import org.example.knockin.life.entity.PreferenceConditionLog;
+import org.example.knockin.life.entity.PreferenceConditionLogDegree;
+import org.example.knockin.life.entity.PreferenceConditionWeightLog;
+import org.example.knockin.life.entity.PreferenceConditionWeightLogDegree;
+import org.example.knockin.life.repository.MemberLifePatternLogRepository;
+import org.example.knockin.life.repository.PreferenceConditionLogRepository;
+import org.example.knockin.life.repository.PreferenceConditionWeightLogRepository;
+
 import org.example.knockin.alarm.service.impl.PushNotificationServiceImpl;
-import org.example.knockin.verification.service.impl.AuthenticationServiceImpl;
-import org.example.knockin.board.service.impl.RoommateBoardServiceImpl;
+import org.example.knockin.verification.repository.AuthenticationRepository;
 import org.example.knockin.chat.dto.ChatMessageDto;
 import org.example.knockin.chat.dto.ChatRoomCreateDto;
 import org.example.knockin.chat.dto.ChatRoomDetailDto;
@@ -38,7 +48,6 @@ import org.example.knockin.chat.service.impl.ChattingScoreServiceImpl;
 import org.example.knockin.chat.dto.EventType;
 import org.example.knockin.chat.dto.MessageType;
 import org.example.knockin.mate.dto.RoommateRequestDto.RoommateMatchingRequiredInfo;
-import org.example.knockin.alarm.entity.AlarmSettingType;
 import org.example.knockin.verification.entity.AuthenticationType;
 import org.example.knockin.chat.entity.ChatRoomFile;
 import org.example.knockin.chat.entity.ChatRoomMember;
@@ -49,8 +58,7 @@ import org.example.knockin.chat.entity.ChattingRoom;
 import org.example.knockin.chat.entity.ChattingScore;
 import org.example.knockin.member.repository.BasicInformationFileRepository;
 import org.example.knockin.member.service.impl.BasicInformationServiceImpl;
-import org.example.knockin.member.service.impl.BlockServiceImpl;
-import org.example.knockin.member.service.impl.MemberServiceImpl;
+import org.example.knockin.member.repository.BlockRepository;
 import org.example.knockin.meta.entity.File;
 import org.example.knockin.meta.entity.FileType;
 import org.example.knockin.member.entity.BasicInformation;
@@ -61,7 +69,7 @@ import org.example.knockin.member.entity.State;
 import org.example.knockin.mate.entity.RoommateMatchingRequired;
 import org.example.knockin.mate.entity.RoommateRequiredStatus;
 import org.example.knockin.global.exception.BusinessException;
-import org.example.knockin.global.exception.ChattingErrorCode;
+import org.example.knockin.chat.exception.ChattingErrorCode;
 import org.example.knockin.global.exception.FileErrorCode;
 import org.example.knockin.global.exception.MemberErrorCode;
 import org.example.knockin.global.util.DateUtils;
@@ -82,7 +90,7 @@ import org.example.knockin.verification.repository.row.MemberAuthenticationRow;
 import org.example.knockin.chat.repository.row.ChatRoomListRow;
 import org.example.knockin.chat.repository.row.ChatRoomUnreadCountRow;
 import org.example.knockin.mate.repository.RoommateMatchingRequiredRepository;
-import org.example.knockin.mate.service.impl.MyRoomMateServiceImpl;
+import org.example.knockin.mate.repository.MyRoommateRepository;
 import org.example.knockin.meta.service.FileService;
 import org.example.knockin.util.service.RoommateScoreService;
 import org.junit.jupiter.api.BeforeEach;
@@ -152,55 +160,36 @@ class ChatServiceImplTest {
     private ChattingScoreRepository chattingScoreRepository;
 
     @Mock
-    private BlockServiceImpl blockService;
+    private MemberLifePatternLogRepository memberLifePatternLogRepository;
+
+    @Mock
+    private PreferenceConditionLogRepository preferenceConditionLogRepository;
+
+    @Mock
+    private PreferenceConditionWeightLogRepository preferenceConditionWeightLogRepository;
+
+    @Mock
+    private BlockRepository blockRepository;
 
     @Mock
     private PushNotificationServiceImpl pushNotificationService;
 
     @Mock
-    private AuthenticationServiceImpl authenticationService;
+    private AuthenticationRepository authenticationRepository;
 
     @Mock
-    private MyRoomMateServiceImpl myRoomMateService;
+    private MyRoommateRepository myRoommateRepository;
 
     @InjectMocks
     private ChatServiceImpl chatService;
 
     @BeforeEach
     void setUp() {
-        MemberServiceImpl memberService = new MemberServiceImpl(
-                memberRepository,
-                null,
-                null,
-                null,
-                null,
-                stateRepository,
-                null,
-                null,
-                null
-        );
         org.mockito.Mockito.lenient()
                 .when(stateRepository.findByMemberId(any(Long.class)))
                 .thenReturn(List.of(State.builder().states(MemberState.ACTIVE).build()));
         BasicInformationServiceImpl basicInformationService = new BasicInformationServiceImpl(basicInformationRepository, org.mockito.Mockito.mock(
                 BasicInformationFileRepository.class));
-        RoommateBoardServiceImpl roommateBoardService = new RoommateBoardServiceImpl(
-                roommateBoardRepository,
-                memberService,
-                null,
-                roommateScoreService,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null
-        );
 
         chatService = new ChatServiceImpl(
                 new ChattingRoomServiceImpl(chattingRoomRepository),
@@ -212,15 +201,16 @@ class ChatServiceImplTest {
                 new ChatRoomFileServiceImpl(chatRoomFileRepository),
                 basicInformationService,
                 new RoommateMatchingRequiredServiceImpl(roommateMatchingRequiredRepository),
-                roommateBoardService,
                 new ChattingRequiredServiceImpl(chattingRequiredRepository),
-                memberService,
+                memberRepository,
+                stateRepository,
                 roommateScoreService,
-                new ChattingScoreServiceImpl(chattingScoreRepository),
-                blockService,
+                new ChattingScoreServiceImpl(chattingScoreRepository, roommateScoreService,
+                        memberLifePatternLogRepository, preferenceConditionLogRepository, preferenceConditionWeightLogRepository),
+                blockRepository,
                 pushNotificationService,
-                authenticationService,
-                myRoomMateService
+                authenticationRepository,
+                myRoommateRepository
         );
         ReflectionTestUtils.setField(chatService, "chatRoomLimitPerMember", 15L);
     }
@@ -237,7 +227,7 @@ class ChatServiceImplTest {
         when(chattingRoomRepository.findListRowsByMemberId(memberId)).thenReturn(rows);
         when(chatRoomMessageRepository.findUnreadMessageCounts(memberId, List.of(10L, 20L)))
                 .thenReturn(List.of(new ChatRoomUnreadCountRow(10L, 3L)));
-        when(authenticationService.findAcceptedByMemberIds(List.of(2L, 3L)))
+        when(authenticationRepository.findAcceptedByMemberIds(List.of(2L, 3L)))
                 .thenReturn(List.of(
                         new MemberAuthenticationRow(2L, AuthenticationType.STUDENT),
                         new MemberAuthenticationRow(2L, AuthenticationType.COMPANY)
@@ -260,7 +250,7 @@ class ChatServiceImplTest {
         assertThat(responses.get(1).getAuthenticationTypes()).isEmpty();
         verify(chattingRoomRepository).findListRowsByMemberId(memberId);
         verify(chatRoomMessageRepository).findUnreadMessageCounts(memberId, List.of(10L, 20L));
-        verify(authenticationService).findAcceptedByMemberIds(List.of(2L, 3L));
+        verify(authenticationRepository).findAcceptedByMemberIds(List.of(2L, 3L));
     }
 
     @Test
@@ -276,7 +266,7 @@ class ChatServiceImplTest {
         // Then
         assertThat(responses).isEmpty();
         verify(chattingRoomRepository).findListRowsByMemberId(memberId);
-        verifyNoInteractions(authenticationService);
+        verifyNoInteractions(authenticationRepository);
     }
 
     @Test
@@ -314,7 +304,8 @@ class ChatServiceImplTest {
         when(chattingRoomRepository.findById(chatRoomId)).thenReturn(Optional.of(chattingRoom));
         when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatRoomId, memberId))
                 .thenReturn(Optional.of(roomMember));
-        when(chatRoomMemberRepository.findPartnerMember(roomMember, chatRoomId)).thenReturn(opponent);
+        when(chatRoomMemberRepository.findPartnerMemberId(roomMember, chatRoomId)).thenReturn(opponent.getId());
+        when(memberRepository.findById(opponent.getId())).thenReturn(Optional.of(opponent));
         when(basicInformationRepository.findChattingRoomBasicInfoRow(opponent.getId()))
                 .thenReturn(Optional.of(new ChattingRoomBasicInfoRow(
                         opponent.getId(),
@@ -325,11 +316,11 @@ class ChatServiceImplTest {
                 )));
         when(chatRoomMessageRepository.markUnreadMessagesAsRead(chatRoomId, memberId)).thenReturn(2L);
         when(chatRoomMessageRepository.findChatMessageDto(chatRoomId)).thenReturn(messages);
-        when(roommateMatchingRequiredRepository.findRequiredDto(chattingRoom)).thenReturn(matchingRequiredList);
+        when(roommateMatchingRequiredRepository.findRequiredDto(chattingRoom.getId())).thenReturn(matchingRequiredList);
         when(chattingScoreRepository.findOneByChattingRequiredIdAndMemberId(100L, memberId))
                 .thenReturn(Optional.of(chattingScore));
-        when(blockService.isBlockedBetween(memberId, opponent.getId())).thenReturn(true);
-        when(myRoomMateService.isExistRoomMate(opponent)).thenReturn(true);
+        when(blockRepository.existsActiveBlockBetweenMembers(memberId, opponent.getId())).thenReturn(true);
+        when(myRoommateRepository.isExistRoomMate(opponent)).thenReturn(true);
 
         // When
         ChatRoomDetailDto.Response response = chatService.getChatRoomDetail(chatRoomId, memberId);
@@ -345,7 +336,7 @@ class ChatServiceImplTest {
         assertThat(response.getMatchingRequiredList()).isSameAs(matchingRequiredList);
         assertThat(response.isBlocked()).isTrue();
         assertThat(response.isOpponentHasRoommate()).isTrue();
-        verify(myRoomMateService).isExistRoomMate(opponent);
+        verify(myRoommateRepository).isExistRoomMate(opponent);
         verify(roommateScoreService, never()).calculateSimpleScore(memberId, opponent.getId());
 
         InOrder detailOrder = inOrder(
@@ -356,7 +347,7 @@ class ChatServiceImplTest {
         detailOrder.verify(chattingRoomRepository).findById(chatRoomId);
         detailOrder.verify(chatRoomMemberRepository).findActiveMemberByRoomIdAndMemberId(chatRoomId, memberId);
         detailOrder.verify(chatRoomMessageRepository).markUnreadMessagesAsRead(chatRoomId, memberId);
-        detailOrder.verify(chatRoomMemberRepository).findPartnerMember(roomMember, chatRoomId);
+        detailOrder.verify(chatRoomMemberRepository).findPartnerMemberId(roomMember, chatRoomId);
         detailOrder.verify(chatRoomMessageRepository).findChatMessageDto(chatRoomId);
     }
 
@@ -375,12 +366,12 @@ class ChatServiceImplTest {
         assertThatThrownBy(() -> chatService.getChatRoomDetail(chatRoomId, memberId))
                 .isInstanceOfSatisfying(BusinessException.class,
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(ChattingErrorCode.ROOM_MEMBER_NOT_FOUND));
-        verify(chatRoomMemberRepository, never()).findPartnerMember(any(), eq(chatRoomId));
+        verify(chatRoomMemberRepository, never()).findPartnerMemberId(any(), eq(chatRoomId));
         verifyNoInteractions(
                 basicInformationRepository,
                 chatRoomMessageRepository,
                 roommateMatchingRequiredRepository,
-                myRoomMateService
+                myRoommateRepository
         );
     }
 
@@ -399,7 +390,8 @@ class ChatServiceImplTest {
         when(chattingRoomRepository.findById(chatRoomId)).thenReturn(Optional.of(chattingRoom));
         when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatRoomId, memberId))
                 .thenReturn(Optional.of(roomMember));
-        when(chatRoomMemberRepository.findPartnerMember(roomMember, chatRoomId)).thenReturn(opponent);
+        when(chatRoomMemberRepository.findPartnerMemberId(roomMember, chatRoomId)).thenReturn(opponent.getId());
+        when(memberRepository.findById(opponent.getId())).thenReturn(Optional.of(opponent));
         when(basicInformationRepository.findChattingRoomBasicInfoRow(opponent.getId()))
                 .thenReturn(Optional.of(new ChattingRoomBasicInfoRow(
                         opponent.getId(),
@@ -410,11 +402,11 @@ class ChatServiceImplTest {
                 )));
         when(chatRoomMessageRepository.markUnreadMessagesAsRead(chatRoomId, memberId)).thenReturn(0L);
         when(chatRoomMessageRepository.findChatMessageDto(chatRoomId)).thenReturn(List.of());
-        when(roommateMatchingRequiredRepository.findRequiredDto(chattingRoom)).thenReturn(List.of());
+        when(roommateMatchingRequiredRepository.findRequiredDto(chattingRoom.getId())).thenReturn(List.of());
         when(chattingScoreRepository.findOneByChattingRequiredIdAndMemberId(100L, memberId))
                 .thenReturn(Optional.empty());
         when(roommateScoreService.calculateSimpleScore(memberId, opponent.getId())).thenReturn(100);
-        when(blockService.isBlockedBetween(memberId, opponent.getId())).thenReturn(false);
+        when(blockRepository.existsActiveBlockBetweenMembers(memberId, opponent.getId())).thenReturn(false);
 
         // When
         ChatRoomDetailDto.Response response = chatService.getChatRoomDetail(chatRoomId, memberId);
@@ -426,7 +418,7 @@ class ChatServiceImplTest {
         assertThat(response.isBlocked()).isFalse();
         assertThat(response.isOpponentHasRoommate()).isFalse();
         verify(chatRoomMessageRepository).markUnreadMessagesAsRead(chatRoomId, memberId);
-        verify(myRoomMateService).isExistRoomMate(opponent);
+        verify(myRoommateRepository).isExistRoomMate(opponent);
     }
 
     @Test
@@ -442,7 +434,8 @@ class ChatServiceImplTest {
         when(chattingRoomRepository.findById(chatRoomId)).thenReturn(Optional.of(chattingRoom));
         when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatRoomId, memberId))
                 .thenReturn(Optional.of(roomMember));
-        when(chatRoomMemberRepository.findPartnerMember(roomMember, chatRoomId)).thenReturn(opponent);
+        when(chatRoomMemberRepository.findPartnerMemberId(roomMember, chatRoomId)).thenReturn(opponent.getId());
+        when(memberRepository.findById(opponent.getId())).thenReturn(Optional.of(opponent));
         when(basicInformationRepository.findChattingRoomBasicInfoRow(opponent.getId())).thenReturn(Optional.empty());
 
         // When & Then
@@ -452,7 +445,7 @@ class ChatServiceImplTest {
         verify(chatRoomMessageRepository).markUnreadMessagesAsRead(chatRoomId, memberId);
         verify(chatRoomMessageRepository, never()).findChatMessageDto(chatRoomId);
         verifyNoInteractions(roommateMatchingRequiredRepository);
-        verifyNoInteractions(myRoomMateService);
+        verifyNoInteractions(myRoommateRepository);
     }
 
     @Test
@@ -480,8 +473,22 @@ class ChatServiceImplTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(chatRoomMessageRepository.save(any(ChatRoomMessage.class)))
                 .thenAnswer(invocation -> persistedMessage(invocation.getArgument(0), messageCreatedAt));
-        List<ChattingScore> chattingScores = List.of(ChattingScore.builder().score(80).build());
-        when(roommateScoreService.createChattingScores(any(ChattingRequired.class))).thenReturn(chattingScores);
+        when(roommateScoreService.calculateScore(requesterId, requesteeId))
+                .thenReturn(Compatibility.builder().totalScore(80).build());
+        when(roommateScoreService.calculateScore(requesteeId, requesterId))
+                .thenReturn(Compatibility.builder().totalScore(60).build());
+        when(memberLifePatternLogRepository.findLatestLogsWithFetchByMemberId(requesterId))
+                .thenReturn(List.of(MemberLifePatternLog.builder()
+                        .memberLifePatternLogDegree(MemberLifePatternLogDegree.builder().id(11L).build()).build()));
+        when(memberLifePatternLogRepository.findLatestLogsWithFetchByMemberId(requesteeId))
+                .thenReturn(List.of(MemberLifePatternLog.builder()
+                        .memberLifePatternLogDegree(MemberLifePatternLogDegree.builder().id(12L).build()).build()));
+        when(preferenceConditionLogRepository.findLatestLogsWithFetchByMemberId(requesterId))
+                .thenReturn(List.of(PreferenceConditionLog.builder()
+                        .preferenceConditionLogDegree(PreferenceConditionLogDegree.builder().id(21L).build()).build()));
+        when(preferenceConditionWeightLogRepository.findLatestLogsWithFetchByMemberId(requesterId))
+                .thenReturn(List.of(PreferenceConditionWeightLog.builder()
+                        .preferenceConditionWeightLogDegree(PreferenceConditionWeightLogDegree.builder().id(31L).build()).build()));
 
         // When
         ChatRoomCreateDto.Response response = chatService.createChattingRoom(requesterId, request);
@@ -492,9 +499,9 @@ class ChatServiceImplTest {
 
         ArgumentCaptor<ChattingRequired> requiredCaptor = ArgumentCaptor.forClass(ChattingRequired.class);
         verify(chattingRequiredRepository).save(requiredCaptor.capture());
-        assertThat(requiredCaptor.getValue().getRequester()).isSameAs(requester);
-        assertThat(requiredCaptor.getValue().getRequestee()).isSameAs(requestee);
-        assertThat(requiredCaptor.getValue().getRoommateBoard()).isNull();
+        assertThat(requiredCaptor.getValue().getRequesterId()).isEqualTo(requester.getId());
+        assertThat(requiredCaptor.getValue().getRequesteeId()).isEqualTo(requestee.getId());
+        assertThat(requiredCaptor.getValue().getRoommateBoardId()).isNull();
         assertThat(requiredCaptor.getValue().getStatus()).isEqualTo(ChattingRequiredStatus.ACCEPTED);
 
         ArgumentCaptor<ChattingRoom> roomCaptor = ArgumentCaptor.forClass(ChattingRoom.class);
@@ -506,17 +513,26 @@ class ChatServiceImplTest {
         verify(chatRoomMemberRepository).saveAll(membersCaptor.capture());
         List<ChatRoomMember> members = ((List<ChatRoomMember>) membersCaptor.getValue());
         assertThat(members).hasSize(2);
-        assertThat(members).extracting(ChatRoomMember::getMember).containsExactly(requester, requestee);
+        assertThat(members).extracting(ChatRoomMember::getMemberId).containsExactly(requester.getId(), requestee.getId());
         assertThat(members).extracting(ChatRoomMember::getIsLeft).containsExactly(false, false);
 
         ArgumentCaptor<ChatRoomMessage> messageCaptor = ArgumentCaptor.forClass(ChatRoomMessage.class);
         verify(chatRoomMessageRepository).save(messageCaptor.capture());
         assertThat(messageCaptor.getValue().getContents()).isEqualTo("안녕하세요");
-        assertThat(messageCaptor.getValue().getMember()).isSameAs(requester);
+        assertThat(messageCaptor.getValue().getMemberId()).isEqualTo(requester.getId());
         assertThat(messageCaptor.getValue().getChattingRoom().getId()).isEqualTo(100L);
         assertThat(messageCaptor.getValue().getType()).isEqualTo(MessageType.TEXT);
-        verify(roommateScoreService).createChattingScores(requiredCaptor.getValue());
-        verify(chattingScoreRepository).saveAll(chattingScores);
+        verify(roommateScoreService).calculateScore(requesterId, requesteeId);
+        verify(roommateScoreService).calculateScore(requesteeId, requesterId);
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<ChattingScore>> scoreCaptor = ArgumentCaptor.forClass(List.class);
+        verify(chattingScoreRepository).saveAll(scoreCaptor.capture());
+        assertThat(scoreCaptor.getValue()).extracting(ChattingScore::getScore).containsExactly(80, 60);
+        assertThat(scoreCaptor.getValue()).extracting(ChattingScore::getChattingRequired)
+                .containsExactly(requiredCaptor.getValue(), requiredCaptor.getValue());
+        assertThat(scoreCaptor.getValue()).extracting(ChattingScore::getMemberLifePatternLogDegreeId).containsExactly(11L, 12L);
+        assertThat(scoreCaptor.getValue()).extracting(ChattingScore::getPreferenceConditionLogDegreeId).containsExactly(21L, null);
+        assertThat(scoreCaptor.getValue()).extracting(ChattingScore::getPreferenceConditionWeightLogDegreeId).containsExactly(31L, null);
         verifyNoInteractions(roommateBoardRepository);
     }
 
@@ -553,7 +569,7 @@ class ChatServiceImplTest {
         ChatRoomCreateDto.Request request = chatRoomCreateRequest(requesteeId, null, "안녕하세요");
         when(memberRepository.findById(requesterId)).thenReturn(Optional.of(requester));
         when(memberRepository.findById(requesteeId)).thenReturn(Optional.of(requestee));
-        when(blockService.isBlockedBetween(requesterId, requesteeId)).thenReturn(true);
+        when(blockRepository.existsActiveBlockBetweenMembers(requesterId, requesteeId)).thenReturn(true);
 
         // When & Then
         assertThatThrownBy(() -> chatService.createChattingRoom(requesterId, request))
@@ -604,7 +620,7 @@ class ChatServiceImplTest {
         File file = chatImage("chat-image.jpg");
         when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatRoomId, memberId))
                 .thenReturn(Optional.of(roomMember));
-        when(chatRoomMemberRepository.findPartnerMember(roomMember, chatRoomId)).thenReturn(opponent);
+        when(chatRoomMemberRepository.findPartnerMemberId(roomMember, chatRoomId)).thenReturn(opponent.getId());
         when(fileService.save(multipartFile, FileType.CHAT_ROOM_IMAGE)).thenReturn(file);
 
         // When
@@ -616,10 +632,10 @@ class ChatServiceImplTest {
 
         // Then
         assertThat(response.getImageUrl()).isEqualTo("chat-image.jpg");
-        InOrder inOrder = inOrder(chatRoomMemberRepository, blockService, fileService);
+        InOrder inOrder = inOrder(chatRoomMemberRepository, blockRepository, fileService);
         inOrder.verify(chatRoomMemberRepository).findActiveMemberByRoomIdAndMemberId(chatRoomId, memberId);
-        inOrder.verify(chatRoomMemberRepository).findPartnerMember(roomMember, chatRoomId);
-        inOrder.verify(blockService).isBlockedBetween(memberId, opponent.getId());
+        inOrder.verify(chatRoomMemberRepository).findPartnerMemberId(roomMember, chatRoomId);
+        inOrder.verify(blockRepository).existsActiveBlockBetweenMembers(memberId, opponent.getId());
         inOrder.verify(fileService).save(multipartFile, FileType.CHAT_ROOM_IMAGE);
         verifyNoInteractions(fileRepository);
     }
@@ -636,8 +652,8 @@ class ChatServiceImplTest {
         MultipartFile multipartFile = multipartFile(false);
         when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatRoomId, memberId))
                 .thenReturn(Optional.of(roomMember));
-        when(chatRoomMemberRepository.findPartnerMember(roomMember, chatRoomId)).thenReturn(opponent);
-        when(blockService.isBlockedBetween(memberId, opponent.getId())).thenReturn(true);
+        when(chatRoomMemberRepository.findPartnerMemberId(roomMember, chatRoomId)).thenReturn(opponent.getId());
+        when(blockRepository.existsActiveBlockBetweenMembers(memberId, opponent.getId())).thenReturn(true);
 
         // When & Then
         assertThatThrownBy(() -> chatService.uploadImage(chatRoomId, memberId, multipartFile))
@@ -680,7 +696,7 @@ class ChatServiceImplTest {
         MultipartFile multipartFile = multipartFile(false);
         when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatRoomId, memberId))
                 .thenReturn(Optional.of(roomMember));
-        when(chatRoomMemberRepository.findPartnerMember(roomMember, chatRoomId)).thenReturn(opponent);
+        when(chatRoomMemberRepository.findPartnerMemberId(roomMember, chatRoomId)).thenReturn(opponent.getId());
         when(fileService.save(multipartFile, FileType.CHAT_ROOM_IMAGE))
                 .thenThrow(new IOException("upload failed"));
 
@@ -704,7 +720,9 @@ class ChatServiceImplTest {
         ChatMessageDto.Request request = textMessageRequest();
         when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatId, senderId))
                 .thenReturn(Optional.of(roomMember));
-        when(chatRoomMemberRepository.findPartnerMember(roomMember, chatId)).thenReturn(opponent);
+        when(chatRoomMemberRepository.findPartnerMemberId(roomMember, chatId)).thenReturn(opponent.getId());
+        when(memberRepository.findById(opponent.getId())).thenReturn(Optional.of(opponent));
+        when(memberRepository.findById(member.getId())).thenReturn(Optional.of(member));
         when(chattingRoomRepository.findById(chatId)).thenReturn(Optional.of(chattingRoom));
         when(chatRoomMessageRepository.save(any(ChatRoomMessage.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -718,7 +736,7 @@ class ChatServiceImplTest {
         ArgumentCaptor<ChatRoomMessage> messageCaptor = ArgumentCaptor.forClass(ChatRoomMessage.class);
         verify(chatRoomMessageRepository).save(messageCaptor.capture());
         assertThat(messageCaptor.getValue().getContents()).isEqualTo("안녕하세요");
-        assertThat(messageCaptor.getValue().getMember()).isSameAs(member);
+        assertThat(messageCaptor.getValue().getMemberId()).isEqualTo(member.getId());
         assertThat(messageCaptor.getValue().getChattingRoom()).isSameAs(chattingRoom);
         assertThat(messageCaptor.getValue().getType()).isEqualTo(MessageType.TEXT);
 
@@ -733,7 +751,7 @@ class ChatServiceImplTest {
         assertThat(event.imageUrl()).isNull();
         verify(pushNotificationService).send(
                 opponent,
-                AlarmSettingType.NOTIFICATION,
+                org.example.knockin.alarm.entity.AlarmSettingType.NOTIFICATION,
                 "김중민",
                 "안녕하세요",
                 "knockinrn://chat/10"
@@ -755,13 +773,15 @@ class ChatServiceImplTest {
         File file = chatImage("chat-image.jpg");
         ChatRoomMessage savedMessage = ChatRoomMessage.builder()
                 .contents("사진을 보냈습니다.")
-                .member(member)
+                .memberId(member.getId())
                 .chattingRoom(chattingRoom)
                 .type(MessageType.IMAGE)
                 .build();
         when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatId, senderId))
                 .thenReturn(Optional.of(roomMember));
-        when(chatRoomMemberRepository.findPartnerMember(roomMember, chatId)).thenReturn(opponent);
+        when(chatRoomMemberRepository.findPartnerMemberId(roomMember, chatId)).thenReturn(opponent.getId());
+        when(memberRepository.findById(opponent.getId())).thenReturn(Optional.of(opponent));
+        when(memberRepository.findById(member.getId())).thenReturn(Optional.of(member));
         when(chattingRoomRepository.findById(chatId)).thenReturn(Optional.of(chattingRoom));
         when(fileService.findBySavedFileNameAndType("chat-image.jpg", FileType.CHAT_ROOM_IMAGE))
                 .thenReturn(file);
@@ -778,13 +798,13 @@ class ChatServiceImplTest {
         ArgumentCaptor<ChatRoomMessage> messageCaptor = ArgumentCaptor.forClass(ChatRoomMessage.class);
         verify(chatRoomMessageRepository).save(messageCaptor.capture());
         assertThat(messageCaptor.getValue().getContents()).isEqualTo("사진을 보냈습니다.");
-        assertThat(messageCaptor.getValue().getMember()).isSameAs(member);
+        assertThat(messageCaptor.getValue().getMemberId()).isEqualTo(member.getId());
         assertThat(messageCaptor.getValue().getChattingRoom()).isSameAs(chattingRoom);
         assertThat(messageCaptor.getValue().getType()).isEqualTo(MessageType.IMAGE);
 
         ArgumentCaptor<ChatRoomFile> chatRoomFileCaptor = ArgumentCaptor.forClass(ChatRoomFile.class);
         verify(chatRoomFileRepository).save(chatRoomFileCaptor.capture());
-        assertThat(chatRoomFileCaptor.getValue().getFile()).isSameAs(file);
+        assertThat(chatRoomFileCaptor.getValue().getFileId()).isEqualTo(file.getId());
         assertThat(chatRoomFileCaptor.getValue().getChatRoomMessage()).isSameAs(savedMessage);
 
         ArgumentCaptor<Object> eventCaptor = ArgumentCaptor.forClass(Object.class);
@@ -794,7 +814,7 @@ class ChatServiceImplTest {
         assertThat(event.imageUrl()).isEqualTo("chat-image.jpg");
         verify(pushNotificationService).send(
                 opponent,
-                AlarmSettingType.NOTIFICATION,
+                org.example.knockin.alarm.entity.AlarmSettingType.NOTIFICATION,
                 "김중민",
                 "사진을 보냈습니다.",
                 "knockinrn://chat/10"
@@ -815,7 +835,9 @@ class ChatServiceImplTest {
         ChatMessageDto.Request request = imageMessageRequest("unknown.jpg");
         when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatId, senderId))
                 .thenReturn(Optional.of(roomMember));
-        when(chatRoomMemberRepository.findPartnerMember(roomMember, chatId)).thenReturn(opponent);
+        when(chatRoomMemberRepository.findPartnerMemberId(roomMember, chatId)).thenReturn(opponent.getId());
+        when(memberRepository.findById(opponent.getId())).thenReturn(Optional.of(opponent));
+        when(memberRepository.findById(member.getId())).thenReturn(Optional.of(member));
         when(chattingRoomRepository.findById(chatId)).thenReturn(Optional.of(chattingRoom));
         when(fileService.findBySavedFileNameAndType("unknown.jpg", FileType.CHAT_ROOM_IMAGE))
                 .thenThrow(new BusinessException(FileErrorCode.FILE_NOT_FOUND));
@@ -826,7 +848,7 @@ class ChatServiceImplTest {
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(FileErrorCode.FILE_NOT_FOUND));
         ArgumentCaptor<ChatRoomMessage> messageCaptor = ArgumentCaptor.forClass(ChatRoomMessage.class);
         verify(chatRoomMessageRepository).save(messageCaptor.capture());
-        assertThat(messageCaptor.getValue().getMember()).isSameAs(member);
+        assertThat(messageCaptor.getValue().getMemberId()).isEqualTo(member.getId());
         assertThat(messageCaptor.getValue().getChattingRoom()).isSameAs(chattingRoom);
         assertThat(messageCaptor.getValue().getType()).isEqualTo(MessageType.IMAGE);
         verifyNoInteractions(chatRoomFileRepository, publisher, messagingTemplate);
@@ -844,8 +866,10 @@ class ChatServiceImplTest {
         ChatMessageDto.Request request = textMessageRequest();
         when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatId, senderId))
                 .thenReturn(Optional.of(roomMember));
-        when(chatRoomMemberRepository.findPartnerMember(roomMember, chatId)).thenReturn(opponent);
-        when(blockService.isBlockedBetween(senderId, opponent.getId())).thenReturn(true);
+        when(chatRoomMemberRepository.findPartnerMemberId(roomMember, chatId)).thenReturn(opponent.getId());
+        when(memberRepository.findById(opponent.getId())).thenReturn(Optional.of(opponent));
+        when(memberRepository.findById(sender.getId())).thenReturn(Optional.of(sender));
+        when(blockRepository.existsActiveBlockBetweenMembers(senderId, opponent.getId())).thenReturn(true);
 
         // When & Then
         assertThatThrownBy(() -> chatService.sendUserMessage(chatId, request, senderId))
@@ -872,7 +896,9 @@ class ChatServiceImplTest {
         ChatMessageDto.Request request = textMessageRequest();
         when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatId, senderId))
                 .thenReturn(Optional.of(roomMember));
-        when(chatRoomMemberRepository.findPartnerMember(roomMember, chatId)).thenReturn(receiver);
+        when(chatRoomMemberRepository.findPartnerMemberId(roomMember, chatId)).thenReturn(receiver.getId());
+        when(memberRepository.findById(receiver.getId())).thenReturn(Optional.of(receiver));
+        when(memberRepository.findById(sender.getId())).thenReturn(Optional.of(sender));
         when(stateRepository.findByMemberId(receiver.getId()))
                 .thenReturn(List.of(State.builder().states(MemberState.INACTIVE).member(receiver).build()));
 
@@ -993,7 +1019,7 @@ class ChatServiceImplTest {
         assertThat(result.getUpdatedAt()).isNotNull();
         ArgumentCaptor<ChatRoomMessage> messageCaptor = ArgumentCaptor.forClass(ChatRoomMessage.class);
         verify(chatRoomMessageRepository).save(messageCaptor.capture());
-        assertThat(messageCaptor.getValue().getMember()).isNull();
+        assertThat(messageCaptor.getValue().getMemberId()).isNull();
         assertThat(messageCaptor.getValue().getChattingRoom()).isSameAs(chattingRoom);
         assertThat(messageCaptor.getValue().getType()).isEqualTo(MessageType.LEFT_ROOM);
 
@@ -1156,7 +1182,7 @@ class ChatServiceImplTest {
 
     private ChatRoomMember activeRoomMember(Member member, ChattingRoom chattingRoom) {
         return ChatRoomMember.builder()
-                .member(member)
+                .memberId(member.getId())
                 .chattingRoom(chattingRoom)
                 .isLeft(false)
                 .build();

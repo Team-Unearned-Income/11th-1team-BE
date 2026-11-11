@@ -125,8 +125,8 @@ class ChatRoomMessageRepositoryTest {
 
     private ChattingRoom persistChattingRoom(Member requester, Member requestee) {
         ChattingRequired chattingRequired = ChattingRequired.builder()
-                .requester(requester)
-                .requestee(requestee)
+                .requesterId(requester.getId())
+                .requesteeId(requestee.getId())
                 .status(ChattingRequiredStatus.ACCEPTED)
                 .build();
         entityManager.persist(chattingRequired);
@@ -141,7 +141,7 @@ class ChatRoomMessageRepositoryTest {
     private void persistChatRoomMember(ChattingRoom chattingRoom, Member member) {
         entityManager.persist(ChatRoomMember.builder()
                 .chattingRoom(chattingRoom)
-                .member(member)
+                .memberId(member == null ? null : member.getId())
                 .isLeft(false)
                 .build());
     }
@@ -154,7 +154,7 @@ class ChatRoomMessageRepositoryTest {
     ) {
         ChatRoomMessage message = ChatRoomMessage.builder()
                 .chattingRoom(chattingRoom)
-                .member(member)
+                .memberId(member == null ? null : member.getId())
                 .type(MessageType.TEXT)
                 .contents(contents)
                 .isRead(isRead)

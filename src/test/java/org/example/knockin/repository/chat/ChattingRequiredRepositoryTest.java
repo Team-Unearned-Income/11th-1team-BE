@@ -50,7 +50,7 @@ class ChattingRequiredRepositoryTest {
         entityManager.clear();
 
         // When
-        boolean exists = chattingRequiredRepository.existsBetweenMembers(memberA, memberB);
+        boolean exists = chattingRequiredRepository.existsBetweenMembers(memberA.getId(), memberB.getId());
 
         // Then
         assertThat(exists).isTrue();
@@ -68,7 +68,7 @@ class ChattingRequiredRepositoryTest {
         entityManager.clear();
 
         // When
-        boolean exists = chattingRequiredRepository.existsBetweenMembers(memberA, memberB);
+        boolean exists = chattingRequiredRepository.existsBetweenMembers(memberA.getId(), memberB.getId());
 
         // Then
         assertThat(exists).isFalse();
@@ -108,7 +108,7 @@ class ChattingRequiredRepositoryTest {
         entityManager.clear();
 
         // When
-        List<ChatRequestListRow> rows = chattingRequiredRepository.findAllPendingByRequestee(requestee);
+        List<ChatRequestListRow> rows = chattingRequiredRepository.findAllPendingByRequesteeId(requestee.getId());
 
         // Then
         assertThat(rows).hasSize(2);
@@ -149,8 +149,8 @@ class ChattingRequiredRepositoryTest {
 
     private ChattingRequired persistChattingRequired(Member requester, Member requestee, ChattingRequiredStatus status) {
         ChattingRequired chattingRequired = ChattingRequired.builder()
-                .requester(requester)
-                .requestee(requestee)
+                .requesterId(requester.getId())
+                .requesteeId(requestee.getId())
                 .status(status)
                 .build();
         entityManager.persist(chattingRequired);

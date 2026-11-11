@@ -6,7 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.Optional;
 import org.example.knockin.global.config.StompDestinationResolver;
 import org.example.knockin.global.exception.BusinessException;
-import org.example.knockin.global.exception.ChattingErrorCode;
+import org.example.knockin.chat.exception.ChattingErrorCode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

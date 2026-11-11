@@ -3,6 +3,7 @@ package org.example.knockin.mate.service.impl;
 import org.example.knockin.alarm.service.impl.RoommateMatchingRequiredAlarmServiceImpl;
 
 import lombok.RequiredArgsConstructor;
+import org.example.knockin.member.service.impl.MemberServiceImpl;
 import org.example.knockin.alarm.service.impl.PushNotificationServiceImpl;
 import org.example.knockin.chat.dto.ChatSocketResponse;
 import org.example.knockin.chat.service.impl.ChatRoomMemberServiceImpl;
@@ -43,24 +44,25 @@ public class RoommateRequestServiceImpl {
     private final MemberPrivacyServiceImpl memberPrivacyService;
     private final PushNotificationServiceImpl pushNotificationService;
     private final BasicInformationServiceImpl basicInformationService;
+    private final MemberServiceImpl memberService;
 
     @Transactional
     public RoommateRequestDto.Response saveRoommateRequest(Long requesterId, RoommateRequestDto.Request request) {
         Long chatRoomId = request.getChatRoomId();
         ChatRoomMember chatRoomMember = chatRoomMemberService.findActiveMemberByRoomIdAndMemberId(chatRoomId, requesterId);
         ChattingRoom chattingRoom = chatRoomMember.getChattingRoom();
-        Member requester = chatRoomMember.getMember();
+        Member requester = memberService.findByIdOrThrow(chatRoomMember.getMemberId());
         Long chattingRoomId = chattingRoom.getId();
-        Member requestee = chatRoomMemberService.findPartnerMember(chatRoomMember, chattingRoomId);
+        Member requestee = memberService.findByIdOrThrow(chatRoomMemberService.findPartnerMemberId(chatRoomMember, chattingRoomId));
 
         RoommateMatchingRequired roommateMatchingRequired = roommateMatchingRequiredService.findLatest(chatRoomId)
                 .map(previous -> {
                     if (previous.getStatus().equals(RoommateRequiredStatus.PENDING)) {
                         throw new BusinessException(RequiredErrorCode.ROOMMATE_DUPLICATE);
                     }
-                    return roommateMatchingRequiredService.savePending(requester, requestee, chattingRoom);
+                    return roommateMatchingRequiredService.savePending(requester, requestee, chattingRoom.getId());
                 })
-                .orElseGet(() -> roommateMatchingRequiredService.savePending(requester, requestee, chattingRoom));
+                .orElseGet(() -> roommateMatchingRequiredService.savePending(requester, requestee, chattingRoom.getId()));
 
         Response response = toDto(roommateMatchingRequired);
         sendAlarms(requestee, requester, roommateMatchingRequired);
@@ -75,7 +77,7 @@ public class RoommateRequestServiceImpl {
         RoommateRequiredMessageTemplate template = RoommateRequiredMessageTemplate.of(required.getStatus());
         String title = template.formatTitle(senderName);
         String contents = template.formatContents(senderName);
-        String deepLink = template.formatDeepLink(required.getChattingRoom().getId());
+        String deepLink = template.formatDeepLink(required.getChattingRoomId());
 
         roommateMatchingRequiredAlarmService.send(receiver, title, contents, required);
         pushNotificationService.send(receiver, AlarmSettingType.NOTIFICATION, title, contents, deepLink);
@@ -128,7 +130,7 @@ public class RoommateRequestServiceImpl {
         sendAlarms(requester, requestee, roommateMatchingRequired);
 
         Response response = toDto(roommateMatchingRequired);
-        sendRequestMessage(roommateMatchingRequired.getChattingRoom().getId(), response);
+        sendRequestMessage(roommateMatchingRequired.getChattingRoomId(), response);
 
         return response;
     }
@@ -157,7 +159,7 @@ public class RoommateRequestServiceImpl {
         sendAlarms(requester, requestee, roommateMatchingRequired);
 
         Response response = toDto(roommateMatchingRequired);
-        sendRequestMessage(roommateMatchingRequired.getChattingRoom().getId(), response);
+        sendRequestMessage(roommateMatchingRequired.getChattingRoomId(), response);
         return response;
     }
 
@@ -172,7 +174,7 @@ public class RoommateRequestServiceImpl {
         validateRequired(roommateMatchingRequired);
         roommateMatchingRequired.cancel();
         Response response = toDto(roommateMatchingRequired);
-        sendRequestMessage(roommateMatchingRequired.getChattingRoom().getId(), response);
+        sendRequestMessage(roommateMatchingRequired.getChattingRoomId(), response);
         return response;
     }
 
@@ -185,7 +187,7 @@ public class RoommateRequestServiceImpl {
                 .requiredId(roommateMatchingRequired.getId())
                 .requesterId(roommateMatchingRequired.getRequester().getId())
                 .requesteeId(roommateMatchingRequired.getRequestee().getId())
-                .chatRoomId(roommateMatchingRequired.getChattingRoom().getId())
+                .chatRoomId(roommateMatchingRequired.getChattingRoomId())
                 .status(roommateMatchingRequired.getStatus())
                 .createAt(roommateMatchingRequired.getCreatedAt())
                 .build();

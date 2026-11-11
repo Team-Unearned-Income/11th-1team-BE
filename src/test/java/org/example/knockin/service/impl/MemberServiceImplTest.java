@@ -1,6 +1,7 @@
 package org.example.knockin.service.impl;
 
 import org.example.knockin.member.dto.BoMemberDetailDto;
+import org.example.knockin.mate.service.impl.RoommateMatchingRequiredServiceImpl;
 import org.example.knockin.alarm.service.impl.AlarmServiceImpl;
 import java.time.LocalDateTime;
 import org.example.knockin.member.dto.BoMemberListDto;
@@ -72,6 +73,12 @@ class MemberServiceImplTest {
     @Mock
     private AlarmServiceImpl alarmService;
 
+    @Mock
+    private RoommateMatchingRequiredServiceImpl roommateMatchingRequiredService;
+
+    @Mock
+    private org.example.knockin.chat.service.impl.ChattingRequiredServiceImpl chattingRequiredService;
+
     @InjectMocks
     private MemberServiceImpl memberService;
 
@@ -81,12 +88,23 @@ class MemberServiceImplTest {
         var candidates = List.of(1L, 2L);
         var targets = List.of(2L);
         given(memberRepository.findDeletionTargetIdsForUpdate(candidates, cutoff)).willReturn(targets);
+        List<Long> requestIds = List.of(10L);
+        List<Long> roomIds = List.of(20L);
+        List<Long> scoreIds = List.of(30L, 31L);
+        given(chattingRequiredService.findIdsForMembers(targets)).willReturn(requestIds);
+        given(chattingRequiredService.findRoomIdsByRequestIds(requestIds)).willReturn(roomIds);
+        given(chattingRequiredService.findScoreIdsByRequestIds(requestIds)).willReturn(scoreIds);
 
         memberService.hardDeleteMember(candidates, cutoff);
 
-        var order = inOrder(memberRepository, alarmService);
+        var order = inOrder(memberRepository, alarmService, roommateMatchingRequiredService, chattingRequiredService);
         order.verify(memberRepository).findDeletionTargetIdsForUpdate(candidates, cutoff);
-        order.verify(alarmService).deleteForMembers(targets);
+        order.verify(chattingRequiredService).findIdsForMembers(targets);
+        order.verify(chattingRequiredService).findRoomIdsByRequestIds(requestIds);
+        order.verify(chattingRequiredService).findScoreIdsByRequestIds(requestIds);
+        order.verify(alarmService).deleteForMembers(targets, requestIds, roomIds);
+        order.verify(roommateMatchingRequiredService).deleteForMembers(targets, roomIds, scoreIds);
+        order.verify(chattingRequiredService).deleteForMembers(targets);
         order.verify(memberRepository).deleteMembersByIds(targets);
     }
 
@@ -97,7 +115,7 @@ class MemberServiceImplTest {
 
         memberService.hardDeleteMember(List.of(1L), cutoff);
 
-        verifyNoInteractions(alarmService);
+        verifyNoInteractions(alarmService, roommateMatchingRequiredService, chattingRequiredService);
         verify(memberRepository, never()).deleteMembersByIds(any());
     }
 
@@ -106,7 +124,20 @@ class MemberServiceImplTest {
         var cutoff = LocalDateTime.of(2026, 11, 8, 0, 0);
         var targets = List.of(1L);
         given(memberRepository.findDeletionTargetIdsForUpdate(targets, cutoff)).willReturn(targets);
-        doThrow(new IllegalStateException("cleanup failed")).when(alarmService).deleteForMembers(targets);
+        doThrow(new IllegalStateException("cleanup failed")).when(alarmService).deleteForMembers(targets, List.of(), List.of());
+
+        assertThatThrownBy(() -> memberService.hardDeleteMember(targets, cutoff))
+                .isInstanceOf(IllegalStateException.class);
+
+        verify(memberRepository, never()).deleteMembersByIds(any());
+    }
+
+    @Test
+    void hardDeleteDoesNotDeleteMembersWhenRoommateCleanupFails() {
+        LocalDateTime cutoff = LocalDateTime.of(2026, 11, 8, 0, 0);
+        List<Long> targets = List.of(1L);
+        given(memberRepository.findDeletionTargetIdsForUpdate(targets, cutoff)).willReturn(targets);
+        doThrow(new IllegalStateException("cleanup failed")).when(roommateMatchingRequiredService).deleteForMembers(targets, List.of(), List.of());
 
         assertThatThrownBy(() -> memberService.hardDeleteMember(targets, cutoff))
                 .isInstanceOf(IllegalStateException.class);

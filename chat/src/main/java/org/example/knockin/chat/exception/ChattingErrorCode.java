@@ -1,4 +1,6 @@
-package org.example.knockin.global.exception;
+package org.example.knockin.chat.exception;
+
+import org.example.knockin.global.exception.ErrorCode;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

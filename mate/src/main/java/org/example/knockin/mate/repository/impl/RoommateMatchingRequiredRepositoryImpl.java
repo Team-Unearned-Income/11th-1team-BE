@@ -1,6 +1,7 @@
 package org.example.knockin.mate.repository.impl;
 
 import com.querydsl.core.types.Projections;
+import static org.example.knockin.mate.entity.QRoommateScore.roommateScore;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
 import java.util.Optional;
@@ -8,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import static org.example.knockin.mate.entity.QRoommateMatchingRequired.roommateMatchingRequired;
 
 import org.example.knockin.mate.dto.RoommateRequestDto.RoommateMatchingRequiredInfo;
-import org.example.knockin.chat.entity.ChattingRoom;
 import org.example.knockin.mate.entity.RoommateMatchingRequired;
 import org.example.knockin.mate.repository.RoommateMatchingRequiredRepositoryCustom;
 import org.springframework.data.domain.Page;
@@ -22,13 +22,25 @@ public class RoommateMatchingRequiredRepositoryImpl implements RoommateMatchingR
     private final JPAQueryFactory jpaQueryFactory;
 
     @Override
+    public void deleteForMembers(List<Long> memberIds, List<Long> chatRoomIds, List<Long> chatScoreIds) {
+        if (memberIds.isEmpty()) return;
+
+        jpaQueryFactory.delete(roommateScore).where(roommateScore.chattingScoreId.in(chatScoreIds)).execute();
+        jpaQueryFactory.delete(roommateMatchingRequired)
+                .where(roommateMatchingRequired.requester.id.in(memberIds)
+                        .or(roommateMatchingRequired.requestee.id.in(memberIds))
+                        .or(roommateMatchingRequired.chattingRoomId.in(chatRoomIds)))
+                .execute();
+    }
+
+    @Override
     public Optional<RoommateMatchingRequired> findLatest(Long chattingRoomId) {
         return Optional.ofNullable(
                 jpaQueryFactory
                         .select(roommateMatchingRequired)
                         .from(roommateMatchingRequired)
                         .where(
-                                roommateMatchingRequired.chattingRoom.id.eq(chattingRoomId)
+                                roommateMatchingRequired.chattingRoomId.eq(chattingRoomId)
                         )
                         .orderBy(roommateMatchingRequired.id.desc())
                         .fetchFirst()
@@ -36,7 +48,7 @@ public class RoommateMatchingRequiredRepositoryImpl implements RoommateMatchingR
     }
 
     @Override
-    public List<RoommateMatchingRequiredInfo> findRequiredDto(ChattingRoom chattingRoomEntity) {
+    public List<RoommateMatchingRequiredInfo> findRequiredDto(Long chattingRoomId) {
         return jpaQueryFactory
                 .select(Projections.constructor(
                         RoommateMatchingRequiredInfo.class,
@@ -48,7 +60,7 @@ public class RoommateMatchingRequiredRepositoryImpl implements RoommateMatchingR
                         roommateMatchingRequired.updatedAt
                 ))
                 .from(roommateMatchingRequired)
-                .where(roommateMatchingRequired.chattingRoom.eq(chattingRoomEntity))
+                .where(roommateMatchingRequired.chattingRoomId.eq(chattingRoomId))
                 .fetch();
     }
 
