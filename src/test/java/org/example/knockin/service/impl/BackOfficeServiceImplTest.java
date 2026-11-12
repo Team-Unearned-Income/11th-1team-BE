@@ -41,8 +41,6 @@ import org.example.knockin.life.service.impl.LifeStyleServiceImpl;
 import org.example.knockin.life.dto.BoLifeStylePatternDetailDto;
 import org.example.knockin.life.dto.BoLifeStylePatternDto;
 import org.example.knockin.life.dto.BoLifeStylePatternListDto;
-import org.example.knockin.life.entity.LifePattern;
-import org.example.knockin.life.entity.LifePatternInformation;
 import org.example.knockin.life.entity.LifePatternType;
 import org.example.knockin.member.entity.Member;
 import org.example.knockin.member.entity.MemberRole;
@@ -78,7 +76,6 @@ import static org.mockito.Mockito.mock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -350,18 +347,14 @@ class BackOfficeServiceImplTest {
         request.setSort(1);
         request.setDetails(List.of(detail));
 
-        LifePattern lifePattern = LifePattern.builder().id(100L).name("흡연 여부").build();
-
-        given(lifeStyleService.saveLifePattern(any(LifePattern.class))).willReturn(lifePattern);
-
         // when
         BoLifeStylePatternDto.Response response = backOfficeService.saveLifeStylePattern(request, null);
 
         // then
         assertThat(response).isNotNull();
         assertThat(response.getUpdatedAt()).isNotNull();
-        verify(lifeStyleService).saveLifePattern(any(LifePattern.class));
-        verify(lifeStyleService).saveLifePatternInformation(anyList());
+        verify(lifeStyleService).saveLifePatternLogic(request);
+        verifyNoInteractions(fileService);
     }
 
     @Test
@@ -413,20 +406,14 @@ class BackOfficeServiceImplTest {
         request.setPreferenceDescription("선호조건 설명");
         request.setDetails(List.of(detail));
 
-        LifePattern pattern = spy(LifePattern.builder().id(id).name("흡연 여부").dtype(LifePatternType.BOOLEAN).sort(1).build());
-
-        given(lifeStyleService.findLifeStyle(id)).willReturn(pattern);
-        given(lifeStyleService.findLifeInformationByPattern(pattern)).willReturn(List.of());
-
         // when
         BoLifeStylePatternDto.Response response = backOfficeService.modifyLifeStylePattern(request, id, null);
 
         // then
         assertThat(response).isNotNull();
         assertThat(response.getUpdatedAt()).isNotNull();
-        verify(lifeStyleService).findLifeInformationByPattern(pattern);
-        verify(lifeStyleService).saveLifeInformation(any(LifePatternInformation.class));
-        verify(pattern).modifyLifePattern("흡연 여부 변경", LifePatternType.BOOLEAN, 2, "생활패턴 설명", "선호조건 설명");
+        verify(lifeStyleService).modifyLifePattern(request, id);
+        verifyNoInteractions(fileService);
     }
 
     @Test

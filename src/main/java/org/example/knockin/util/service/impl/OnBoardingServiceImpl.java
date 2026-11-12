@@ -28,7 +28,6 @@ import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.FileErrorCode;
 import org.example.knockin.global.exception.MetaErrorCode;
 import org.example.knockin.global.exception.OnBoardErrorCode;
-import org.example.knockin.life.service.impl.LifeStyleServiceImpl;
 import org.example.knockin.life.service.impl.MemberLifePatternService;
 import org.example.knockin.life.service.impl.PreferenceConditionServiceImpl;
 import org.example.knockin.life.dto.ModifyPreferencesAllDto;
@@ -41,16 +40,6 @@ import org.example.knockin.life.dto.SavePreferencesAllDto;
 import org.example.knockin.life.dto.SavePreferencesConditionsDto;
 import org.example.knockin.life.dto.SavePreferencesLifeStyleDto;
 import org.example.knockin.life.dto.SaveProfileLifeStyleDto;
-import org.example.knockin.life.entity.LifePatternInformation;
-import org.example.knockin.life.entity.MemberLifePattern;
-import org.example.knockin.life.entity.MemberLifePatternLog;
-import org.example.knockin.life.entity.MemberLifePatternLogDegree;
-import org.example.knockin.life.entity.PreferenceCondition;
-import org.example.knockin.life.entity.PreferenceConditionLog;
-import org.example.knockin.life.entity.PreferenceConditionLogDegree;
-import org.example.knockin.life.entity.PreferenceConditionWeight;
-import org.example.knockin.life.entity.PreferenceConditionWeightLog;
-import org.example.knockin.life.entity.PreferenceConditionWeightLogDegree;
 import org.example.knockin.mate.service.impl.MyRoomMateServiceImpl;
 import org.example.knockin.room.dto.ModifyProfileRoomInfoDto;
 import org.example.knockin.room.dto.SaveProfileRoomInfoDto;
@@ -78,7 +67,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -94,7 +82,6 @@ public class OnBoardingServiceImpl {
     private final RoomSeekerProfileRegionServiceImpl roomSeekerProfileRegionService;
     private final MetaServiceImpl metaService;
     private final PreferenceConditionServiceImpl preferenceConditionService;
-    private final LifeStyleServiceImpl lifeStyleService;
     private final MemberPrivacyServiceImpl memberPrivacyService;
     private final MyRoomMateServiceImpl myRoomMateService;
     private final RoommateBoardService roommateBoardService;
@@ -139,31 +126,9 @@ public class OnBoardingServiceImpl {
     }
 
     @Transactional
-    public List<MemberLifePattern> saveMemberLifeStyle(SaveProfileLifeStyleDto.Request request, Member member) {
-        List<MemberLifePattern> existing = memberLifePatternService.findByMemberId(member.getId());
-        if (!existing.isEmpty()) {
-            memberLifePatternService.deleteMemberLifePatternAll(existing);
-        }
-        List<MemberLifePattern> memberLifePatternList = new ArrayList<>();
-        List<MemberLifePatternLog> memberLifePatternLogList = new ArrayList<>();
-        Long maxDegree = memberLifePatternService.findMaxmemberLifePatternLogDegree(member.getId());
-        Long degree = maxDegree != null ? maxDegree + 1 : 1L;
-        MemberLifePatternLogDegree memberLifePatternLogDegree = memberLifePatternService.memberLifePatternLogDegreeSave(degree);
-
-        metaService.findByLifeStyle(request.getLifestyles()).forEach(item -> {
-            memberLifePatternList.add(MemberLifePattern.builder().memberId(member.getId()).lifePatternInformation(item).build());
-            memberLifePatternLogList.add(MemberLifePatternLog.builder().memberId(member.getId()).lifePatternInformation(item).memberLifePatternLogDegree(memberLifePatternLogDegree).build());
-        });
-
-
-        memberLifePatternService.saveMemberLifePatternLogAll(memberLifePatternLogList);
-        return memberLifePatternService.saveMemberLifePatternAll(memberLifePatternList);
-    }
-
-    @Transactional
     public SaveProfileLifeStyleDto.Response saveLifeStyleLogic(SaveProfileLifeStyleDto.Request request, Long memberId) {
         Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
-        if(saveMemberLifeStyle(request, member).isEmpty()) throw new BusinessException(OnBoardErrorCode.ONBOARD_LIFE_STYLE_SAVE_ERROR);
+        if(memberLifePatternService.saveMemberLifePatterns(member.getId(), request.getLifestyles()).isEmpty()) throw new BusinessException(OnBoardErrorCode.ONBOARD_LIFE_STYLE_SAVE_ERROR);
         saveOrUpdateState(member);
         return SaveProfileLifeStyleDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
@@ -280,7 +245,7 @@ public class OnBoardingServiceImpl {
 
         if(ObjectUtils.isEmpty(saveBasicInfo(basicRequest, member))) throw new BusinessException(OnBoardErrorCode.ONBOARD_BASIC_SAVE_ERROR);
         if(agreementService.saveMemberAgreement(basicRequest.getTerms(), memberId)) throw new BusinessException(OnBoardErrorCode.ONBOARD_TERM_SAVE_ERROR);
-        if(saveMemberLifeStyle(lifeStyleRequest, member).isEmpty()) throw new BusinessException(OnBoardErrorCode.ONBOARD_LIFE_STYLE_SAVE_ERROR);
+        if(memberLifePatternService.saveMemberLifePatterns(member.getId(), lifeStyleRequest.getLifestyles()).isEmpty()) throw new BusinessException(OnBoardErrorCode.ONBOARD_LIFE_STYLE_SAVE_ERROR);
         if(ObjectUtils.isEmpty(saveRoomInfo(roomInfoRequest,member))) throw new BusinessException(OnBoardErrorCode.ONBOARD_ROOM_INFO_SAVE_ERROR);
         saveOrUpdateState(member);
 
@@ -328,57 +293,10 @@ public class OnBoardingServiceImpl {
     }
 
     @Transactional
-    public void modifyLifeStyle(ModifyProfileLifeStyleDto.Request request, Member member) {
-        List<Long> memberLifePatternIds = request.getLifestyles().stream()
-                .map(ModifyProfileLifeStyleDto.Request.LifeStyleInfo::getId)
-                .toList();
-
-        List<Long> newLifestyleIds = request.getLifestyles().stream()
-                .map(ModifyProfileLifeStyleDto.Request.LifeStyleInfo::getLifestyleId)
-                .toList();
-
-        Map<Long, LifePatternInformation> newInfoMap = lifeStyleService.findLifePatternInformationAllById(newLifestyleIds).stream()
-                .collect(Collectors.toMap(LifePatternInformation::getId, info -> info));
-
-        List<MemberLifePattern> memberLifePatternList = memberLifePatternService.findByMemberId(member.getId());
-        List<MemberLifePattern> modifyMemberLifePatternList = memberLifePatternList.stream()
-                .filter(item -> memberLifePatternIds.contains(item.getId()))
-                .toList();
-
-        modifyMemberLifePatternList.forEach(item -> {
-            request.getLifestyles().forEach(data -> {
-                if (Objects.equals(data.getId(), item.getId())) {
-                    LifePatternInformation newInfo = newInfoMap.get(data.getLifestyleId());
-
-                    if(!Objects.equals(newInfo.getLifePattern().getId(), item.getLifePatternInformation().getLifePattern().getId())) {
-                        throw new BusinessException(OnBoardErrorCode.ONBOARD_LIFE_STYLE_VAILDATION_FAIL);
-                    }
-
-                    item.modifyLifePatternInformation(newInfo);
-                }
-            });
-        });
-    }
-
-    @Transactional
-    public void modifyLifeStyleLog(Member member) {
-        Long maxDegree = memberLifePatternService.findMaxmemberLifePatternLogDegree(member.getId());
-        Long degree = maxDegree != null ? maxDegree + 1 : 1L;
-        MemberLifePatternLogDegree memberLifePatternLogDegree = memberLifePatternService.memberLifePatternLogDegreeSave(degree);
-        List<MemberLifePattern> memberLifePatternList = memberLifePatternService.findByMemberId(member.getId());
-        List<MemberLifePatternLog> logList = memberLifePatternList.stream().map(pattern ->
-                MemberLifePatternLog.builder().memberId(member.getId()).lifePatternInformation(pattern.getLifePatternInformation()).memberLifePatternLogDegree(memberLifePatternLogDegree).build()).toList();
-
-        if (!logList.isEmpty()) {
-            memberLifePatternService.saveMemberLifePatternLogAll(logList);
-        }
-    }
-
-    @Transactional
     public ModifyProfileLifeStyleDto.Response modifyLifeStyleLogic(ModifyProfileLifeStyleDto.Request request, Long memberId) {
         Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
-        modifyLifeStyle(request, member);
-        modifyLifeStyleLog(member);
+        memberLifePatternService.modifyLifeStyle(request, member.getId());
+        memberLifePatternService.modifyLifeStyleLog(member.getId());
         return ModifyProfileLifeStyleDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
@@ -506,31 +424,24 @@ public class OnBoardingServiceImpl {
 
         modifyBasicInfo(basicRequest, member);
         agreementService.modifyMemberAgreement(basicRequest.getTerms(), memberId);
-        modifyLifeStyle(lifeStyleRequest, member);
-        modifyLifeStyleLog(member);
+        memberLifePatternService.modifyLifeStyle(lifeStyleRequest, member.getId());
+        memberLifePatternService.modifyLifeStyleLog(member.getId());
         modifyRoomInfo(roomInfoRequest, member);
 
         return ModifyProfileAllDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
     @Transactional
-    public List<PreferenceCondition> savePreferenceLifeStyle(SavePreferencesLifeStyleDto.Request request, Member member) {
+    public List<Long> savePreferenceLifeStyle(SavePreferencesLifeStyleDto.Request request, Member member) {
         preferenceConditionService.deletePreferenceConditionByMemberId(member.getId());
-        List<PreferenceCondition> preferenceConditionList = new ArrayList<>();
-        metaService.findByLifeStyle(request.getLifestyles()).forEach(item ->
-                preferenceConditionList.add(PreferenceCondition.builder().memberId(member.getId()).lifePatternInformation(item).build()));
-        return preferenceConditionService.preferenceConditionSaveAll(preferenceConditionList);
+        return preferenceConditionService.saveAll(member.getId(), request.getLifestyles());
     }
 
     @Transactional
-    public List<PreferenceConditionLog> savePreferenceLifeStyleLog(SavePreferencesLifeStyleDto.Request request, Member member) {
-        List<PreferenceConditionLog> preferenceConditionLogList = new ArrayList<>();
-        Long maxDegree = preferenceConditionService.findMaxPreferenceConditionLogDegree(member.getId());
-        Long degree = maxDegree != null ? maxDegree + 1 : 1L;
-        PreferenceConditionLogDegree preferenceConditionLogDegree = preferenceConditionService.preferenceConditionLogDegreeSave(degree);
-        metaService.findByLifeStyle(request.getLifestyles()).forEach(item ->
-                preferenceConditionLogList.add(PreferenceConditionLog.builder().memberId(member.getId()).lifePatternInformation(item).preferenceConditionLogDegree(preferenceConditionLogDegree).build()));
-        return preferenceConditionService.preferenceConditionLogSaveAll(preferenceConditionLogList);
+    public List<Long> savePreferenceLifeStyleLog(SavePreferencesLifeStyleDto.Request request, Member member) {
+        Long degree = preferenceConditionService.findNextLogDegree(member.getId());
+        Long degreeId = preferenceConditionService.saveLogDegree(degree);
+        return preferenceConditionService.saveLogsAll(member.getId(), degreeId, request.getLifestyles());
     }
 
     @Transactional
@@ -544,23 +455,16 @@ public class OnBoardingServiceImpl {
     }
 
     @Transactional
-    public List<PreferenceConditionWeight>  savePreferenceCondition(SavePreferencesConditionsDto.Request request, Member member) {
+    public List<Long>  savePreferenceCondition(SavePreferencesConditionsDto.Request request, Member member) {
         preferenceConditionService.deletePreferenceConditionWeightByMemberId(member.getId());
-        List<PreferenceConditionWeight> preferenceConditionWeightList = new ArrayList<>();
-        metaService.findLifePatternByLifeStyle(request.getConditions()).forEach(item ->
-                preferenceConditionWeightList.add(PreferenceConditionWeight.builder().memberId(member.getId()).lifePattern(item).build()));
-        return preferenceConditionService.preferenceConditionWeightSaveAll(preferenceConditionWeightList);
+        return preferenceConditionService.savePreferenceConditionWeights(member.getId(), request.getConditions());
     }
 
     @Transactional
-    public List<PreferenceConditionWeightLog>  savePreferenceConditionLog(SavePreferencesConditionsDto.Request request, Member member) {
-        List<PreferenceConditionWeightLog> preferenceConditionWeightLogList = new ArrayList<>();
-        Long maxDegree = preferenceConditionService.findMaxPreferenceConditionWeightLogDegree(member.getId());
-        Long degree = maxDegree != null ? maxDegree + 1 : 1L;
-        PreferenceConditionWeightLogDegree preferenceConditionWeightLogDegree = preferenceConditionService.preferenceConditionWeightLogDegreeSave(degree);
-        metaService.findLifePatternByLifeStyle(request.getConditions()).forEach(item ->
-                preferenceConditionWeightLogList.add(PreferenceConditionWeightLog.builder().memberId(member.getId()).lifePattern(item).preferenceConditionWeightLogDegree(preferenceConditionWeightLogDegree).build()));
-        return preferenceConditionService.preferenceConditionWeightLogSaveAll(preferenceConditionWeightLogList);
+    public List<Long>  savePreferenceConditionLog(SavePreferencesConditionsDto.Request request, Member member) {
+        Long degree = preferenceConditionService.findNextWeightLogDegreeNumber(member.getId());
+        Long degreeId = preferenceConditionService.savePreferenceConditionWeightLogDegree(degree);
+        return preferenceConditionService.savePreferenceConditionWeightLogs(member.getId(), request.getConditions(), degreeId);
     }
 
     @Transactional
@@ -588,43 +492,19 @@ public class OnBoardingServiceImpl {
         return SavePreferencesAllDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
-    @Transactional
-    public void modifyPreferenceLifeStyle(ModifyPreferencesLifeStyleDto.Request request, Member member) {
-        Map<Long, LifePatternInformation> newInfoMap = request.getLifestyles().stream().collect(Collectors.toMap(ModifyPreferencesLifeStyleDto.Request.LifeStyleInfo::getId, item -> lifeStyleService.findLifePatternInformationById(item.getLifestyleId())));
-        preferenceConditionService.findPreferenceConditionByMemberId(member.getId()).forEach(item -> {
-            request.getLifestyles().forEach(data -> {
-                if(Objects.equals(data.getId(), item.getId())) {
-                    LifePatternInformation newInfo = newInfoMap.get(data.getId());
-
-                    if(!Objects.equals(newInfo.getLifePattern().getId(), item.getLifePatternInformation().getLifePattern().getId())) {
-                        throw new BusinessException(OnBoardErrorCode.ONBOARD_LIFE_STYLE_VAILDATION_FAIL);
-                    }
-
-                    item.modifyLifePatternInformation(newInfoMap.get(item.getId()));
-                }
-            });
-        });
-    }
-
+    // FIXME
     @Transactional
     public void modifyPreferenceLifeStyleLog(Member member) {
-        Long maxDegree = preferenceConditionService.findMaxPreferenceConditionLogDegree(member.getId());
-        Long degree = maxDegree != null ? maxDegree + 1 : 1L;
-        PreferenceConditionLogDegree preferenceConditionLogDegree = preferenceConditionService.preferenceConditionLogDegreeSave(degree);
-        List<PreferenceCondition> preferenceConditionList = preferenceConditionService.findPreferenceConditionByMemberId(member.getId());
-        List<PreferenceConditionLog> logList = preferenceConditionList.stream().map(pattern ->
-                PreferenceConditionLog.builder().memberId(member.getId()).lifePatternInformation(pattern.getLifePatternInformation()).preferenceConditionLogDegree(preferenceConditionLogDegree).build()).toList();
-
-        if (!logList.isEmpty()) {
-            preferenceConditionService.preferenceConditionLogSaveAll(logList);
-        }
+        Long degree = preferenceConditionService.findNextLogDegree(member.getId());
+        Long degreeId = preferenceConditionService.saveLogDegree(degree);
+        preferenceConditionService.saveLogsAll(member.getId(), degreeId);
     }
 
     @Transactional
     public ModifyPreferencesLifeStyleDto.Response modifyPreLifeStyleLogic(ModifyPreferencesLifeStyleDto.Request request, Long memberId) {
         Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
 
-        modifyPreferenceLifeStyle(request,member);
+        preferenceConditionService.modifyPreferenceLifeStyle(request,member);
         modifyPreferenceLifeStyleLog(member);
 
         return ModifyPreferencesLifeStyleDto.Response.builder().updatedAt(LocalDateTime.now()).build();
@@ -633,24 +513,14 @@ public class OnBoardingServiceImpl {
     @Transactional
     public void modifyPreCondition(ModifyPreferencesConditionsDto.Request request, Member member) {
         preferenceConditionService.deletePreferenceConditionWeightByMemberId(member.getId());
-
-        List<PreferenceConditionWeight> preferenceConditionWeightList = new ArrayList<>();
-        lifeStyleService.findAllById(request.getConditions()).forEach(item -> preferenceConditionWeightList.add(PreferenceConditionWeight.builder().memberId(member.getId()).lifePattern(item).build()));
-        preferenceConditionService.preferenceConditionWeightSaveAll(preferenceConditionWeightList);
+        preferenceConditionService.savePreferenceConditionWeights(member.getId(), request.getConditions());
     }
 
     @Transactional
     public void modifyPreConditionLog(Member member) {
-        Long maxDegree = preferenceConditionService.findMaxPreferenceConditionWeightLogDegree(member.getId());
-        Long degree = maxDegree != null ? maxDegree + 1 : 1L;
-        PreferenceConditionWeightLogDegree preferenceConditionWeightLogDegree = preferenceConditionService.preferenceConditionWeightLogDegreeSave(degree);
-        List<PreferenceConditionWeight> preferenceConditionWeightList = preferenceConditionService.findPreferenceConditionWeightByMemberId(member.getId());
-        List<PreferenceConditionWeightLog> logList = preferenceConditionWeightList.stream().map(patternWeight ->
-                PreferenceConditionWeightLog.builder().memberId(member.getId()).lifePattern(patternWeight.getLifePattern()).preferenceConditionWeightLogDegree(preferenceConditionWeightLogDegree).build()).toList();
-
-        if (!logList.isEmpty()) {
-            preferenceConditionService.preferenceConditionWeightLogSaveAll(logList);
-        }
+        Long degreeNextNumber = preferenceConditionService.findNextWeightLogDegreeNumber(member.getId());
+        Long degreeId = preferenceConditionService.savePreferenceConditionWeightLogDegree(degreeNextNumber);
+        preferenceConditionService.modifyPreferenceConditionWeightLog(member.getId(), degreeId);
     }
 
     @Transactional
@@ -670,7 +540,7 @@ public class OnBoardingServiceImpl {
         ModifyPreferencesLifeStyleDto.Request lifeStyleRequest = ModifyPreferencesLifeStyleDto.Request.builder().lifestyles(request.getLifestyles()).build();
         ModifyPreferencesConditionsDto.Request conditionRequest = ModifyPreferencesConditionsDto.Request.builder().conditions(request.getConditions()).build();
 
-        modifyPreferenceLifeStyle(lifeStyleRequest,member);
+        preferenceConditionService.modifyPreferenceLifeStyle(lifeStyleRequest,member);
         modifyPreferenceLifeStyleLog(member);
         modifyPreCondition(conditionRequest, member);
         modifyPreConditionLog(member);

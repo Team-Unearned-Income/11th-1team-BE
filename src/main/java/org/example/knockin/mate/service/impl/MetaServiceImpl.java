@@ -6,8 +6,6 @@ import org.example.knockin.agreement.dto.TermsListDto;
 import org.example.knockin.agreement.service.AgreementService;
 import org.example.knockin.life.service.impl.LifeStyleServiceImpl;
 import org.example.knockin.life.dto.MetaLifestylePatternsDto;
-import org.example.knockin.life.entity.LifePattern;
-import org.example.knockin.life.entity.LifePatternInformation;
 import org.example.knockin.meta.dto.MetaRegionsDto;
 import org.example.knockin.meta.dto.PopularSearchDto;
 import org.example.knockin.meta.dto.PresignedUrlDto;
@@ -40,14 +38,6 @@ public class MetaServiceImpl {
     private final AgreementService agreementService;
     private final SearchServiceImpl searchService;
     private final FileService fileService;
-
-    public List<LifePatternInformation> findByLifeStyle(List<Long> lifeStyles) {
-        return lifeStyleService.findByLifeStyles(lifeStyles);
-    }
-
-    public List<LifePattern> findLifePatternByLifeStyle(List<Long> lifeStyles) {
-        return lifeStyleService.findAllById(lifeStyles);
-    }
 
     public Optional<Region> findByRegionId(Long id) {
         return regionService.findById(id);
