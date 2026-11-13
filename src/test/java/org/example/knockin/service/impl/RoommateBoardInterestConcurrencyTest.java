@@ -79,14 +79,14 @@ class RoommateBoardInterestConcurrencyTest {
             RoomType roomType = roomTypeRepository.save(createRoomType("원룸"));
             Region region = regionRepository.save(createRegion("역삼동", 3, null));
             RoommateBoard board = roommateBoardRepository.save(RoommateBoard.builder()
-                    .member(member)
+                    .memberId(member.getId())
                     .title("동시성 테스트 게시글")
                     .contents("동시에 좋아요를 누르는 상황")
                     .deposit(1_000)
                     .monthlyRent(50)
                     .managementCost(10)
-                    .roomType(roomType)
-                    .region(region)
+                    .roomTypeId(roomType.getId())
+                    .regionId(region.getId())
                     .comeableDate(LocalDateTime.of(2026, 7, 1, 9, 0))
                     .build());
             return new TestData(board.getId(), member.getId());

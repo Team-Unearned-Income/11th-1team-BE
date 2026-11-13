@@ -45,7 +45,7 @@ public class RoommateBoardOptionServiceImpl {
         List<RoommateBoardOption> roommateBoardOptions = roomExtraOptions.stream()
                 .map(roomExtraOption -> RoommateBoardOption.builder()
                         .roommateBoard(roommateBoard)
-                        .roomExtraOption(roomExtraOption)
+                        .roomExtraOptionId(roomExtraOption.getId())
                         .build())
                 .toList();
 
@@ -75,7 +75,7 @@ public class RoommateBoardOptionServiceImpl {
 
         Map<Long, RoommateBoardOption> extraOptionIdMap = roommateBoardOptions.stream()
                 .collect(Collectors.toMap(
-                        option -> option.getRoomExtraOption().getId(),
+                        option -> option.getRoomExtraOptionId(),
                         Function.identity(),
                         (first, second) -> first)
                 );

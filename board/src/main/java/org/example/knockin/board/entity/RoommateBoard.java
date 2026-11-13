@@ -2,12 +2,9 @@ package org.example.knockin.board.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
@@ -17,13 +14,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.knockin.board.dto.BoardModifyDto;
 import org.example.knockin.board.dto.BoardPreSignedModifyDto;
-import org.example.knockin.member.entity.Member;
-import org.example.knockin.meta.entity.Region;
-import org.example.knockin.room.entity.RoomType;
 import org.example.knockin.global.entity.BaseEntity;
 import org.hibernate.annotations.ColumnDefault;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
 @Getter
 @Entity
@@ -37,9 +29,8 @@ public class RoommateBoard extends BaseEntity {
     @Column(name = "id")
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE) private Member member;
+    @Column(name = "member_id", nullable = false)
+    private Long memberId;
 
     @Column(name = "title", length = 50)
     private String title;
@@ -56,13 +47,11 @@ public class RoommateBoard extends BaseEntity {
     @Column(name = "management_cost")
     private Integer managementCost;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "room_type_id", nullable = false)
-    private RoomType roomType;
+    @Column(name = "room_type_id", nullable = false)
+    private Long roomTypeId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "region_id", nullable = false)
-    private Region region;
+    @Column(name = "region_id", nullable = false)
+    private Long regionId;
 
     @Column(name ="comeable_date_negotiable")
     private Boolean comeableDateNegotiable;
@@ -103,12 +92,12 @@ public class RoommateBoard extends BaseEntity {
         comeableDate = request.getComeableDate();
     }
 
-    public void modifyRoomType(RoomType roomType) {
-        this.roomType = roomType;
+    public void modifyRoomType(Long roomTypeId) {
+        this.roomTypeId = roomTypeId;
     }
 
-    public void modifyRegion(Region region) {
-        this.region = region;
+    public void modifyRegion(Long regionId) {
+        this.regionId = regionId;
     }
 
     public void softDelete() {

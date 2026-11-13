@@ -14,18 +14,16 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.example.knockin.room.entity.RoomExtraOption;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
-
 
 @Getter
 @Entity
 @Builder
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Table(name = "roommate_board_option")
-public class RoommateBoardOption {
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(name = "roommate_board_file")
+public class RoommateBoardFile {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -36,7 +34,13 @@ public class RoommateBoardOption {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private RoommateBoard roommateBoard;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "room_extra_option_id", nullable = false)
-    private RoomExtraOption roomExtraOption;
+    @Column(name = "file_id", nullable = false)
+    private Long fileId;
+
+    @Column(name = "is_thumbnail", nullable = false)
+    private Boolean isThumbnail;
+
+    public void modifyIsThumbnail(boolean isThumbnail) {
+        this.isThumbnail = isThumbnail;
+    }
 }

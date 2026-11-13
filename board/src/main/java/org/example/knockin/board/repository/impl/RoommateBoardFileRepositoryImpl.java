@@ -26,7 +26,7 @@ public class RoommateBoardFileRepositoryImpl implements RoommateBoardFileReposit
                         file.savedFileName
                 ))
                 .from(roommateBoardFile)
-                .join(roommateBoardFile.file, file)
+                .join(file).on(roommateBoardFile.fileId.eq(file.id))
                 .where(
                         roommateBoardFile.roommateBoard.id.eq(boardId),
                         file.isDeleted.isFalse()
@@ -45,7 +45,7 @@ public class RoommateBoardFileRepositoryImpl implements RoommateBoardFileReposit
                         file.savedFileName
                 ))
                 .from(roommateBoardFile)
-                .join(roommateBoardFile.file, file)
+                .join(file).on(roommateBoardFile.fileId.eq(file.id))
                 .where(
                         roommateBoardFile.roommateBoard.id.in(boardIds),
                         roommateBoardFile.isThumbnail.isTrue(),

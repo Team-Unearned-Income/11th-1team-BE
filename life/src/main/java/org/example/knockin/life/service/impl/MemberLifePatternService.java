@@ -1,7 +1,6 @@
 package org.example.knockin.life.service.impl;
 
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.board.dto.BoardDetailDto.Response.Lifestyle;
 import org.example.knockin.life.entity.MemberLifePattern;
 import org.example.knockin.life.entity.MemberLifePatternLog;
 import org.example.knockin.life.entity.MemberLifePatternLogDegree;
@@ -45,8 +44,8 @@ public class MemberLifePatternService {
         return memberLifePatternRepository.findAllLifestyleByMemberIdIn(memberIds);
     }
 
-    public List<Lifestyle> findLifeStyleDtoByMemberId(Long memberId) {
-        return memberLifePatternRepository.getLifeStyleDto(memberId);
+    public List<MatchingLifestyleRow> findLifestyleRowsByMemberId(Long memberId) {
+        return memberLifePatternRepository.findLifestyleRowsByMemberId(memberId);
     }
 
     public Long findMaxmemberLifePatternLogDegree(Long memberId) {

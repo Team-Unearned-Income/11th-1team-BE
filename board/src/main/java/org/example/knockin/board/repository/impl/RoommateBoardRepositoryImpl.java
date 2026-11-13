@@ -16,6 +16,8 @@ import com.querydsl.core.types.*;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
+import com.querydsl.jpa.JPQLSubQuery;
+import static org.example.knockin.declaration.entity.QRoommateBoardDeclaration.roommateBoardDeclaration;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -57,6 +59,18 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCustom {
     private final JPAQueryFactory jpaQueryFactory;
+
+    @Override
+    public void deleteForMembers(List<Long> memberIds) {
+        if (memberIds.isEmpty()) return;
+        JPQLSubQuery<Long> boardIds = JPAExpressions.select(roommateBoard.id).from(roommateBoard)
+                .where(roommateBoard.memberId.in(memberIds));
+        jpaQueryFactory.delete(roommateBoardDeclaration)
+                .where(roommateBoardDeclaration.roommateBoardId.in(boardIds)).execute();
+        jpaQueryFactory.delete(roommateBoardInterest)
+                .where(roommateBoardInterest.memberId.in(memberIds)).execute();
+        jpaQueryFactory.delete(roommateBoard).where(roommateBoard.memberId.in(memberIds)).execute();
+    }
 
     @Override
     public Slice<BoardBaseRow> search(BoardListDto.Request request, Pageable pageable, LocalDateTime endDate, @Nullable Long requesterId) {
@@ -103,11 +117,11 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                         roommateBoard.createdAt
                 ))
                 .from(roommateBoard)
-                .join(roommateBoard.roomType, roomType)
-                .join(roommateBoard.region, boardRegion)
+                .join(roomType).on(roommateBoard.roomTypeId.eq(roomType.id))
+                .join(boardRegion).on(roommateBoard.regionId.eq(boardRegion.id))
                 .leftJoin(boardRegion.parent, parentRegion)
                 .leftJoin(parentRegion.parent, grandParentRegion)
-                .join(roommateBoard.member, member)
+                .join(member).on(roommateBoard.memberId.eq(member.id))
                 .leftJoin(latestBasicInformation).on(latestBasicInformation.member.eq(member).and(latestBasicInformationIdEq(latestBasicInformation)))
                 //.leftJoin(member.basicInformations, latestBasicInformation).on(latestBasicInformationIdEq(latestBasicInformation))
                 .leftJoin(basicInformationFile)
@@ -144,7 +158,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 .from(roommateBoardInterest)
                 .where(
                         roommateBoardInterest.roommateBoard.id.eq(roommateBoard.id),
-                        roommateBoardInterest.member.id.eq(requesterId),
+                        roommateBoardInterest.memberId.eq(requesterId),
                         roommateBoardInterest.isDeleted.isFalse()
                 )
                 .exists();
@@ -159,7 +173,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 .where(
                         block.isDeleted.isFalse(),
                         block.blocker.id.eq(requesterId),
-                        block.blocked.id.eq(roommateBoard.member.id)
+                        block.blocked.id.eq(roommateBoard.memberId)
                 )
                 .notExists();
 
@@ -169,7 +183,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 .where(
                         block.isDeleted.isFalse(),
                         block.blocked.id.eq(requesterId),
-                        block.blocker.id.eq(roommateBoard.member.id)
+                        block.blocker.id.eq(roommateBoard.memberId)
                 )
                 .notExists();
 
@@ -218,7 +232,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                         roommateBoard.deposit,
                         roommateBoard.managementCost,
                         roommateBoard.monthlyRent,
-                        roommateBoard.roomType.name,
+                        roomType.name,
                         boardRegion.name,
                         parentRegion.name,
                         grandParentRegion.name,
@@ -238,11 +252,11 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                         roommateBoard.id.eq(boardId),
                         roommateBoard.isDeleted.isFalse()
                 )
-                .join(roommateBoard.roomType, roomType)
-                .join(roommateBoard.region, boardRegion)
+                .join(roomType).on(roommateBoard.roomTypeId.eq(roomType.id))
+                .join(boardRegion).on(roommateBoard.regionId.eq(boardRegion.id))
                 .leftJoin(boardRegion.parent, parentRegion)
                 .leftJoin(parentRegion.parent, grandParentRegion)
-                .join(roommateBoard.member, member)
+                .join(member).on(roommateBoard.memberId.eq(member.id))
                 // 1:N 관계이지만 서비스적으로 1:1 유지 가정
                 .leftJoin(basicInformation)
                 .on(basicInformation.id.eq(
@@ -296,11 +310,11 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                         roommateBoard.createdAt
                 ))
                 .from(roommateBoard)
-                .join(roommateBoard.roomType, roomType)
-                .join(roommateBoard.region, boardRegion)
+                .join(roomType).on(roommateBoard.roomTypeId.eq(roomType.id))
+                .join(boardRegion).on(roommateBoard.regionId.eq(boardRegion.id))
                 .leftJoin(boardRegion.parent, parentRegion)
                 .leftJoin(parentRegion.parent, grandParentRegion)
-                .join(roommateBoard.member, member)
+                .join(member).on(roommateBoard.memberId.eq(member.id))
                 .leftJoin(latestBasicInformation).on(latestBasicInformation.member.eq(member).and(latestBasicInformationIdEq(latestBasicInformation)))
                 //.leftJoin(member.basicInformations, latestBasicInformation).on(latestBasicInformationIdEq(latestBasicInformation))
                 .leftJoin(basicInformationFile)
@@ -321,11 +335,11 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
         Long total = jpaQueryFactory
                 .select(roommateBoard.count())
                 .from(roommateBoard)
-                .join(roommateBoard.roomType, roomType)
-                .join(roommateBoard.region, boardRegion)
+                .join(roomType).on(roommateBoard.roomTypeId.eq(roomType.id))
+                .join(boardRegion).on(roommateBoard.regionId.eq(boardRegion.id))
                 .leftJoin(boardRegion.parent, parentRegion)
                 .leftJoin(parentRegion.parent, grandParentRegion)
-                .where(roommateBoard.member.eq(memberEntity))
+                .where(roommateBoard.memberId.eq(memberEntity.getId()))
                 .fetchOne();
 
         return new PageImpl<>(content, page, total == null ? 0 : total);
@@ -346,8 +360,8 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                         roommateBoard.deposit,
                         roommateBoard.monthlyRent,
                         roommateBoard.managementCost,
-                        roommateBoard.roomType.id,
-                        roommateBoard.roomType.name,
+                        roommateBoard.roomTypeId,
+                        roomType.name,
                         roomTypeImageFile.savedFileName,
                         boardRegion.id,
                         boardRegion.name,
@@ -362,7 +376,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                         roommateBoard.id.eq(boardId),
                         roommateBoard.isDeleted.isFalse()
                 )
-                .join(roommateBoard.roomType, roomType)
+                .join(roomType).on(roommateBoard.roomTypeId.eq(roomType.id))
                 .leftJoin(selectedRoomTypeFile)
                 .on(selectedRoomTypeFile.id.eq(
                         JPAExpressions
@@ -372,7 +386,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 ))
                 .leftJoin(selectedRoomTypeFile.file, roomTypeImageFile)
                 .on(roomTypeImageFile.isDeleted.isFalse())
-                .join(roommateBoard.region, boardRegion)
+                .join(boardRegion).on(roommateBoard.regionId.eq(boardRegion.id))
                 .leftJoin(boardRegion.parent, parentRegion)
                 .leftJoin(parentRegion.parent, grandParentRegion)
                 .fetchOne());
@@ -392,9 +406,9 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                         roommateBoard.comeableDateNegotiable,
                         Expressions.stringTemplate("concat(coalesce({0}, ''), ' ', coalesce({1}, ''), ' ', coalesce({2}, ''))",
                                 grandParent.name, parent.name, region.name).as("region")
-                )).from(roommateBoard).join(roommateBoard.member, member)
+                )).from(roommateBoard).join(member).on(roommateBoard.memberId.eq(member.id))
                 .leftJoin(basicInformation).on(basicInformation.member.eq(member))
-                .leftJoin(roommateBoard.region, region)
+                .leftJoin(region).on(roommateBoard.regionId.eq(region.id))
                 .leftJoin(region.parent, parent)
                 .leftJoin(parent.parent, grandParent)
                 .where(
@@ -424,14 +438,14 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                         roommateBoard.isDeleted
                 ))
                 .from(roommateBoard)
-                .join(roommateBoard.member, member)
+                .join(member).on(roommateBoard.memberId.eq(member.id))
                 .leftJoin(basicInformation)
                 .on(basicInformation.member.eq(member))
-                .leftJoin(roommateBoard.region, region)
+                .leftJoin(region).on(roommateBoard.regionId.eq(region.id))
                 .leftJoin(region.parent, parent)
                 .leftJoin(parent.parent, grandParent)
                 .leftJoin(roommateBoardFile).on(roommateBoardFile.roommateBoard.eq(roommateBoard).and(roommateBoardFile.isThumbnail.isTrue()))
-                .leftJoin(roommateBoardFile.file, file)
+                .leftJoin(file).on(roommateBoardFile.fileId.eq(file.id))
                 .where(roommateBoard.id.eq(id))
                 .fetchOne();
     }
@@ -476,7 +490,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
 
     private BooleanExpression roomTypeIn(List<Long> roomTypeIds) {
         if (roomTypeIds == null || roomTypeIds.isEmpty()) return null;
-        return roommateBoard.roomType.id.in(roomTypeIds);
+        return roommateBoard.roomTypeId.in(roomTypeIds);
     }
 
     private BooleanExpression genderEq(Gender gender) {
@@ -487,13 +501,13 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 .selectOne()
                 .from(latestBasicInformation)
                 .where(
-                        latestBasicInformation.member.id.eq(roommateBoard.member.id),
+                        latestBasicInformation.member.id.eq(roommateBoard.memberId),
                         latestBasicInformation.gender.eq(gender),
                         latestBasicInformation.id.eq(
                                 JPAExpressions
                                         .select(maxBasicInformation.id.max())
                                         .from(maxBasicInformation)
-                                        .where(maxBasicInformation.member.id.eq(roommateBoard.member.id))
+                                        .where(maxBasicInformation.member.id.eq(roommateBoard.memberId))
                         )
                 )
                 .exists();
@@ -516,7 +530,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 .selectOne()
                 .from(state)
                 .where(
-                        state.member.id.eq(roommateBoard.member.id),
+                        state.member.id.eq(roommateBoard.memberId),
                         state.states.eq(MemberState.ACTIVE)
                 )
                 .exists();
@@ -552,7 +566,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
         QRegion rParent = new QRegion("rParent");
         QRegion rGrandParent = new QRegion("rGrandParent");
 
-        return roommateBoard.region.id.in(JPAExpressions.select(rChild.id)
+        return roommateBoard.regionId.in(JPAExpressions.select(rChild.id)
                         .from(rChild)
                         .leftJoin(rChild.parent, rParent)
                         .leftJoin(rParent.parent, rGrandParent)

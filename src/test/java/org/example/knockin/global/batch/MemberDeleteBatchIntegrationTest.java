@@ -27,6 +27,11 @@ import java.util.stream.IntStream;
 import org.example.knockin.agreement.entity.AgreementLog;
 import org.example.knockin.agreement.entity.MemberAgreement;
 import org.example.knockin.board.entity.RoommateBoard;
+import org.example.knockin.board.entity.RoommateBoardInterest;
+import org.example.knockin.board.entity.RoommateBoardFile;
+import org.example.knockin.board.entity.RoommateBoardOption;
+import org.example.knockin.meta.entity.File;
+import org.example.knockin.room.entity.RoomExtraOption;
 import org.example.knockin.declaration.entity.MemberDeclaration;
 import org.example.knockin.declaration.entity.RoommateBoardDeclaration;
 import org.example.knockin.inquiry.entity.Inquiry;
@@ -76,6 +81,7 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles("test")
 class MemberDeleteBatchIntegrationTest {
     private static final List<String> EXTERNAL_REFERENCE_TABLES = List.of(
+            "roommate_board", "roommate_board_interest", "roommate_board_file", "roommate_board_option",
             "member_declaration", "roommate_board_declaration", "inquiry", "inquiry_comment",
             "authentication", "authentication_approve", "member_agreement", "member_life_pattern",
             "member_life_pattern_log", "preference_condition", "preference_condition_log",
@@ -235,9 +241,28 @@ class MemberDeleteBatchIntegrationTest {
         Long requesterId = member(false, null);
         Long requesteeId = member(false, null);
         new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
-            RoommateBoard board = RoommateBoard.builder().member(entityManager.find(Member.class, ownerId))
-                    .roomType(first(RoomType.class)).region(first(Region.class)).build();
+            RoommateBoard board = RoommateBoard.builder().memberId(entityManager.find(Member.class, ownerId).getId())
+                    .roomTypeId(first(RoomType.class).getId()).regionId(first(Region.class).getId()).build();
             entityManager.persist(board);
+            RoommateBoard survivingBoard = RoommateBoard.builder().memberId(requesterId)
+                    .roomTypeId(board.getRoomTypeId()).regionId(board.getRegionId()).build();
+            entityManager.persist(survivingBoard);
+            RoommateBoardInterest ownerInterest = RoommateBoardInterest.builder()
+                    .memberId(ownerId).roommateBoard(survivingBoard).build();
+            RoommateBoardInterest interestInDeletedBoard = RoommateBoardInterest.builder()
+                    .memberId(requesterId).roommateBoard(board).build();
+            RoommateBoardInterest survivingInterest = RoommateBoardInterest.builder()
+                    .memberId(requesteeId).roommateBoard(survivingBoard).build();
+            File file = first(File.class);
+            RoommateBoardFile boardFile = RoommateBoardFile.builder()
+                    .roommateBoard(board).fileId(file.getId()).isThumbnail(true).build();
+            RoommateBoardOption boardOption = RoommateBoardOption.builder()
+                    .roommateBoard(board).roomExtraOptionId(first(RoomExtraOption.class).getId()).build();
+            RoommateBoardDeclaration report = RoommateBoardDeclaration.builder()
+                    .memberId(requesterId).roommateBoardId(board.getId()).build();
+            for (Object row : List.of(ownerInterest, interestInDeletedBoard, survivingInterest, boardFile, boardOption, report)) {
+                entityManager.persist(row);
+            }
             ChattingRequired request = ChattingRequired.builder().requesterId(requesterId).requesteeId(requesteeId)
                     .roommateBoardId(board.getId()).status(ChattingRequiredStatus.ACCEPTED).build();
             entityManager.persist(request);
@@ -259,6 +284,15 @@ class MemberDeleteBatchIntegrationTest {
             entityManager.clear();
 
             assertThat(entityManager.find(Member.class, ownerId)).isNull();
+            assertThat(entityManager.find(RoommateBoard.class, board.getId())).isNull();
+            assertThat(entityManager.find(RoommateBoardInterest.class, ownerInterest.getId())).isNull();
+            assertThat(entityManager.find(RoommateBoardInterest.class, interestInDeletedBoard.getId())).isNull();
+            assertThat(entityManager.find(RoommateBoardFile.class, boardFile.getId())).isNull();
+            assertThat(entityManager.find(RoommateBoardOption.class, boardOption.getId())).isNull();
+            assertThat(entityManager.find(RoommateBoardDeclaration.class, report.getId())).isNull();
+            assertThat(entityManager.find(RoommateBoard.class, survivingBoard.getId())).isNotNull();
+            assertThat(entityManager.find(RoommateBoardInterest.class, survivingInterest.getId())).isNotNull();
+            assertThat(entityManager.find(File.class, file.getId())).isNotNull();
             assertThat(entityManager.find(ChattingRoom.class, room.getId())).isNotNull();
             assertThat(entityManager.find(ChattingRequired.class, request.getId()).getRoommateBoardId()).isNull();
             assertThat(entityManager.find(ChatRoomMember.class, ownerMembership.getId())).isNull();
@@ -277,6 +311,15 @@ class MemberDeleteBatchIntegrationTest {
 
     private void assertNoOrphanedExternalReferences() {
         for (String[] reference : new String[][]{
+                {"roommate_board", "member_id", "member"},
+                {"roommate_board", "room_type_id", "room_type"},
+                {"roommate_board", "region_id", "region"},
+                {"roommate_board_interest", "member_id", "member"},
+                {"roommate_board_interest", "roommate_board_id", "roommate_board"},
+                {"roommate_board_file", "roommate_board_id", "roommate_board"},
+                {"roommate_board_file", "file_id", "file"},
+                {"roommate_board_option", "roommate_board_id", "roommate_board"},
+                {"roommate_board_option", "room_extra_option_id", "room_extra_option"},
                 {"chatting_required", "requester", "member"},
                 {"chatting_required", "requestee", "member"},
                 {"chatting_required", "roommate_board_id", "roommate_board"},
@@ -321,10 +364,10 @@ class MemberDeleteBatchIntegrationTest {
             RoomType roomType = first(RoomType.class);
             Region region = first(Region.class);
 
-            RoommateBoard ownedBoard = RoommateBoard.builder().member(entityManager.find(Member.class, memberId))
-                    .roomType(roomType).region(region).build();
-            RoommateBoard survivingBoard = RoommateBoard.builder().member(entityManager.find(Member.class, survivorId))
-                    .roomType(roomType).region(region).build();
+            RoommateBoard ownedBoard = RoommateBoard.builder().memberId(entityManager.find(Member.class, memberId).getId())
+                    .roomTypeId(roomType.getId()).regionId(region.getId()).build();
+            RoommateBoard survivingBoard = RoommateBoard.builder().memberId(entityManager.find(Member.class, survivorId).getId())
+                    .roomTypeId(roomType.getId()).regionId(region.getId()).build();
             entityManager.persist(ownedBoard);
             entityManager.persist(survivingBoard);
 

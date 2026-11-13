@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface RoommateBoardService {
+    void deleteForMembers(List<Long> memberIds);
     BoardDto.Response save(BoardDto.Request request, Long memberId, @Nullable List<MultipartFile> files);
     BoardPreSignedDto.Response saveBoardPreSigned(BoardPreSignedDto.Request request, Long memberId);
     Slice<Response> getBoardList(BoardListDto.Request request, Pageable pageable, @Nullable Long requesterId);

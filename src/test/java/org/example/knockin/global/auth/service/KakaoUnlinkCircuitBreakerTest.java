@@ -107,7 +107,7 @@ class KakaoUnlinkCircuitBreakerTest {
             var repository = mock(MemberRepository.class);
             when(repository.findMemberByProvider("123", LoginProviderType.KAKAO)).thenReturn(Optional.of(member));
             var members = new MemberServiceImpl(repository, context.getBean(Oauth2DeleteFactory.class),
-                    null, null, null, null, null, null, null, null, null);
+                    null, null, null, null, null, null, null, null, null, null);
 
             assertThat(members.deleteMember("123", LoginProviderType.KAKAO).getUpdatedAt()).isNotNull();
             assertThat(member.isDelete()).isTrue();

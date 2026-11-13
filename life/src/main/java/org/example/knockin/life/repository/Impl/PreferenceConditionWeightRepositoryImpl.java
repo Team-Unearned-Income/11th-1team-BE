@@ -8,7 +8,6 @@ import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.board.dto.BoardDetailDto.Response.ConditionWeight;
 import org.example.knockin.meta.entity.QFile;
 import org.example.knockin.life.entity.QLifePatternFile;
 import org.example.knockin.life.repository.PreferenceConditionWeightRepositoryCustom;
@@ -21,15 +20,17 @@ public class PreferenceConditionWeightRepositoryImpl implements PreferenceCondit
     private final JPAQueryFactory jpaQueryFactory;
 
     @Override
-    public List<ConditionWeight> getConditionWeightDtoByMemberId(Long memberId) {
+    public List<MatchingPreferenceConditionWeightRow> findConditionWeightRowsByMemberId(Long memberId) {
         QLifePatternFile selectedPatternFile = new QLifePatternFile("selectedEditConditionWeightPatternFile");
         QLifePatternFile latestPatternFile = new QLifePatternFile("latestEditConditionWeightPatternFile");
         QFile patternImageFile = new QFile("editConditionWeightPatternImageFile");
 
         return jpaQueryFactory
                 .select(Projections.constructor(
-                        ConditionWeight.class,
+                        MatchingPreferenceConditionWeightRow.class,
+                        preferenceConditionWeight.memberId,
                         preferenceConditionWeight.id,
+                        lifePattern.id,
                         lifePattern.name,
                         patternImageFile.savedFileName
                 ))

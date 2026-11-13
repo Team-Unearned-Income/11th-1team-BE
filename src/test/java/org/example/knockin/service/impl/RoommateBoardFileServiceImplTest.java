@@ -7,6 +7,8 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
+import org.example.knockin.meta.repository.FileRepository;
 import org.example.knockin.board.entity.RoommateBoard;
 import org.example.knockin.board.entity.RoommateBoardFile;
 import org.example.knockin.board.service.impl.RoommateBoardFileServiceImpl;
@@ -32,6 +34,9 @@ class RoommateBoardFileServiceImplTest {
 
     @Mock
     private FileService fileService;
+
+    @Mock
+    private FileRepository fileRepository;
 
     @InjectMocks
     private RoommateBoardFileServiceImpl roommateBoardFileService;
@@ -59,7 +64,7 @@ class RoommateBoardFileServiceImplTest {
         // Then
         assertThat(result).hasSize(2);
         assertThat(result).extracting(RoommateBoardFile::getRoommateBoard).containsOnly(board);
-        assertThat(result).extracting(RoommateBoardFile::getFile).containsExactly(thumbnailFile, roomFile);
+        assertThat(result).extracting(RoommateBoardFile::getFileId).containsExactly(thumbnailFile.getId(), roomFile.getId());
         assertThat(result).extracting(RoommateBoardFile::getIsThumbnail).containsExactly(true, false);
         verify(fileService).save(thumbnailPart, FileType.ROOMMATE_BOARD_IMAGE);
         verify(fileService).save(roomPart, FileType.ROOMMATE_BOARD_IMAGE);
@@ -72,11 +77,12 @@ class RoommateBoardFileServiceImplTest {
         File file = createFile("room.jpg");
         RoommateBoardFile boardFile = RoommateBoardFile.builder()
                 .roommateBoard(RoommateBoard.builder().id(1L).build())
-                .file(file)
+                .fileId(file.getId())
                 .isThumbnail(true)
                 .build();
 
         // When
+        when(fileRepository.findById(file.getId())).thenReturn(Optional.of(file));
         roommateBoardFileService.softDelete(boardFile);
 
         // Then
@@ -116,13 +122,13 @@ class RoommateBoardFileServiceImplTest {
         // Then
         verify(roommateBoardFileRepository).save(boardFileCaptor.capture());
         assertThat(boardFileCaptor.getValue().getRoommateBoard()).isSameAs(board);
-        assertThat(boardFileCaptor.getValue().getFile()).isSameAs(savedFile);
+        assertThat(boardFileCaptor.getValue().getFileId()).isEqualTo(savedFile.getId());
         assertThat(boardFileCaptor.getValue().getIsThumbnail()).isTrue();
         assertThat(result).isSameAs(boardFileCaptor.getValue());
     }
 
     private File createFile(String savedFileName) {
-        return File.builder()
+        return File.builder().id((long) savedFileName.hashCode())
                 .type(FileType.ROOMMATE_BOARD_IMAGE)
                 .originalFileName(savedFileName)
                 .savedFileName(savedFileName)

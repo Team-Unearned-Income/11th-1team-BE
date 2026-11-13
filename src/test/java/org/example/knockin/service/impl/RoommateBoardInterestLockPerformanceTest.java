@@ -232,14 +232,14 @@ class RoommateBoardInterestLockPerformanceTest {
 
     private RoommateBoard createBoard(Member member, RoomType roomType, Region region, String title) {
         return RoommateBoard.builder()
-                .member(member)
+                .memberId(member.getId())
                 .title(title)
                 .contents("락 성능 관찰용 게시글")
                 .deposit(1_000)
                 .monthlyRent(50)
                 .managementCost(10)
-                .roomType(roomType)
-                .region(region)
+                .roomTypeId(roomType.getId())
+                .regionId(region.getId())
                 .comeableDate(LocalDateTime.of(2026, 7, 1, 9, 0))
                 .build();
     }

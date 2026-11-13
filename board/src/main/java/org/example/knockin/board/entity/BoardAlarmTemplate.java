@@ -1,4 +1,6 @@
-package org.example.knockin.global.entity;
+package org.example.knockin.board.entity;
+
+import org.example.knockin.global.entity.AlarmMessageTemplate;
 
 import lombok.RequiredArgsConstructor;
 

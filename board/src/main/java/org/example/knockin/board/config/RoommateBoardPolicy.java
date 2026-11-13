@@ -1,4 +1,4 @@
-package org.example.knockin.global.config;
+package org.example.knockin.board.config;
 
 import jakarta.validation.constraints.Min;
 import lombok.Getter;

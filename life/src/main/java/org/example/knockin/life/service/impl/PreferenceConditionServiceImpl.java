@@ -1,8 +1,6 @@
 package org.example.knockin.life.service.impl;
 
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.board.dto.BoardDetailDto.Response.Condition;
-import org.example.knockin.board.dto.BoardDetailDto.Response.ConditionWeight;
 import org.example.knockin.life.entity.PreferenceCondition;
 import org.example.knockin.life.entity.PreferenceConditionLog;
 import org.example.knockin.life.entity.PreferenceConditionLogDegree;
@@ -68,12 +66,12 @@ public class PreferenceConditionServiceImpl {
         return preferenceConditionWeightRepository.findAllPreferenceConditionWeightByMemberIdIn(memberIds);
     }
 
-    public List<Condition> findAllConditionByMemberId(Long memberId) {
-        return preferenceConditionRepository.getConditionDtoByMemberId(memberId);
+    public List<MatchingPreferenceConditionRow> findConditionRowsByMemberId(Long memberId) {
+        return preferenceConditionRepository.findConditionRowsByMemberId(memberId);
     }
 
-    public List<ConditionWeight> findAllConditionWeightByMemberId(Long memberId) {
-        return preferenceConditionWeightRepository.getConditionWeightDtoByMemberId(memberId);
+    public List<MatchingPreferenceConditionWeightRow> findConditionWeightRowsByMemberId(Long memberId) {
+        return preferenceConditionWeightRepository.findConditionWeightRowsByMemberId(memberId);
     }
 
     @Transactional

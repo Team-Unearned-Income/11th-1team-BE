@@ -55,7 +55,7 @@ public class ChattingRequiredRepositoryImpl implements ChattingRequiredRepositor
         if (memberIds.isEmpty()) return;
 
         JPQLSubQuery<Long> boardIds = JPAExpressions.select(roommateBoard.id).from(roommateBoard)
-                .where(roommateBoard.member.id.in(memberIds));
+                .where(roommateBoard.memberId.in(memberIds));
         jpaQueryFactory.update(chattingRequired)
                 .setNull(chattingRequired.roommateBoardId)
                 .where(chattingRequired.roommateBoardId.in(boardIds)).execute();

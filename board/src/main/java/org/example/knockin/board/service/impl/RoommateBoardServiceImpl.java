@@ -16,7 +16,7 @@ import org.example.knockin.declaration.service.DeclarationService;
 import org.example.knockin.alarm.service.impl.AlarmServiceImpl;
 import org.example.knockin.alarm.service.impl.PushNotificationServiceImpl;
 import org.example.knockin.board.service.RoommateBoardService;
-import org.example.knockin.global.config.RoommateBoardPolicy;
+import org.example.knockin.board.config.RoommateBoardPolicy;
 import org.example.knockin.board.dto.BoardDetailDto.Response.Condition;
 import org.example.knockin.board.dto.BoardDetailDto.Response.ConditionWeight;
 import org.example.knockin.board.dto.BoardDetailDto.Response.FileDetailDto;
@@ -34,7 +34,7 @@ import org.example.knockin.alarm.entity.Alarm;
 import org.example.knockin.alarm.entity.AlarmSettingType;
 import org.example.knockin.alarm.entity.AlarmType;
 import org.example.knockin.verification.entity.AuthenticationType;
-import org.example.knockin.global.entity.BoardAlarmTemplate;
+import org.example.knockin.board.entity.BoardAlarmTemplate;
 import org.example.knockin.board.entity.RoommateBoard;
 import org.example.knockin.board.entity.RoommateBoardBadgeType;
 import org.example.knockin.board.entity.RoommateBoardFile;
@@ -62,10 +62,11 @@ import org.example.knockin.life.repository.row.MatchingLifestyleRow;
 import org.example.knockin.life.repository.row.MatchingPreferenceConditionRow;
 import org.example.knockin.life.repository.row.MatchingPreferenceConditionWeightRow;
 import org.example.knockin.util.service.RoommateScoreService;
-import org.example.knockin.verification.service.impl.AuthenticationServiceImpl;
+import org.example.knockin.verification.repository.AuthenticationRepository;
 import org.example.knockin.life.service.impl.MemberLifePatternService;
-import org.example.knockin.member.service.impl.MemberServiceImpl;
-import org.example.knockin.mate.service.impl.MetaServiceImpl;
+import org.example.knockin.member.repository.MemberRepository;
+import org.example.knockin.room.service.impl.RoomTypeServiceImpl;
+import org.example.knockin.meta.service.impl.RegionServiceImpl;
 import org.example.knockin.life.service.impl.PreferenceConditionServiceImpl;
 import org.example.knockin.board.event.BoardKeywordSearchedEvent;
 import org.jspecify.annotations.Nullable;
@@ -84,13 +85,14 @@ import org.springframework.web.multipart.MultipartFile;
 @Transactional(readOnly = true)
 public class RoommateBoardServiceImpl implements RoommateBoardService {
     private final RoommateBoardRepository roommateBoardRepository;
-    private final MemberServiceImpl memberService;
-    private final MetaServiceImpl metaService;
+    private final MemberRepository memberRepository;
+    private final RoomTypeServiceImpl roomTypeService;
+    private final RegionServiceImpl regionService;
     private final RoommateScoreService javaRoommateScoreV2Service;
     private final RoommateBoardFileServiceImpl roommateBoardFileService;
     private final PreferenceConditionServiceImpl preferenceConditionService;
     private final MemberLifePatternService memberLifePatternService;
-    private final AuthenticationServiceImpl authenticationService;
+    private final AuthenticationRepository authenticationRepository;
     private final RoommateBoardOptionServiceImpl roommateBoardOptionService;
     private final RoommateBoardInterestServiceImpl roommateBoardInterestService;
     private final RoommateBoardPolicy roommateBoardPolicy;
@@ -98,6 +100,12 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
     private final AlarmServiceImpl alarmService;
     private final PushNotificationServiceImpl pushNotificationService;
     private final DeclarationService declarationService;
+
+    @Override
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public void deleteForMembers(List<Long> memberIds) {
+        roommateBoardRepository.deleteForMembers(memberIds);
+    }
 
     public RoommateBoard findById(Long id) {
         return roommateBoardRepository.findById(id)
@@ -107,12 +115,12 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
     @Override
     @Transactional
     public BoardDto.Response save(BoardDto.Request request, Long memberId, List<MultipartFile> files) {
-        Member member = memberService.findById(memberId)
+        Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
 
-        RoomType roomType = metaService.findByRoomTypeId(request.getRoomTypeId());
+        RoomType roomType = roomTypeService.findRoomType(request.getRoomTypeId());
 
-        Region region = metaService.findByRegionId(request.getRegionId())
+        Region region = regionService.findById(request.getRegionId())
                 .orElseThrow(() -> new BusinessException(MetaErrorCode.REGION_NOT_FOUND));
 
         List<FileDto> fileDtos = request.getImages();
@@ -148,13 +156,13 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
             validateThumbnailCount(images.stream().filter(BoardPreSignedDto.Request.FileDto::isThumbnail).count());
         }
 
-        Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
-        RoomType roomType = metaService.findByRoomTypeId(request.getRoomTypeId());
-        Region region = metaService.findByRegionId(request.getRegionId()).orElseThrow(() -> new BusinessException(MetaErrorCode.REGION_NOT_FOUND));
+        Member member = memberRepository.findById(memberId).orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
+        RoomType roomType = roomTypeService.findRoomType(request.getRoomTypeId());
+        Region region = regionService.findById(request.getRegionId()).orElseThrow(() -> new BusinessException(MetaErrorCode.REGION_NOT_FOUND));
         RoommateBoard board = roommateBoardRepository.save(RoommateBoard.builder()
-                .member(member).title(request.getTitle()).contents(request.getContents())
+                .memberId(member.getId()).title(request.getTitle()).contents(request.getContents())
                 .deposit(request.getDeposit()).monthlyRent(request.getMountlyRent()).managementCost(request.getManagementCost())
-                .roomType(roomType).region(region).comeableDateNegotiable(request.getComeableDateNegotiable())
+                .roomTypeId(roomType.getId()).regionId(region.getId()).comeableDateNegotiable(request.getComeableDateNegotiable())
                 .comeableDate(request.getComeableDate()).build());
         roommateBoardOptionService.saveByExtraOptionsIds(board, request.getExtraOptionIds());
         roommateBoardFileService.saveAllPreSigned(board, images, memberId);
@@ -178,14 +186,14 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
 
     private RoommateBoard saveRoommateBoard(BoardDto.Request request, Member member, RoomType roomType, Region region) {
         RoommateBoard roommateBoard = RoommateBoard.builder()
-                .member(member)
+                .memberId(member.getId())
                 .title(request.getTitle())
                 .contents(request.getContents())
                 .deposit(request.getDeposit())
                 .monthlyRent(request.getMountlyRent())
                 .managementCost(request.getManagementCost())
-                .roomType(roomType)
-                .region(region)
+                .roomTypeId(roomType.getId())
+                .regionId(region.getId())
                 .comeableDateNegotiable(request.getComeableDateNegotiable())
                 .comeableDate(request.getComeableDate())
                 .build();
@@ -232,7 +240,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
                         (first, second) -> first
                 ));
         Map<Long, List<AuthenticationType>> authenticationsByMemberId =
-                authenticationService.findAcceptedByMemberIds(memberIds).stream()
+                authenticationRepository.findAcceptedByMemberIds(memberIds).stream()
                         .collect(Collectors.groupingBy(
                                 MemberAuthenticationRow::memberId,
                                 Collectors.mapping(MemberAuthenticationRow::type, Collectors.toList())
@@ -346,7 +354,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
                 .map(this::toConditionWeight)
                 .toList();
         Compatibility compatibility = javaRoommateScoreV2Service.calculateScore(memberId, ownerId);
-        List<AuthenticationType> authenticationTypes = authenticationService.findTypesByMemberId(ownerId);
+        List<AuthenticationType> authenticationTypes = authenticationRepository.getAcceptedAuthenticationTypeByMemberId(ownerId);
 
         boolean interested = roommateBoardInterestService.existsActiveByBoardIdAndMemberId(boardId, memberId);
         boolean mine = ownerId.equals(memberId);
@@ -468,9 +476,9 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
         List<FileDetailDto> images = roommateBoardFileService.findFileDetailDtoByBoardId(boardId);
         List<RoomExtraOptionInfo> roomExtraOptions = roommateBoardOptionService.findExtraOptionsByBoardId(boardId);
 
-        List<Lifestyle> lifestyles = memberLifePatternService.findLifeStyleDtoByMemberId(memberId);
-        List<Condition> conditions = preferenceConditionService.findAllConditionByMemberId(memberId);
-        List<ConditionWeight> conditionWeights = preferenceConditionService.findAllConditionWeightByMemberId(memberId);
+        List<Lifestyle> lifestyles = memberLifePatternService.findLifestyleRowsByMemberId(memberId).stream().map(this::toLifestyle).toList();
+        List<Condition> conditions = preferenceConditionService.findConditionRowsByMemberId(memberId).stream().map(this::toCondition).toList();
+        List<ConditionWeight> conditionWeights = preferenceConditionService.findConditionWeightRowsByMemberId(memberId).stream().map(this::toConditionWeight).toList();
 
         return BoardEditDto.Response.builder()
                 .images(images)
@@ -506,13 +514,13 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
 
         checkingIsOwner(roommateBoard, memberId);
 
-        RoomType roomType = metaService.findByRoomTypeId(request.getRoomTypeId());
-        Region region = metaService.findByRegionId(request.getRegionId())
+        RoomType roomType = roomTypeService.findRoomType(request.getRoomTypeId());
+        Region region = regionService.findById(request.getRegionId())
                 .orElseThrow(() -> new BusinessException(MetaErrorCode.REGION_NOT_FOUND));
 
         roommateBoard.modifyBasicInfo(request);
-        roommateBoard.modifyRoomType(roomType);
-        roommateBoard.modifyRegion(region);
+        roommateBoard.modifyRoomType(roomType.getId());
+        roommateBoard.modifyRegion(region.getId());
 
         List<RoommateBoardOption> existingBoardOptions = roommateBoardOptionService.findWithRoomExtraOptionByBoardId(boardId);
         roommateBoardOptionService.deleteByExtraOptionIds(existingBoardOptions, request.getDeleteExtraOptionIds());
@@ -548,9 +556,10 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
             }
         }
 
+        List<String> currentFileNames = newImages.isEmpty() ? List.of() : roommateBoardFileService.findSavedFileNames(currentFiles);
         Set<String> newKeys = new HashSet<>();
         for (BoardPreSignedModifyDto.Request.FileDto image : newImages) {
-            if (image == null || image.getFileKey() == null || image.getFileKey().isBlank() || !newKeys.add(image.getFileKey()) || currentFiles.stream().anyMatch(file -> file.getFile().getSavedFileName().endsWith("/" + image.getFileKey()))) {
+            if (image == null || image.getFileKey() == null || image.getFileKey().isBlank() || !newKeys.add(image.getFileKey()) || currentFileNames.stream().anyMatch(fileName -> fileName.endsWith("/" + image.getFileKey()))) {
                 throw new BusinessException(FileErrorCode.FILE_UPLOAD_INVALID);
             }
         }
@@ -561,11 +570,11 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
             validateThumbnailCount(existingImages.stream().filter(ExistingFileDto::isThumbnail).count() + newImages.stream().filter(BoardPreSignedModifyDto.Request.FileDto::isThumbnail).count());
         }
 
-        RoomType roomType = metaService.findByRoomTypeId(request.getRoomTypeId());
-        Region region = metaService.findByRegionId(request.getRegionId()).orElseThrow(() -> new BusinessException(MetaErrorCode.REGION_NOT_FOUND));
+        RoomType roomType = roomTypeService.findRoomType(request.getRoomTypeId());
+        Region region = regionService.findById(request.getRegionId()).orElseThrow(() -> new BusinessException(MetaErrorCode.REGION_NOT_FOUND));
         board.modifyBasicInfo(request);
-        board.modifyRoomType(roomType);
-        board.modifyRegion(region);
+        board.modifyRoomType(roomType.getId());
+        board.modifyRegion(region.getId());
 
         List<RoommateBoardOption> existingOptions = roommateBoardOptionService.findWithRoomExtraOptionByBoardId(boardId);
         roommateBoardOptionService.deleteByExtraOptionIds(existingOptions, request.getDeleteExtraOptionIds());
@@ -577,8 +586,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
     }
 
     private void checkingIsOwner(RoommateBoard roommateBoard, Long memberId) {
-        Member member = roommateBoard.getMember();
-        if (!Objects.equals(member.getId(), memberId)) {
+        if (!Objects.equals(roommateBoard.getMemberId(), memberId)) {
             throw new BusinessException(RoommateBoardErrorCode.ROOMMATE_BOARD_FORBIDDEN);
         }
     }
@@ -701,7 +709,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
                         (first, second) -> first
                 ));
         Map<Long, List<AuthenticationType>> authenticationsByMemberId =
-                authenticationService.findAcceptedByMemberIds(memberIds).stream()
+                authenticationRepository.findAcceptedByMemberIds(memberIds).stream()
                         .collect(Collectors.groupingBy(
                                 MemberAuthenticationRow::memberId,
                                 Collectors.mapping(MemberAuthenticationRow::type, Collectors.toList())
@@ -753,10 +761,10 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
         RoommateBoard roommateBoard = roommateBoardRepository.findByIdForUpdate(boardId)
                 .orElseThrow(() -> new BusinessException(RoommateBoardErrorCode.ROOMMATE_BOARD_NOT_FOUND));
 
-        Member member = memberService.findById(memberId)
+        Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
 
-        roommateBoardInterestService.toggle(member, roommateBoard);
+        roommateBoardInterestService.toggle(member.getId(), roommateBoard);
 
         return new BoardDto.Response(LocalDateTime.now());
     }
@@ -768,9 +776,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
         RoommateBoard roommateBoard = roommateBoardRepository.findById(boardId)
                 .orElseThrow(() -> new BusinessException(RoommateBoardErrorCode.ROOMMATE_BOARD_NOT_FOUND));
 
-        Member owner = roommateBoard.getMember();
-
-        if (!memberId.equals(owner.getId())) {
+        if (!memberId.equals(roommateBoard.getMemberId())) {
             throw new BusinessException(RoommateBoardErrorCode.ROOMMATE_BOARD_FORBIDDEN);
         }
 
@@ -786,7 +792,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
         RoommateBoard roommateBoard = roommateBoardRepository.findById(boardId)
                 .orElseThrow(() -> new BusinessException(RoommateBoardErrorCode.ROOMMATE_BOARD_NOT_FOUND));
 
-        Member member = memberService.findById(memberId)
+        Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
 
         declarationService.reportBoard(roommateBoard.getId(), member.getId(), request.getContents());
@@ -810,7 +816,8 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
         RoommateBoard roommateBoard = roommateBoardRepository.findById(id).orElseThrow(() -> new BusinessException(RoommateBoardErrorCode.ROOMMATE_BOARD_NOT_FOUND));
         roommateBoard.softDelete(rejectReason);
 
-        Member member = roommateBoard.getMember();
+        Member member = memberRepository.findById(roommateBoard.getMemberId())
+                .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
         Alarm alarm = Alarm.builder()
                 .title(BoardAlarmTemplate.DELETE_BOARD.formatTitle())
                 .contents(BoardAlarmTemplate.DELETE_BOARD.formatContents(rejectReason))
@@ -832,7 +839,8 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
         RoommateBoard roommateBoard = roommateBoardRepository.findById(id).orElseThrow(() -> new BusinessException(RoommateBoardErrorCode.ROOMMATE_BOARD_NOT_FOUND));
         roommateBoard.recoverDelete();
 
-        Member member = roommateBoard.getMember();
+        Member member = memberRepository.findById(roommateBoard.getMemberId())
+                .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
         Alarm alarm = Alarm.builder()
                 .title(BoardAlarmTemplate.RECOVER_BOARD.formatTitle())
                 .contents(BoardAlarmTemplate.RECOVER_BOARD.formatContents())

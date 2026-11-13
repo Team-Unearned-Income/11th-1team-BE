@@ -3,6 +3,7 @@ package org.example.knockin.member.service.impl;
 import org.example.knockin.mate.service.impl.RoommateMatchingRequiredServiceImpl;
 import org.example.knockin.chat.service.impl.ChattingRequiredServiceImpl;
 import lombok.RequiredArgsConstructor;
+import org.example.knockin.board.service.RoommateBoardService;
 import lombok.extern.slf4j.Slf4j;
 import org.example.knockin.member.dto.BoMemberDetailDto;
 import org.example.knockin.member.dto.BoMemberListDto;
@@ -72,6 +73,7 @@ public class MemberServiceImpl {
     private final PushNotificationServiceImpl pushNotificationService;
     private final RoommateMatchingRequiredServiceImpl roommateMatchingRequiredService;
     private final ChattingRequiredServiceImpl chattingRequiredService;
+    private final RoommateBoardService roommateBoardService;
 
     @Transactional
     public Member getOrSave(OAuth2UserInfo oAuth2UserInfo) {
@@ -130,6 +132,7 @@ public class MemberServiceImpl {
         alarmService.deleteForMembers(targetIds, chatRequestIds, chatRoomIds);
         roommateMatchingRequiredService.deleteForMembers(targetIds, chatRoomIds, chatScoreIds);
         chattingRequiredService.deleteForMembers(targetIds);
+        roommateBoardService.deleteForMembers(targetIds);
         memberRepository.deleteMembersByIds(targetIds);
     }
 

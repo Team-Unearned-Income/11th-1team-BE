@@ -1,6 +1,5 @@
 package org.example.knockin.service.impl;
  
-import org.example.knockin.board.dto.BoardDetailDto.Response.ConditionWeight;
 import org.example.knockin.life.service.impl.PreferenceConditionServiceImpl;
 import org.example.knockin.life.entity.PreferenceCondition;
 import org.example.knockin.life.entity.PreferenceConditionLog;
@@ -154,19 +153,19 @@ class PreferenceConditionServiceImplTest {
 
     @Test
     @DisplayName("회원 ID로 선호도 가중치 DTO 목록을 조회한다")
-    void findAllConditionWeightByMemberIdReturnsConditionWeightDtos() {
+    void findConditionWeightRowsByMemberIdReturnsConditionWeightDtos() {
         // Given
         Long memberId = 1L;
-        ConditionWeight conditionWeight = new ConditionWeight(10L, "청결", "cleaning.png");
-        given(preferenceConditionWeightRepository.getConditionWeightDtoByMemberId(memberId))
+        MatchingPreferenceConditionWeightRow conditionWeight = new MatchingPreferenceConditionWeightRow(memberId, 201L, 10L, "청결", "cleaning.png");
+        given(preferenceConditionWeightRepository.findConditionWeightRowsByMemberId(memberId))
                 .willReturn(List.of(conditionWeight));
 
         // When
-        List<ConditionWeight> result = preferenceConditionService.findAllConditionWeightByMemberId(memberId);
+        List<MatchingPreferenceConditionWeightRow> result = preferenceConditionService.findConditionWeightRowsByMemberId(memberId);
 
         // Then
         assertThat(result).containsExactly(conditionWeight);
-        verify(preferenceConditionWeightRepository).getConditionWeightDtoByMemberId(memberId);
+        verify(preferenceConditionWeightRepository).findConditionWeightRowsByMemberId(memberId);
     }
 
     @Test
