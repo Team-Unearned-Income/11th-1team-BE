@@ -2,6 +2,7 @@ package org.example.knockin.life.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.life.dto.BoLifeStylePatternDetailDto;
+import org.example.knockin.life.dto.BoLifeStylePatternDto;
 import org.example.knockin.life.dto.BoLifeStylePatternListDto;
 import org.example.knockin.life.dto.MetaLifestylePatternsDto;
 import org.example.knockin.life.entity.LifePattern;
@@ -27,13 +28,76 @@ public class LifeStyleServiceImpl {
     private final LifePatternInformationRepository lifePatternInformationRepository;
 
     @Transactional
-    public LifePattern saveLifePattern(LifePattern lifePattern) {
+    public Long saveLifePatternLogic(BoLifeStylePatternDto.Request request) {
+
+        LifePattern lifePattern = LifePattern.builder()
+                .name(request.getName())
+                .lifePatternDescription(request.getLifePatternDescription())
+                .preferenceDescription(request.getPreferenceDescription())
+                .dtype(request.getType())
+                .sort(request.getSort())
+                .build();
+
+        lifePatternRepository.save(lifePattern);
+
+        List<LifePatternInformation> informationList = request.getDetails().stream()
+                .map(detailItem -> saveLifePatternInformation(lifePattern, detailItem.getValues(), detailItem.getDescription()))
+                .toList();
+
+        return lifePattern.getId();
+    }
+
+    private LifePattern saveLifePattern(LifePattern lifePattern) {
         return lifePatternRepository.save(lifePattern);
     }
 
+    @Deprecated
     @Transactional
     public LifePatternFile saveLifePatternFile(LifePatternFile lifePatternFile) {
         return lifePatternFileRepository.save(lifePatternFile);
+    }
+
+    public void saveLifePatternFile(Long lifePatternId, Long fileId) {
+        LifePattern lifeStyle = findLifeStyle(lifePatternId);
+        LifePatternFile lifePatternFile = LifePatternFile.builder().lifePattern(lifeStyle).fileId(fileId).build();
+        lifePatternFileRepository.save(lifePatternFile);
+    }
+
+    public LifePatternInformation saveLifePatternInformation(LifePattern lifePattern, String values, String description) {
+        LifePatternInformation lifePatternInformation = LifePatternInformation.builder()
+                .lifePattern(lifePattern)
+                .dvalue(values)
+                .description(description)
+                .build();
+        return lifePatternInformationRepository.save(lifePatternInformation);
+    }
+
+    @Transactional
+    public void modifyLifePattern(BoLifeStylePatternDto.Request request, Long patternId) {
+        LifePattern lifePattern = findLifeStyle(patternId);
+        List<LifePatternInformation> existingList = findLifeInformationByPattern(lifePattern);
+        List<BoLifeStylePatternDto.Request.DetailItem> details = request.getDetails();
+
+        if (details != null) {
+            int existingSize = existingList.size();
+            int detailSize = details.size();
+
+            for (int i = 0; i < detailSize; i++) {
+                BoLifeStylePatternDto.Request.DetailItem detail = details.get(i);
+                if (i < existingSize) {
+                    LifePatternInformation existing = existingList.get(i);
+                    existing.modifyLifePatternInformation(detail.getValues(), detail.getDescription());
+                } else {
+                    saveLifePatternInformation(lifePattern, detail.getValues(), detail.getDescription());
+                }
+            }
+
+            if (existingSize > detailSize) {
+                existingList.subList(detailSize, existingSize).forEach(this::deleteLifeInformation);
+            }
+        }
+
+        lifePattern.modifyLifePattern(request.getName(), request.getType(), request.getSort(), request.getLifePatternDescription(), request.getPreferenceDescription());
     }
 
     @Transactional
@@ -84,6 +148,16 @@ public class LifeStyleServiceImpl {
         return lifePatternFileRepository.findByLifePattern(lifePattern).orElse(null);
     }
 
+    public boolean existsByLifePatternId(Long lifePatternId) {
+        return lifePatternFileRepository.existsByLifePatternId(lifePatternId);
+    }
+
+    public void modifyLifePatternFile(Long lifePatternId, Long fileId) {
+        LifePatternFile lifePatternFile = lifePatternFileRepository.findOneByLifePatternId(lifePatternId)
+                .orElseThrow(() -> new BusinessException(LifePatternErrorCode.LIFE_PATTERN_FILE_NOT_FOUND));
+        lifePatternFile.modifyFileId(fileId);
+    }
+
     public List<LifePattern> findAllById(List<Long> lifeStyles) {
         if (lifeStyles == null || lifeStyles.isEmpty()) {
             return Collections.emptyList();
@@ -91,7 +165,7 @@ public class LifeStyleServiceImpl {
         return lifePatternRepository.findAllById(lifeStyles);
     }
 
-    public List<LifePatternInformation> findByLifeStyles(List<Long> lifeStyles) {
+    public List<LifePatternInformation> findLifePatternInformationByIds(List<Long> lifeStyles) {
         if (lifeStyles == null || lifeStyles.isEmpty()) {
             return Collections.emptyList();
         }

@@ -8,4 +8,8 @@ import java.util.Optional;
 
 public interface LifePatternFileRepository extends JpaRepository<LifePatternFile, Long> {
     Optional<LifePatternFile> findByLifePattern(LifePattern lifePattern);
+
+    boolean existsByLifePatternId(Long lifePatternId);
+
+    Optional<LifePatternFile> findOneByLifePatternId(Long lifePatternId);
 }

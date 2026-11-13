@@ -117,8 +117,9 @@ class RoommateMatchingServiceImplTest {
                 null,
                 null,
                 null, null, null, null);
-        MemberLifePatternService memberLifePatternService = new MemberLifePatternService(memberLifePatternRepository, null, null);
+        MemberLifePatternService memberLifePatternService = new MemberLifePatternService(memberLifePatternRepository, null, null, null);
         PreferenceConditionServiceImpl preferenceConditionService = new PreferenceConditionServiceImpl(
+                null,
                 preferenceConditionRepository,
                 null,
                 null,

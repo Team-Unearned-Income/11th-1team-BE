@@ -20,17 +20,11 @@ import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.AuthErrorCode;
 import org.example.knockin.global.exception.OnBoardErrorCode;
 import org.example.knockin.board.service.RoommateBoardService;
-import org.example.knockin.life.service.impl.LifeStyleServiceImpl;
 import org.example.knockin.life.service.impl.MemberLifePatternService;
 import org.example.knockin.life.service.impl.PreferenceConditionServiceImpl;
 import org.example.knockin.life.dto.ModifyProfileLifeStyleDto;
 import org.example.knockin.life.dto.SavePreferencesConditionsDto;
 import org.example.knockin.life.dto.SaveProfileLifeStyleDto;
-import org.example.knockin.life.entity.LifePattern;
-import org.example.knockin.life.entity.LifePatternInformation;
-import org.example.knockin.life.entity.MemberLifePattern;
-import org.example.knockin.life.entity.PreferenceConditionWeight;
-import org.example.knockin.life.entity.PreferenceConditionWeightLog;
 import org.example.knockin.mate.service.impl.MyRoomMateServiceImpl;
 import org.example.knockin.room.dto.ModifyProfileRoomInfoDto;
 import org.example.knockin.room.dto.SaveProfileRoomInfoDto;
@@ -46,6 +40,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -73,7 +68,6 @@ class OnBoardingServiceImplTest {
     @Mock private RoomSeekerProfileRegionServiceImpl roomSeekerProfileRegionService;
     @Mock private MetaServiceImpl metaService;
     @Mock private PreferenceConditionServiceImpl preferenceConditionService;
-    @Mock private LifeStyleServiceImpl lifeStyleService;
     @Mock private MemberPrivacyServiceImpl memberPrivacyService;
     @Mock private MyRoomMateServiceImpl myRoomMateService;
     @Mock private RoommateBoardService roommateBoardService;
@@ -165,16 +159,15 @@ class OnBoardingServiceImplTest {
                 .lifestyles(List.of(1L))
                 .build();
  
-        given(metaService.findByLifeStyle(any())).willReturn(List.of(mock(LifePatternInformation.class)));
-        given(memberLifePatternService.saveMemberLifePatternAll(any())).willReturn(List.of(mock(MemberLifePattern.class)));
+        given(memberLifePatternService.saveMemberLifePatterns(memberId, request.getLifestyles()))
+                .willReturn(List.of(10L));
  
         SaveProfileLifeStyleDto.Response response = onBoardingService.saveLifeStyleLogic(request, memberId);
  
-        assertThat(response).isNotNull();
-        verify(memberLifePatternService).saveMemberLifePatternAll(argThat(patterns ->
-                patterns.size() == 1 && memberId.equals(patterns.getFirst().getMemberId())));
-        verify(memberLifePatternService).saveMemberLifePatternLogAll(argThat(logs ->
-                logs.size() == 1 && memberId.equals(logs.getFirst().getMemberId())));
+        assertThat(response.getUpdatedAt()).isNotNull();
+        verify(memberLifePatternService).saveMemberLifePatterns(memberId, request.getLifestyles());
+        verify(memberPrivacyService).save(argThat(privacy ->
+                member.equals(privacy.getMember()) && privacy.getType() == MemberPrivacyType.PUBLIC));
     }
  
     @Test
@@ -229,8 +222,8 @@ class OnBoardingServiceImplTest {
         request.setRoomProfile(List.of(1L));
  
         given(basicInformationService.save(any(BasicInformation.class))).willReturn(mock(BasicInformation.class));
-        given(metaService.findByLifeStyle(any())).willReturn(List.of(mock(LifePatternInformation.class)));
-        given(memberLifePatternService.saveMemberLifePatternAll(any())).willReturn(List.of(mock(MemberLifePattern.class)));
+        given(memberLifePatternService.saveMemberLifePatterns(memberId, request.getLifestyles()))
+                .willReturn(List.of(10L));
         given(metaService.findByRegionId(anyLong())).willReturn(Optional.of(mock(Region.class)));
         given(roomProfileService.save(any(RoomOfferProfile.class))).willReturn(mock(RoomOfferProfile.class));
         given(metaService.findByRoomTypes(any())).willReturn(List.of(mock(RoomType.class)));
@@ -239,7 +232,7 @@ class OnBoardingServiceImplTest {
  
         assertThat(response).isNotNull();
         verify(basicInformationService).save(any(BasicInformation.class));
-        verify(memberLifePatternService).saveMemberLifePatternAll(any());
+        verify(memberLifePatternService).saveMemberLifePatterns(memberId, request.getLifestyles());
         verify(roomProfileService).save(any(RoomOfferProfile.class));
         verify(agreementService).saveMemberAgreement(request.getTerms(), memberId);
     }
@@ -334,27 +327,12 @@ class OnBoardingServiceImplTest {
                 .lifestyles(List.of(info))
                 .build();
  
-        LifePattern lifePattern = mock(LifePattern.class);
-        given(lifePattern.getId()).willReturn(100L);
- 
-        LifePatternInformation oldInfo = mock(LifePatternInformation.class);
-        given(oldInfo.getLifePattern()).willReturn(lifePattern);
- 
-        MemberLifePattern memberLifePattern = mock(MemberLifePattern.class);
-        given(memberLifePattern.getId()).willReturn(1L);
-        given(memberLifePattern.getLifePatternInformation()).willReturn(oldInfo);
- 
-        LifePatternInformation newInfo = mock(LifePatternInformation.class);
-        given(newInfo.getLifePattern()).willReturn(lifePattern);
-        given(newInfo.getId()).willReturn(10L);
- 
-        given(lifeStyleService.findLifePatternInformationAllById(any())).willReturn(List.of(newInfo));
-        given(memberLifePatternService.findByMemberId(memberId)).willReturn(List.of(memberLifePattern));
- 
         ModifyProfileLifeStyleDto.Response response = onBoardingService.modifyLifeStyleLogic(request, memberId);
  
-        assertThat(response).isNotNull();
-        verify(memberLifePattern).modifyLifePatternInformation(newInfo);
+        assertThat(response.getUpdatedAt()).isNotNull();
+        InOrder lifePatternCalls = inOrder(memberLifePatternService);
+        lifePatternCalls.verify(memberLifePatternService).modifyLifeStyle(request, memberId);
+        lifePatternCalls.verify(memberLifePatternService).modifyLifeStyleLog(memberId);
     }
  
     @Test
@@ -386,16 +364,18 @@ class OnBoardingServiceImplTest {
     void savePreferenceConditionLogic_Success() {
         SavePreferencesConditionsDto.Request request = new SavePreferencesConditionsDto.Request(List.of(1L));
  
-        given(metaService.findLifePatternByLifeStyle(any())).willReturn(List.of(mock(LifePattern.class)));
-        given(preferenceConditionService.preferenceConditionWeightSaveAll(any())).willReturn(List.of(mock(
-                PreferenceConditionWeight.class)));
-        given(preferenceConditionService.preferenceConditionWeightLogSaveAll(any())).willReturn(List.of(mock(
-                PreferenceConditionWeightLog.class)));
+        given(preferenceConditionService.savePreferenceConditionWeights(memberId, request.getConditions()))
+                .willReturn(List.of(10L));
+        given(preferenceConditionService.findNextWeightLogDegreeNumber(memberId)).willReturn(2L);
+        given(preferenceConditionService.savePreferenceConditionWeightLogDegree(2L)).willReturn(20L);
+        given(preferenceConditionService.savePreferenceConditionWeightLogs(memberId, request.getConditions(), 20L))
+                .willReturn(List.of(30L));
  
         SavePreferencesConditionsDto.Response response = onBoardingService.savePreferenceConditionLogic(request, memberId);
  
-        assertThat(response).isNotNull();
-        verify(preferenceConditionService).preferenceConditionWeightSaveAll(any());
+        assertThat(response.getUpdatedAt()).isNotNull();
+        verify(preferenceConditionService).savePreferenceConditionWeights(memberId, request.getConditions());
+        verify(preferenceConditionService).savePreferenceConditionWeightLogs(memberId, request.getConditions(), 20L);
     }
  
     @Test
@@ -415,14 +395,18 @@ class OnBoardingServiceImplTest {
     void savePreferenceConditionLogic_Upsert_Success() {
         SavePreferencesConditionsDto.Request request = new SavePreferencesConditionsDto.Request(List.of(1L));
 
-        given(metaService.findLifePatternByLifeStyle(any())).willReturn(List.of(mock(LifePattern.class)));
-        given(preferenceConditionService.preferenceConditionWeightSaveAll(any())).willReturn(List.of(mock(PreferenceConditionWeight.class)));
-        given(preferenceConditionService.preferenceConditionWeightLogSaveAll(any())).willReturn(List.of(mock(PreferenceConditionWeightLog.class)));
+        given(preferenceConditionService.savePreferenceConditionWeights(memberId, request.getConditions()))
+                .willReturn(List.of(10L));
+        given(preferenceConditionService.findNextWeightLogDegreeNumber(memberId)).willReturn(2L);
+        given(preferenceConditionService.savePreferenceConditionWeightLogDegree(2L)).willReturn(20L);
+        given(preferenceConditionService.savePreferenceConditionWeightLogs(memberId, request.getConditions(), 20L))
+                .willReturn(List.of(30L));
 
         SavePreferencesConditionsDto.Response response = onBoardingService.savePreferenceConditionLogic(request, memberId);
 
-        assertThat(response).isNotNull();
-        verify(preferenceConditionService).deletePreferenceConditionWeightByMemberId(any());
-        verify(preferenceConditionService).preferenceConditionWeightSaveAll(any());
+        assertThat(response.getUpdatedAt()).isNotNull();
+        InOrder preferenceCalls = inOrder(preferenceConditionService);
+        preferenceCalls.verify(preferenceConditionService).deletePreferenceConditionWeightByMemberId(memberId);
+        preferenceCalls.verify(preferenceConditionService).savePreferenceConditionWeights(memberId, request.getConditions());
     }
 }

@@ -103,7 +103,7 @@ class ChatRequestServiceImplTest {
     void setUp() {
         BasicInformationServiceImpl basicInformationService = new BasicInformationServiceImpl(basicInformationRepository, org.mockito.Mockito.mock(
                 BasicInformationFileRepository.class));
-        MemberLifePatternService memberLifePatternService = new MemberLifePatternService(memberLifePatternRepository, null, null);
+        MemberLifePatternService memberLifePatternService = new MemberLifePatternService(memberLifePatternRepository, null, null, null);
         ChattingRequiredAlarmServiceImpl chattingRequiredAlarmService =
                 new ChattingRequiredAlarmServiceImpl(
                         basicInformationService,

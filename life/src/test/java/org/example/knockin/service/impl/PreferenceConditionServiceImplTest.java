@@ -1,10 +1,13 @@
 package org.example.knockin.service.impl;
  
 import org.example.knockin.life.service.impl.PreferenceConditionServiceImpl;
+import org.example.knockin.life.entity.LifePatternInformation;
 import org.example.knockin.life.entity.PreferenceCondition;
 import org.example.knockin.life.entity.PreferenceConditionLog;
+import org.example.knockin.life.entity.PreferenceConditionLogDegree;
 import org.example.knockin.life.entity.PreferenceConditionWeight;
 import org.example.knockin.life.entity.PreferenceConditionWeightLog;
+import org.example.knockin.life.repository.PreferenceConditionLogDegreeRepository;
 import org.example.knockin.life.repository.PreferenceConditionLogRepository;
 import org.example.knockin.life.repository.PreferenceConditionRepository;
 import org.example.knockin.life.repository.PreferenceConditionWeightLogRepository;
@@ -13,15 +16,19 @@ import org.example.knockin.life.repository.row.MatchingPreferenceConditionWeight
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
  
 import java.util.List;
+import java.util.Optional;
  
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
  
 @ExtendWith(MockitoExtension.class)
@@ -30,6 +37,7 @@ class PreferenceConditionServiceImplTest {
  
     @Mock private PreferenceConditionRepository preferenceConditionRepository;
     @Mock private PreferenceConditionLogRepository preferenceConditionLogRepository;
+    @Mock private PreferenceConditionLogDegreeRepository preferenceConditionLogDegreeRepository;
     @Mock private PreferenceConditionWeightRepository preferenceConditionWeightRepository;
     @Mock private PreferenceConditionWeightLogRepository preferenceConditionWeightLogRepository;
  
@@ -66,6 +74,38 @@ class PreferenceConditionServiceImplTest {
         // Then
         assertThat(result).hasSize(1);
         verify(preferenceConditionLogRepository).saveAll(list);
+    }
+
+    @Test
+    @DisplayName("같은 옵션을 가리키는 선호 조건도 행마다 이력을 저장한다")
+    void saveLogsAllPreservesRowsWithTheSameOption() {
+        // Given
+        Long memberId = 1L;
+        Long degreeId = 2L;
+        LifePatternInformation option = LifePatternInformation.builder().id(3L).build();
+        PreferenceCondition first = PreferenceCondition.builder()
+                .id(4L).memberId(memberId).lifePatternInformation(option).build();
+        PreferenceCondition second = PreferenceCondition.builder()
+                .id(5L).memberId(memberId).lifePatternInformation(option).build();
+        PreferenceConditionLogDegree degree = PreferenceConditionLogDegree.builder().id(degreeId).build();
+        given(preferenceConditionRepository.findByMemberId(memberId)).willReturn(List.of(first, second));
+        given(preferenceConditionLogDegreeRepository.findById(degreeId)).willReturn(Optional.of(degree));
+        given(preferenceConditionLogRepository.save(any(PreferenceConditionLog.class))).willReturn(
+                PreferenceConditionLog.builder().id(6L).build(),
+                PreferenceConditionLog.builder().id(7L).build());
+
+        // When
+        List<Long> savedIds = preferenceConditionService.saveLogsAll(memberId, degreeId);
+
+        // Then
+        assertThat(savedIds).containsExactly(6L, 7L);
+        ArgumentCaptor<PreferenceConditionLog> logs = ArgumentCaptor.forClass(PreferenceConditionLog.class);
+        verify(preferenceConditionLogRepository, times(2)).save(logs.capture());
+        assertThat(logs.getAllValues()).allSatisfy(log -> {
+            assertThat(log.getMemberId()).isEqualTo(memberId);
+            assertThat(log.getLifePatternInformation()).isSameAs(option);
+            assertThat(log.getPreferenceConditionLogDegree()).isSameAs(degree);
+        });
     }
  
     @Test

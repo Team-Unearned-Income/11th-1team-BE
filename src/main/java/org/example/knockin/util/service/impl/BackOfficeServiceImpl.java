@@ -46,9 +46,6 @@ import org.example.knockin.life.service.impl.LifeStyleServiceImpl;
 import org.example.knockin.life.dto.BoLifeStylePatternDetailDto;
 import org.example.knockin.life.dto.BoLifeStylePatternDto;
 import org.example.knockin.life.dto.BoLifeStylePatternListDto;
-import org.example.knockin.life.entity.LifePattern;
-import org.example.knockin.life.entity.LifePatternFile;
-import org.example.knockin.life.entity.LifePatternInformation;
 import org.example.knockin.member.entity.Member;
 import org.example.knockin.member.entity.MemberState;
 import org.example.knockin.room.dto.BoRoomAddOptionDetailDto;
@@ -186,15 +183,12 @@ public class BackOfficeServiceImpl {
 
     @Transactional
     public BoLifeStylePatternDto.Response saveLifeStylePattern(BoLifeStylePatternDto.Request request, MultipartFile file) {
-        try {
-            LifePattern lifePattern = lifeStyleService.saveLifePattern(LifePattern.builder().name(request.getName()).lifePatternDescription(request.getLifePatternDescription()).preferenceDescription(request.getPreferenceDescription()).dtype(request.getType()).sort(request.getSort()).build());
-            List<LifePatternInformation> lifePatternInformationList = request.getDetails().stream().map(item ->
-                    LifePatternInformation.builder().lifePattern(lifePattern).dvalue(item.getValues()).description(item.getDescription()).build()).toList();
-            lifeStyleService.saveLifePatternInformation(lifePatternInformationList);
+        Long lifePatternId = lifeStyleService.saveLifePatternLogic(request);
 
+        try {
             if (file != null && !file.isEmpty()) {
                 File fileEntity = fileService.save(file, FileType.ETC);
-                lifeStyleService.saveLifePatternFile(LifePatternFile.builder().lifePattern(lifePattern).fileId(fileEntity.getId()).build());
+                lifeStyleService.saveLifePatternFile(lifePatternId, fileEntity.getId());
             }
         } catch (IOException e) {
             throw new BusinessException(FileErrorCode.FILE_UPLOAD_FAILED);
@@ -213,39 +207,16 @@ public class BackOfficeServiceImpl {
 
     @Transactional
     public BoLifeStylePatternDto.Response modifyLifeStylePattern(BoLifeStylePatternDto.Request request, Long patternId, MultipartFile file) {
+        lifeStyleService.modifyLifePattern(request, patternId);
+
         try {
-            LifePattern lifePattern = lifeStyleService.findLifeStyle(patternId);
-            List<LifePatternInformation> existingList = lifeStyleService.findLifeInformationByPattern(lifePattern);
-            List<BoLifeStylePatternDto.Request.DetailItem> details = request.getDetails();
-
-            if (details != null) {
-                int existingSize = existingList.size();
-                int detailSize = details.size();
-
-                for (int i = 0; i < detailSize; i++) {
-                    BoLifeStylePatternDto.Request.DetailItem detail = details.get(i);
-                    if (i < existingSize) {
-                        LifePatternInformation existing = existingList.get(i);
-                        existing.modifyLifePatternInformation(detail.getValues(), detail.getDescription());
-                    } else {
-                        lifeStyleService.saveLifeInformation(LifePatternInformation.builder().lifePattern(lifePattern).dvalue(detail.getValues()).description(detail.getDescription()).build());
-                    }
-                }
-
-                if (existingSize > detailSize) {
-                    existingList.subList(detailSize, existingSize).forEach(lifeStyleService::deleteLifeInformation);
-                }
-            }
-
-            lifePattern.modifyLifePattern(request.getName(), request.getType(), request.getSort(), request.getLifePatternDescription(), request.getPreferenceDescription());
-
             if(file != null && !file.isEmpty()) {
-                File fileEntity = fileService.save(file, FileType.ETC);
-                LifePatternFile lifePatternFile = lifeStyleService.findLifeStyleFile(lifePattern);
-                if(lifePatternFile != null) {
-                    lifePatternFile.modifyFileId(fileEntity.getId());
+                File newFileEntity = fileService.save(file, FileType.ETC);
+                boolean fileExists = lifeStyleService.existsByLifePatternId(patternId);
+                if(fileExists) {
+                    lifeStyleService.modifyLifePatternFile(patternId, newFileEntity.getId());
                 } else {
-                    lifeStyleService.saveLifePatternFile(LifePatternFile.builder().fileId(fileEntity.getId()).lifePattern(lifePattern).build());
+                    lifeStyleService.saveLifePatternFile(patternId, newFileEntity.getId());
                 }
             }
         } catch (IOException e) {
