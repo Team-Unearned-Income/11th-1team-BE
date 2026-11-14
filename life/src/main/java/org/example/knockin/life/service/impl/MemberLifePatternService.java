@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.board.dto.BoardDetailDto.Response.Lifestyle;
 import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.OnBoardErrorCode;
 import org.example.knockin.life.dto.ModifyProfileLifeStyleDto;
@@ -83,8 +82,8 @@ public class MemberLifePatternService {
         return memberLifePatternRepository.findAllLifestyleByMemberIdIn(memberIds);
     }
 
-    public List<Lifestyle> findLifeStyleDtoByMemberId(Long memberId) {
-        return memberLifePatternRepository.getLifeStyleDto(memberId);
+    public List<MatchingLifestyleRow> findLifestyleRowsByMemberId(Long memberId) {
+        return memberLifePatternRepository.findLifestyleRowsByMemberId(memberId);
     }
 
     @Transactional

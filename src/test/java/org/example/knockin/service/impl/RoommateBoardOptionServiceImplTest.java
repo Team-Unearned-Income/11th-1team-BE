@@ -55,8 +55,8 @@ class RoommateBoardOptionServiceImplTest {
         // Then
         assertThat(result).hasSize(2);
         assertThat(result).extracting(RoommateBoardOption::getRoommateBoard).containsOnly(board);
-        assertThat(result).extracting(RoommateBoardOption::getRoomExtraOption)
-                .containsExactly(parking, elevator);
+        assertThat(result).extracting(RoommateBoardOption::getRoomExtraOptionId)
+                .containsExactly(parking.getId(), elevator.getId());
         verify(roomExtraOptionService).findAllById(List.of(10L, 11L));
         verify(roommateBoardOptionRepository).saveAll(any());
     }
@@ -124,7 +124,7 @@ class RoommateBoardOptionServiceImplTest {
     private RoommateBoardOption createBoardOption(Long extraOptionId) {
         return RoommateBoardOption.builder()
                 .roommateBoard(RoommateBoard.builder().id(1L).build())
-                .roomExtraOption(createRoomExtraOption(extraOptionId, "옵션-" + extraOptionId))
+                .roomExtraOptionId(createRoomExtraOption(extraOptionId, "옵션-" + extraOptionId).getId())
                 .build();
     }
 

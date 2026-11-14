@@ -63,7 +63,6 @@ import static org.example.knockin.verification.entity.QAuthenticationApprove.aut
 import static org.example.knockin.verification.entity.QAuthentication.authentication;
 import static org.example.knockin.declaration.entity.QMemberDeclaration.memberDeclaration;
 import static org.example.knockin.agreement.entity.QMemberAgreement.memberAgreement;
-import static org.example.knockin.board.entity.QRoommateBoard.roommateBoard;
 import static org.example.knockin.declaration.entity.QRoommateBoardDeclaration.roommateBoardDeclaration;
 import static org.example.knockin.inquiry.entity.QInquiry.inquiry;
 import static org.example.knockin.inquiry.entity.QInquiryComment.inquiryComment;
@@ -262,11 +261,8 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
     }
 
     private void deleteExternalMemberReferences(List<Long> memberIds) {
-        JPQLSubQuery<Long> boardIds = JPAExpressions.select(roommateBoard.id).from(roommateBoard)
-                .where(roommateBoard.member.id.in(memberIds));
         jpaQueryFactory.delete(roommateBoardDeclaration)
-                .where(roommateBoardDeclaration.memberId.in(memberIds)
-                        .or(roommateBoardDeclaration.roommateBoardId.in(boardIds))).execute();
+                .where(roommateBoardDeclaration.memberId.in(memberIds)).execute();
         jpaQueryFactory.delete(memberDeclaration)
                 .where(memberDeclaration.reporterId.in(memberIds).or(memberDeclaration.reportedId.in(memberIds))).execute();
 

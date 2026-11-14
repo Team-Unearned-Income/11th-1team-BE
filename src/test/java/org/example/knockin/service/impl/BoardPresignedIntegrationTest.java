@@ -1,5 +1,6 @@
 package org.example.knockin.service.impl;
 
+import org.example.knockin.meta.service.impl.RegionServiceImpl;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -23,13 +24,13 @@ import org.example.knockin.board.service.impl.RoommateBoardOptionServiceImpl;
 import org.example.knockin.board.service.impl.RoommateBoardInterestServiceImpl;
 import org.example.knockin.global.config.JpaConfig;
 import org.example.knockin.global.config.QueryDslConfig;
-import org.example.knockin.global.config.RoommateBoardPolicy;
+import org.example.knockin.board.config.RoommateBoardPolicy;
 import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.FileErrorCode;
-import org.example.knockin.mate.service.impl.MetaServiceImpl;
+import org.example.knockin.room.service.impl.RoomTypeServiceImpl;
 import org.example.knockin.member.entity.Member;
 import org.example.knockin.member.entity.MemberRole;
-import org.example.knockin.member.service.impl.MemberServiceImpl;
+import org.example.knockin.member.repository.MemberRepository;
 import org.example.knockin.meta.entity.Region;
 import org.example.knockin.meta.repository.FileRepository;
 import org.example.knockin.meta.service.FileUploadService;
@@ -60,15 +61,16 @@ class BoardPresignedIntegrationTest {
     @Autowired FileRepository files;
     @Autowired EntityManager em;
     @Autowired RoommateBoardPolicy policy;
-    @MockitoBean MemberServiceImpl members;
-    @MockitoBean MetaServiceImpl meta;
+    @MockitoBean MemberRepository members;
+    @MockitoBean RoomTypeServiceImpl roomTypeService;
+    @MockitoBean RegionServiceImpl regionService;
     @MockitoBean FileUploadService storage;
     @MockitoBean RoommateBoardOptionServiceImpl options;
     @MockitoBean RoommateBoardInterestServiceImpl interests;
     @MockitoBean org.example.knockin.util.service.RoommateScoreService scores;
     @MockitoBean org.example.knockin.life.service.impl.PreferenceConditionServiceImpl preferences;
     @MockitoBean org.example.knockin.life.service.impl.MemberLifePatternService patterns;
-    @MockitoBean org.example.knockin.verification.service.impl.AuthenticationServiceImpl authentication;
+    @MockitoBean org.example.knockin.verification.repository.AuthenticationRepository authentication;
     @MockitoBean org.example.knockin.alarm.service.impl.AlarmServiceImpl alarms;
     @MockitoBean org.example.knockin.alarm.service.impl.PushNotificationServiceImpl notifications;
     @MockitoBean org.example.knockin.declaration.service.impl.DeclarationServiceImpl declarations;
@@ -86,8 +88,8 @@ class BoardPresignedIntegrationTest {
         region = Region.builder().name("서초동").scope(3).build();
         em.persist(member); em.persist(roomType); em.persist(region);
         when(members.findById(member.getId())).thenReturn(Optional.of(member));
-        when(meta.findByRoomTypeId(roomType.getId())).thenReturn(roomType);
-        when(meta.findByRegionId(region.getId())).thenReturn(Optional.of(region));
+        when(roomTypeService.findRoomType(roomType.getId())).thenReturn(roomType);
+        when(regionService.findById(region.getId())).thenReturn(Optional.of(region));
     }
 
     @Test
@@ -142,7 +144,7 @@ class BoardPresignedIntegrationTest {
         var board = seedBoardWithImages();
         var initial = boardFiles.findByRoommateBoard(board);
         Long retainedId = initial.getFirst().getId();
-        Long removedFileId = initial.getLast().getFile().getId();
+        Long removedFileId = initial.getLast().getFileId();
         var request = modifyRequest();
         request.setExistingImages(List.of(new ExistingFileDto(retainedId, false)));
         request.setNewImages(List.of(new BoardPreSignedModifyDto.Request.FileDto("new.jpg", "new.jpeg", true)));
@@ -286,12 +288,12 @@ class BoardPresignedIntegrationTest {
     }
 
     private RoommateBoard seedBoardWithImages() {
-        RoommateBoard board = boards.save(RoommateBoard.builder().member(member).roomType(roomType).region(region)
+        RoommateBoard board = boards.save(RoommateBoard.builder().memberId(member.getId()).roomTypeId(roomType.getId()).regionId(region.getId())
                 .title("원래 제목").contents("원래 내용").deposit(1000).monthlyRent(50).managementCost(5).build());
         for (int i = 0; i < 2; i++) {
             File file = files.save(File.builder().type(FileType.ROOMMATE_BOARD_IMAGE).originalFileName("old-" + i + ".jpg")
                     .savedFileName("https://images.example.com/uploads/old-" + i + ".jpg").fileExt("jpg").build());
-            boardFiles.save(RoommateBoardFile.builder().roommateBoard(board).file(file).isThumbnail(i == 0).build());
+            boardFiles.save(RoommateBoardFile.builder().roommateBoard(board).fileId(file.getId()).isThumbnail(i == 0).build());
         }
         TestTransaction.flagForCommit(); TestTransaction.end(); TestTransaction.start();
         return board;

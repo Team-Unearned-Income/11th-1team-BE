@@ -36,17 +36,17 @@ class RoommateBoardInterestServiceImplTest {
         // Given
         Member member = Member.builder().id(1L).build();
         RoommateBoard board = RoommateBoard.builder().id(10L).build();
-        when(roommateBoardInterestRepository.findByRoommateBoardAndMember(board, member))
+        when(roommateBoardInterestRepository.findByRoommateBoardAndMemberId(board, member.getId()))
                 .thenReturn(Optional.empty());
         ArgumentCaptor<RoommateBoardInterest> interestCaptor = ArgumentCaptor.forClass(RoommateBoardInterest.class);
 
         // When
-        roommateBoardInterestService.toggle(member, board);
+        roommateBoardInterestService.toggle(member.getId(), board);
 
         // Then
         verify(roommateBoardInterestRepository).save(interestCaptor.capture());
         RoommateBoardInterest savedInterest = interestCaptor.getValue();
-        assertThat(savedInterest.getMember()).isSameAs(member);
+        assertThat(savedInterest.getMemberId()).isEqualTo(member.getId());
         assertThat(savedInterest.getRoommateBoard()).isSameAs(board);
         assertThat(savedInterest.getIsDeleted()).isFalse();
     }
@@ -58,15 +58,15 @@ class RoommateBoardInterestServiceImplTest {
         Member member = Member.builder().id(1L).build();
         RoommateBoard board = RoommateBoard.builder().id(10L).build();
         RoommateBoardInterest interest = RoommateBoardInterest.builder()
-                .member(member)
+                .memberId(member.getId())
                 .roommateBoard(board)
                 .isDeleted(false)
                 .build();
-        when(roommateBoardInterestRepository.findByRoommateBoardAndMember(board, member))
+        when(roommateBoardInterestRepository.findByRoommateBoardAndMemberId(board, member.getId()))
                 .thenReturn(Optional.of(interest));
 
         // When
-        roommateBoardInterestService.toggle(member, board);
+        roommateBoardInterestService.toggle(member.getId(), board);
 
         // Then
         assertThat(interest.getIsDeleted()).isTrue();

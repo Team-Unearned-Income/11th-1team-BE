@@ -664,14 +664,14 @@ public class SeedDataConfig implements CommandLineRunner {
         // 12. 룸메이트 게시글, 옵션 및 첨부파일 (RoommateBoard, Option, File, Interest, Declaration)
         Region firstDong = level3Towns.isEmpty() ? seoul : level3Towns.get(0);
         RoommateBoard board1 = RoommateBoard.builder()
-                .member(user1)
+                .memberId(user1.getId())
                 .title("강남역 인근 깔끔한 원룸 룸메 구합니다!")
                 .contents("채광 좋고 조용한 원룸입니다. 함께 깨끗하게 쓰실 분 환영해요.")
                 .deposit(500)
                 .monthlyRent(50)
                 .managementCost(5)
-                .roomType(oneRoom)
-                .region(firstDong)
+                .roomTypeId(oneRoom.getId())
+                .regionId(firstDong.getId())
                 .comeableDateNegotiable(true)
                 .comeableDate(LocalDateTime.now().plusDays(7))
                 .isDeleted(false)
@@ -681,28 +681,28 @@ public class SeedDataConfig implements CommandLineRunner {
 
         RoommateBoardOption boardOption1 = RoommateBoardOption.builder()
                 .roommateBoard(board1)
-                .roomExtraOption(fullOption)
+                .roomExtraOptionId(fullOption.getId())
                 .build();
         RoommateBoardOption boardOption2 = RoommateBoardOption.builder()
                 .roommateBoard(board1)
-                .roomExtraOption(elevator)
+                .roomExtraOptionId(elevator.getId())
                 .build();
         roommateBoardOptionRepository.saveAll(List.of(boardOption1, boardOption2));
 
-        roommateBoardFileRepository.save(RoommateBoardFile.builder().roommateBoard(board1).file(boardPic).isThumbnail(true).build());
-        roommateBoardInterestRepository.save(RoommateBoardInterest.builder().member(user2).roommateBoard(board1).isDeleted(false).build());
+        roommateBoardFileRepository.save(RoommateBoardFile.builder().roommateBoard(board1).fileId(boardPic.getId()).isThumbnail(true).build());
+        roommateBoardInterestRepository.save(RoommateBoardInterest.builder().memberId(user2.getId()).roommateBoard(board1).isDeleted(false).build());
         roommateBoardDeclarationRepository.save(RoommateBoardDeclaration.builder().memberId(user2.getId()).roommateBoardId(board1.getId()).reason("허위 매물 등록 의심").declarationType(DeclarationType.PENDING).build());
 
         // 12-1. 추가 테스트용
         RoommateBoard board2 = RoommateBoard.builder()
-                .member(user1)
+                .memberId(user1.getId())
                 .title("강남역 인근 깔끔한 원룸 룸메 구합니다!")
                 .contents("채광 좋고 조용한 원룸입니다. 함께 깨끗하게 쓰실 분 환영해요.")
                 .deposit(500)
                 .monthlyRent(50)
                 .managementCost(5)
-                .roomType(oneRoom)
-                .region(firstDong)
+                .roomTypeId(oneRoom.getId())
+                .regionId(firstDong.getId())
                 .comeableDateNegotiable(true)
                 .comeableDate(LocalDateTime.now().plusDays(7))
                 .isDeleted(false)
@@ -712,11 +712,11 @@ public class SeedDataConfig implements CommandLineRunner {
 
         RoommateBoardOption boardOption3 = RoommateBoardOption.builder()
                 .roommateBoard(board2)
-                .roomExtraOption(fullOption)
+                .roomExtraOptionId(fullOption.getId())
                 .build();
         RoommateBoardOption boardOption4 = RoommateBoardOption.builder()
                 .roommateBoard(board2)
-                .roomExtraOption(elevator)
+                .roomExtraOptionId(elevator.getId())
                 .build();
 
         roommateBoardOptionRepository.saveAll(List.of(boardOption3, boardOption4));
@@ -1009,24 +1009,24 @@ public class SeedDataConfig implements CommandLineRunner {
             memberAgreements.add(MemberAgreement.builder().memberId(member.getId()).agreementLog(agreementLogs.get(i)).isAgreed(true).build());
 
             RoommateBoard board = RoommateBoard.builder()
-                    .member(member)
+                    .memberId(member.getId())
                     .title("부하 테스트 게시글 " + (i + 1))
                     .contents("nGrinder 목록 및 검색 부하 테스트용으로 생성된 게시글입니다. " + (i + 1))
                     .deposit(300 + i % 20 * 50)
                     .monthlyRent(30 + i % 10 * 5)
                     .managementCost(5 + i % 5)
-                    .roomType(roomTypes.get(i % roomTypes.size()))
-                    .region(regions.get(i % regions.size()))
+                    .roomTypeId(roomTypes.get(i % roomTypes.size()).getId())
+                    .regionId(regions.get(i % regions.size()).getId())
                     .comeableDateNegotiable(i % 2 == 0)
                     .comeableDate(LocalDateTime.now().plusDays(i % 90 + 1))
                     .isDeleted(false)
                     .hits((long) (i % 1000))
                     .build();
             boards.add(board);
-            boardOptions.add(RoommateBoardOption.builder().roommateBoard(board).roomExtraOption(firstOption).build());
-            boardOptions.add(RoommateBoardOption.builder().roommateBoard(board).roomExtraOption(secondOption).build());
-            boardFiles.add(RoommateBoardFile.builder().roommateBoard(board).file(boardFile).isThumbnail(true).build());
-            boardInterests.add(RoommateBoardInterest.builder().member(supportMember).roommateBoard(board).isDeleted(false).build());
+            boardOptions.add(RoommateBoardOption.builder().roommateBoard(board).roomExtraOptionId(firstOption.getId()).build());
+            boardOptions.add(RoommateBoardOption.builder().roommateBoard(board).roomExtraOptionId(secondOption.getId()).build());
+            boardFiles.add(RoommateBoardFile.builder().roommateBoard(board).fileId(boardFile.getId()).isThumbnail(true).build());
+            boardInterests.add(RoommateBoardInterest.builder().memberId(supportMember.getId()).roommateBoard(board).isDeleted(false).build());
             searches.add(Search.builder().member(member).keyword("부하테스트 " + (i + 1)).build());
 
             Inquiry inquiry = Inquiry.builder()

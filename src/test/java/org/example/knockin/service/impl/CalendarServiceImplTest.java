@@ -97,7 +97,7 @@ class CalendarServiceImplTest {
                 null,
                 null,
                 null,
-                null, null, null);
+                null, null, null, null);
         calendarService = new CalendarServiceImpl(
                 new RoommateCalendarCategoryServiceImpl(roommateCalendarCategoryRepository),
                 new RoommateCalendarServiceImpl(roommateCalendarRepository),

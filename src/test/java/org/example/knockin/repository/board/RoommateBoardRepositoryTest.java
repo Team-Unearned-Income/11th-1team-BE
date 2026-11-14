@@ -373,12 +373,12 @@ class RoommateBoardRepositoryTest {
                 "해제한 관심 게시글", owner, roomType, region, visibleEndDate.plusDays(2));
         persistBoard("관심하지 않은 게시글", owner, roomType, region, visibleEndDate.plusDays(3));
         entityManager.persist(RoommateBoardInterest.builder()
-                .member(requester)
+                .memberId(requester.getId())
                 .roommateBoard(activeBoard)
                 .isDeleted(false)
                 .build());
         entityManager.persist(RoommateBoardInterest.builder()
-                .member(requester)
+                .memberId(requester.getId())
                 .roommateBoard(deletedBoard)
                 .isDeleted(true)
                 .build());
@@ -421,12 +421,12 @@ class RoommateBoardRepositoryTest {
         RoommateBoard noInterestBoard = persistBoard(
                 "관심 없는 게시글", owner, roomType, region, LocalDateTime.now().plusDays(1));
         entityManager.persist(RoommateBoardInterest.builder()
-                .member(activeMember)
+                .memberId(activeMember.getId())
                 .roommateBoard(interestedBoard)
                 .isDeleted(false)
                 .build());
         entityManager.persist(RoommateBoardInterest.builder()
-                .member(deletedMember)
+                .memberId(deletedMember.getId())
                 .roommateBoard(interestedBoard)
                 .isDeleted(true)
                 .build());
@@ -742,7 +742,7 @@ class RoommateBoardRepositoryTest {
 
     @Test
     @DisplayName("생활패턴 조회는 회원의 생활패턴 정보를 sort 순서대로 반환한다")
-    void getLifeStyleDtoReturnsMemberLifePatterns() {
+    void findLifestyleRowsByMemberIdReturnsMemberLifePatterns() {
         // Given
         Member member = persistMember("provider-detail-lifestyles");
         LifePattern sleepPattern = persistLifePattern("취침", LifePatternType.SCALE, 2);
@@ -755,24 +755,24 @@ class RoommateBoardRepositoryTest {
         entityManager.clear();
 
         // When
-        List<BoardDetailDto.Response.Lifestyle> lifeStyles =
-                memberLifePatternRepository.getLifeStyleDto(member.getId());
+        List<MatchingLifestyleRow> lifeStyles =
+                memberLifePatternRepository.findLifestyleRowsByMemberId(member.getId());
         List<MatchingLifestyleRow> matchingRows =
                 memberLifePatternRepository.findAllLifestyleByMemberIdIn(List.of(member.getId()));
 
         // Then
         assertThat(lifeStyles)
-                .extracting(BoardDetailDto.Response.Lifestyle::getName)
+                .extracting(MatchingLifestyleRow::name)
                 .containsExactly("방문객", "취침");
         assertThat(lifeStyles)
-                .filteredOn(lifeStyle -> lifeStyle.getName().equals("취침"))
+                .filteredOn(lifeStyle -> lifeStyle.name().equals("취침"))
                 .singleElement()
                 .satisfies(lifeStyle -> {
-                    assertThat(lifeStyle.getLifestyleId()).isNotNull();
-                    assertThat(lifeStyle.getValue()).isEqualTo("23:00");
-                    assertThat(lifeStyle.getDescription()).isEqualTo("일찍 자요");
-                    assertThat(lifeStyle.getType()).isEqualTo(LifePatternType.SCALE);
-                    assertThat(lifeStyle.getImageUrl()).isEqualTo("sleep.png");
+                    assertThat(lifeStyle.lifestyleId()).isNotNull();
+                    assertThat(lifeStyle.value()).isEqualTo("23:00");
+                    assertThat(lifeStyle.description()).isEqualTo("일찍 자요");
+                    assertThat(lifeStyle.type()).isEqualTo(LifePatternType.SCALE);
+                    assertThat(lifeStyle.imageUrl()).isEqualTo("sleep.png");
                 });
         assertThat(matchingRows)
                 .extracting(MatchingLifestyleRow::name, MatchingLifestyleRow::imageUrl)
@@ -784,7 +784,7 @@ class RoommateBoardRepositoryTest {
 
     @Test
     @DisplayName("선호 룸메이트 조건 조회는 조건의 이름과 표시 정보를 반환한다")
-    void getConditionDtoByMemberIdReturnsPreferenceConditions() {
+    void findConditionRowsByMemberIdReturnsPreferenceConditions() {
         // Given
         Member member = persistMember("provider-detail-conditions");
         LifePattern smokingPattern = persistLifePattern("흡연", LifePatternType.BOOLEAN);
@@ -794,20 +794,20 @@ class RoommateBoardRepositoryTest {
         entityManager.clear();
 
         // When
-        List<BoardDetailDto.Response.Condition> conditions =
-                preferenceConditionRepository.getConditionDtoByMemberId(member.getId());
+        List<MatchingPreferenceConditionRow> conditions =
+                preferenceConditionRepository.findConditionRowsByMemberId(member.getId());
         List<MatchingPreferenceConditionRow> matchingRows =
                 preferenceConditionRepository.findAllPreferenceConditionByMemberIdIn(List.of(member.getId()));
 
         // Then
         assertThat(conditions).singleElement()
                 .satisfies(condition -> {
-                    assertThat(condition.getConditionId()).isNotNull();
-                    assertThat(condition.getName()).isEqualTo("흡연");
-                    assertThat(condition.getValue()).isEqualTo("비흡연");
-                    assertThat(condition.getDescription()).isEqualTo("비흡연 선호");
-                    assertThat(condition.getType()).isEqualTo(LifePatternType.BOOLEAN);
-                    assertThat(condition.getImageUrl()).isEqualTo("smoking.png");
+                    assertThat(condition.conditionId()).isNotNull();
+                    assertThat(condition.name()).isEqualTo("흡연");
+                    assertThat(condition.value()).isEqualTo("비흡연");
+                    assertThat(condition.description()).isEqualTo("비흡연 선호");
+                    assertThat(condition.type()).isEqualTo(LifePatternType.BOOLEAN);
+                    assertThat(condition.imageUrl()).isEqualTo("smoking.png");
                 });
         assertThat(matchingRows).singleElement()
                 .satisfies(row -> assertThat(row.imageUrl()).isEqualTo("smoking.png"));
@@ -815,7 +815,7 @@ class RoommateBoardRepositoryTest {
 
     @Test
     @DisplayName("중요 조건 조회는 회원이 선택한 중요 조건명을 반환한다")
-    void getConditionWeightDtoByMemberIdReturnsPreferenceConditionWeights() {
+    void findConditionWeightRowsByMemberIdReturnsPreferenceConditionWeights() {
         // Given
         Member member = persistMember("provider-detail-condition-weights");
         LifePattern sleepPattern = persistLifePattern("취침", LifePatternType.SCALE, 2);
@@ -828,21 +828,21 @@ class RoommateBoardRepositoryTest {
         entityManager.clear();
 
         // When
-        List<BoardDetailDto.Response.ConditionWeight> conditionWeights =
-                preferenceConditionWeightRepository.getConditionWeightDtoByMemberId(member.getId());
+        List<MatchingPreferenceConditionWeightRow> conditionWeights =
+                preferenceConditionWeightRepository.findConditionWeightRowsByMemberId(member.getId());
         List<MatchingPreferenceConditionWeightRow> matchingRows =
                 preferenceConditionWeightRepository.findAllPreferenceConditionWeightByMemberIdIn(
                         List.of(member.getId()));
 
         // Then
         assertThat(conditionWeights)
-                .extracting(BoardDetailDto.Response.ConditionWeight::getName)
+                .extracting(MatchingPreferenceConditionWeightRow::name)
                 .containsExactlyInAnyOrder("취침", "소음");
         assertThat(conditionWeights)
-                .extracting(BoardDetailDto.Response.ConditionWeight::getWeightConditionId)
+                .extracting(MatchingPreferenceConditionWeightRow::conditionWeightId)
                 .doesNotContainNull();
         assertThat(conditionWeights)
-                .extracting(BoardDetailDto.Response.ConditionWeight::getImageUrl)
+                .extracting(MatchingPreferenceConditionWeightRow::imageUrl)
                 .containsExactlyInAnyOrder("sleep.png", "noise.png");
         assertThat(matchingRows)
                 .extracting(MatchingPreferenceConditionWeightRow::name,
@@ -1052,14 +1052,14 @@ class RoommateBoardRepositoryTest {
             Boolean comeableDateNegotiable
     ) {
         RoommateBoard board = RoommateBoard.builder()
-                .member(member)
+                .memberId(member.getId())
                 .title(title)
                 .contents("테스트 게시글 내용")
                 .deposit(1_000)
                 .monthlyRent(50)
                 .managementCost(10)
-                .roomType(roomType)
-                .region(region)
+                .roomTypeId(roomType.getId())
+                .regionId(region.getId())
                 .comeableDateNegotiable(comeableDateNegotiable)
                 .comeableDate(comeableDate)
                 .build();
@@ -1116,7 +1116,7 @@ class RoommateBoardRepositoryTest {
     private RoommateBoardFile persistBoardFile(RoommateBoard board, File file, boolean isThumbnail) {
         RoommateBoardFile roommateBoardFile = RoommateBoardFile.builder()
                 .roommateBoard(board)
-                .file(file)
+                .fileId(file.getId())
                 .isThumbnail(isThumbnail)
                 .build();
         entityManager.persist(roommateBoardFile);
@@ -1134,7 +1134,7 @@ class RoommateBoardRepositoryTest {
     private RoommateBoardOption persistRoommateBoardOption(RoommateBoard board, RoomExtraOption option) {
         RoommateBoardOption roommateBoardOption = newInstance(RoommateBoardOption.class);
         ReflectionTestUtils.setField(roommateBoardOption, "roommateBoard", board);
-        ReflectionTestUtils.setField(roommateBoardOption, "roomExtraOption", option);
+        ReflectionTestUtils.setField(roommateBoardOption, "roomExtraOptionId", option.getId());
         entityManager.persist(roommateBoardOption);
         return roommateBoardOption;
     }

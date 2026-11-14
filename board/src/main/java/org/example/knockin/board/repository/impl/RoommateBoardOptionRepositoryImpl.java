@@ -34,7 +34,7 @@ public class RoommateBoardOptionRepositoryImpl implements RoommateBoardOptionRep
                         optionImageFile.savedFileName
                 ))
                 .from(roommateBoardOption)
-                .join(roommateBoardOption.roomExtraOption, roomExtraOption)
+                .join(roomExtraOption).on(roommateBoardOption.roomExtraOptionId.eq(roomExtraOption.id))
                 .leftJoin(selectedOptionFile)
                 .on(selectedOptionFile.id.eq(
                         JPAExpressions
@@ -57,7 +57,7 @@ public class RoommateBoardOptionRepositoryImpl implements RoommateBoardOptionRep
                 .select(roommateBoardOption)
                 .distinct()
                 .from(roommateBoardOption)
-                .join(roommateBoardOption.roomExtraOption).fetchJoin()
+                .join(roomExtraOption).on(roommateBoardOption.roomExtraOptionId.eq(roomExtraOption.id))
                 .where(roommateBoardOption.roommateBoard.id.eq(boardId), roomExtraOption.isDeleted.isFalse())
                 .fetch();
     }

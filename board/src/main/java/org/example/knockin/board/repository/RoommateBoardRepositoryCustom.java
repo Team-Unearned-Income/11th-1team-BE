@@ -19,6 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 
 public interface RoommateBoardRepositoryCustom {
+    void deleteForMembers(List<Long> memberIds);
     Slice<BoardBaseRow> search(BoardListDto.Request request, Pageable pageable, LocalDateTime endDate, @Nullable Long requesterId);
     Optional<BasicInfoRow> getBasicInfo(Long boardId);
     Page<MyRoommateBoardRow> findMyBoardList(Pageable page, Member member);

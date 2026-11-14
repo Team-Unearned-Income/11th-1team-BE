@@ -1,6 +1,5 @@
 package org.example.knockin.service.impl;
  
-import org.example.knockin.board.dto.BoardDetailDto.Response.Lifestyle;
 import org.example.knockin.life.dto.ModifyProfileLifeStyleDto;
 import org.example.knockin.life.entity.LifePattern;
 import org.example.knockin.life.entity.LifePatternInformation;
@@ -195,18 +194,18 @@ class MemberLifePatternServiceTest {
 
     @Test
     @DisplayName("회원 ID로 수정 폼에 표시할 생활 패턴 DTO 목록을 조회한다")
-    void findLifeStyleDtoByMemberIdReturnsLifestyleDtos() {
+    void findLifestyleRowsByMemberIdReturnsLifestyleDtos() {
         // Given
         Long memberId = 1L;
-        Lifestyle lifestyle = new Lifestyle(
-                10L, "취침", "23:00", "일찍 자요", LifePatternType.SCALE, "sleep.png");
-        given(memberLifePatternRepository.getLifeStyleDto(memberId)).willReturn(List.of(lifestyle));
+        MatchingLifestyleRow lifestyle = new MatchingLifestyleRow(
+                memberId, 10L, 101L, 1001L, "취침", "23:00", "일찍 자요", LifePatternType.SCALE, "sleep.png");
+        given(memberLifePatternRepository.findLifestyleRowsByMemberId(memberId)).willReturn(List.of(lifestyle));
 
         // When
-        List<Lifestyle> result = memberLifePatternService.findLifeStyleDtoByMemberId(memberId);
+        List<MatchingLifestyleRow> result = memberLifePatternService.findLifestyleRowsByMemberId(memberId);
 
         // Then
         assertThat(result).containsExactly(lifestyle);
-        verify(memberLifePatternRepository).getLifeStyleDto(memberId);
+        verify(memberLifePatternRepository).findLifestyleRowsByMemberId(memberId);
     }
 }

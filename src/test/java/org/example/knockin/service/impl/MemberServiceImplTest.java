@@ -79,6 +79,9 @@ class MemberServiceImplTest {
     @Mock
     private org.example.knockin.chat.service.impl.ChattingRequiredServiceImpl chattingRequiredService;
 
+    @Mock
+    private org.example.knockin.board.service.RoommateBoardService roommateBoardService;
+
     @InjectMocks
     private MemberServiceImpl memberService;
 
@@ -97,7 +100,7 @@ class MemberServiceImplTest {
 
         memberService.hardDeleteMember(candidates, cutoff);
 
-        var order = inOrder(memberRepository, alarmService, roommateMatchingRequiredService, chattingRequiredService);
+        var order = inOrder(memberRepository, alarmService, roommateMatchingRequiredService, chattingRequiredService, roommateBoardService);
         order.verify(memberRepository).findDeletionTargetIdsForUpdate(candidates, cutoff);
         order.verify(chattingRequiredService).findIdsForMembers(targets);
         order.verify(chattingRequiredService).findRoomIdsByRequestIds(requestIds);
@@ -105,6 +108,7 @@ class MemberServiceImplTest {
         order.verify(alarmService).deleteForMembers(targets, requestIds, roomIds);
         order.verify(roommateMatchingRequiredService).deleteForMembers(targets, roomIds, scoreIds);
         order.verify(chattingRequiredService).deleteForMembers(targets);
+        order.verify(roommateBoardService).deleteForMembers(targets);
         order.verify(memberRepository).deleteMembersByIds(targets);
     }
 
@@ -115,7 +119,7 @@ class MemberServiceImplTest {
 
         memberService.hardDeleteMember(List.of(1L), cutoff);
 
-        verifyNoInteractions(alarmService, roommateMatchingRequiredService, chattingRequiredService);
+        verifyNoInteractions(alarmService, roommateMatchingRequiredService, chattingRequiredService, roommateBoardService);
         verify(memberRepository, never()).deleteMembersByIds(any());
     }
 

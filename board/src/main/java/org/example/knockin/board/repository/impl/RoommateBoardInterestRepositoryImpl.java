@@ -27,7 +27,7 @@ public class RoommateBoardInterestRepositoryImpl implements RoommateBoardInteres
                 .select(roommateBoardInterest.roommateBoard.id)
                 .from(roommateBoardInterest)
                 .where(
-                        roommateBoardInterest.member.id.eq(memberId),
+                        roommateBoardInterest.memberId.eq(memberId),
                         roommateBoardInterest.roommateBoard.id.in(boardIds),
                         roommateBoardInterest.isDeleted.isFalse()
                 )

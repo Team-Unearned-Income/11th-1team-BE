@@ -9,7 +9,6 @@ import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.board.dto.BoardDetailDto;
 import org.example.knockin.meta.entity.QFile;
 import org.example.knockin.life.entity.QLifePatternFile;
 import org.example.knockin.life.repository.MemberLifePatternRepositoryCustom;
@@ -22,15 +21,18 @@ public class MemberLifePatternRepositoryImpl implements MemberLifePatternReposit
     private final JPAQueryFactory jpaQueryFactory;
 
     @Override
-    public List<BoardDetailDto.Response.Lifestyle> getLifeStyleDto(Long memberId) {
+    public List<MatchingLifestyleRow> findLifestyleRowsByMemberId(Long memberId) {
         QLifePatternFile selectedPatternFile = new QLifePatternFile("selectedEditLifePatternFile");
         QLifePatternFile latestPatternFile = new QLifePatternFile("latestEditLifePatternFile");
         QFile patternImageFile = new QFile("editLifePatternImageFile");
 
         return jpaQueryFactory
                 .select(Projections.constructor(
-                        BoardDetailDto.Response.Lifestyle.class,
+                        MatchingLifestyleRow.class,
+                        memberLifePattern.memberId,
                         memberLifePattern.id,
+                        lifePattern.id,
+                        lifePatternInformation.id,
                         lifePattern.name,
                         lifePatternInformation.dvalue,
                         lifePatternInformation.description,

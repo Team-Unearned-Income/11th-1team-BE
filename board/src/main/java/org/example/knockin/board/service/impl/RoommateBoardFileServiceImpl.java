@@ -14,6 +14,9 @@ import org.example.knockin.meta.entity.FileType;
 import org.example.knockin.board.repository.RoommateBoardFileRepository;
 import org.example.knockin.board.repository.row.BoardThumbnailRow;
 import org.example.knockin.meta.service.FileService;
+import org.example.knockin.meta.repository.FileRepository;
+import org.example.knockin.global.exception.BusinessException;
+import org.example.knockin.global.exception.FileErrorCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -23,6 +26,7 @@ public class RoommateBoardFileServiceImpl {
 
     private final RoommateBoardFileRepository roommateBoardFileRepository;
     private final FileService fileService;
+    private final FileRepository fileRepository;
 
     public List<RoommateBoardFile> saveAll(RoommateBoard roommateBoard, List<MultipartFile> multipartFiles, List<Boolean> thumbnails) throws IOException {
         List<RoommateBoardFile> roommateBoardFiles = new ArrayList<>();
@@ -45,7 +49,7 @@ public class RoommateBoardFileServiceImpl {
     private RoommateBoardFile saveRoommateBoardFile(RoommateBoard roommateBoard, File file, Boolean thumbnail) {
         RoommateBoardFile roommateBoardFile = RoommateBoardFile.builder()
                 .roommateBoard(roommateBoard)
-                .file(file)
+                .fileId(file.getId())
                 .isThumbnail(thumbnail)
                 .build();
 
@@ -78,8 +82,15 @@ public class RoommateBoardFileServiceImpl {
         return roommateBoardFileRepository.findByRoommateBoard(roommateBoard);
     }
 
+    public List<String> findSavedFileNames(List<RoommateBoardFile> boardFiles) {
+        if (boardFiles.isEmpty()) return List.of();
+        return fileRepository.findAllById(boardFiles.stream().map(RoommateBoardFile::getFileId).toList())
+                .stream().map(File::getSavedFileName).toList();
+    }
+
     public void softDelete(RoommateBoardFile roommateBoardFile) {
-        File file = roommateBoardFile.getFile();
+        File file = fileRepository.findById(roommateBoardFile.getFileId())
+                .orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
         file.softDelete();
         roommateBoardFileRepository.delete(roommateBoardFile);
     }

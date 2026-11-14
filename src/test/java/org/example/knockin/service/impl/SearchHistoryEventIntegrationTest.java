@@ -1,5 +1,6 @@
 package org.example.knockin.service.impl;
 
+import org.example.knockin.meta.service.impl.RegionServiceImpl;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -32,14 +33,13 @@ import org.example.knockin.board.service.impl.RoommateBoardInterestServiceImpl;
 import org.example.knockin.board.service.impl.RoommateBoardOptionServiceImpl;
 import org.example.knockin.board.service.impl.RoommateBoardServiceImpl;
 import org.example.knockin.declaration.service.impl.DeclarationServiceImpl;
-import org.example.knockin.global.config.RoommateBoardPolicy;
+import org.example.knockin.board.config.RoommateBoardPolicy;
 import org.example.knockin.life.service.impl.MemberLifePatternService;
 import org.example.knockin.life.service.impl.PreferenceConditionServiceImpl;
-import org.example.knockin.mate.service.impl.MetaServiceImpl;
+import org.example.knockin.room.service.impl.RoomTypeServiceImpl;
 import org.example.knockin.member.entity.Member;
 import org.example.knockin.member.entity.MemberRole;
 import org.example.knockin.member.repository.MemberRepository;
-import org.example.knockin.member.service.impl.MemberServiceImpl;
 import org.example.knockin.meta.entity.Search;
 import org.example.knockin.meta.event.SearchHistoryEventListener;
 import org.example.knockin.meta.repository.SearchRepository;
@@ -48,7 +48,7 @@ import org.example.knockin.alarm.service.impl.PushNotificationServiceImpl;
 import org.example.knockin.meta.service.impl.SearchServiceImpl;
 import org.example.knockin.util.service.RoommateScoreService;
 import org.example.knockin.verification.entity.LoginProviderType;
-import org.example.knockin.verification.service.impl.AuthenticationServiceImpl;
+import org.example.knockin.verification.repository.AuthenticationRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -297,13 +297,14 @@ class SearchHistoryEventIntegrationTest {
             policy.setComeableDateVisibleGraceDays(7);
             return new RoommateBoardServiceImpl(
                     repository,
-                    mock(MemberServiceImpl.class),
-                    mock(MetaServiceImpl.class),
+                    mock(MemberRepository.class),
+                    mock(RoomTypeServiceImpl.class),
+                    mock(RegionServiceImpl.class),
                     mock(RoommateScoreService.class),
                     mock(RoommateBoardFileServiceImpl.class),
                     mock(PreferenceConditionServiceImpl.class),
                     mock(MemberLifePatternService.class),
-                    mock(AuthenticationServiceImpl.class),
+                    mock(AuthenticationRepository.class),
                     mock(RoommateBoardOptionServiceImpl.class),
                     mock(RoommateBoardInterestServiceImpl.class),
                     policy,

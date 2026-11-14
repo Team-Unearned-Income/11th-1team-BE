@@ -9,7 +9,6 @@ import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.board.dto.BoardDetailDto;
 import org.example.knockin.meta.entity.QFile;
 import org.example.knockin.life.entity.QLifePatternFile;
 import org.example.knockin.life.repository.PreferenceConditionRepositoryCustom;
@@ -22,15 +21,18 @@ public class PreferenceConditionRepositoryImpl implements PreferenceConditionRep
     private final JPAQueryFactory jpaQueryFactory;
 
     @Override
-    public List<BoardDetailDto.Response.Condition> getConditionDtoByMemberId(Long memberId) {
+    public List<MatchingPreferenceConditionRow> findConditionRowsByMemberId(Long memberId) {
         QLifePatternFile selectedPatternFile = new QLifePatternFile("selectedEditConditionPatternFile");
         QLifePatternFile latestPatternFile = new QLifePatternFile("latestEditConditionPatternFile");
         QFile patternImageFile = new QFile("editConditionPatternImageFile");
 
         return jpaQueryFactory
                 .select(Projections.constructor(
-                        BoardDetailDto.Response.Condition.class,
+                        MatchingPreferenceConditionRow.class,
+                        preferenceCondition.memberId,
                         preferenceCondition.id,
+                        lifePattern.id,
+                        lifePatternInformation.id,
                         lifePattern.name,
                         lifePatternInformation.dvalue,
                         lifePatternInformation.description,

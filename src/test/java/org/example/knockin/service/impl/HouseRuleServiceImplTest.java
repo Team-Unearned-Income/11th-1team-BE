@@ -50,7 +50,7 @@ class HouseRuleServiceImplTest {
     void setUp() {
         houseRuleService = new HouseRuleServiceImpl(
                 roommateHouseRuleRepository,
-                new MemberServiceImpl(memberRepository, null, null, null, null, null, null, null, null, null, null)
+                new MemberServiceImpl(memberRepository, null, null, null, null, null, null, null, null, null, null, null)
         );
     }
 
