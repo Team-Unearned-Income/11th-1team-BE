@@ -3,6 +3,7 @@ package org.example.knockin.service.impl;
 import org.example.knockin.member.dto.BoMemberDetailDto;
 import org.example.knockin.mate.service.impl.RoommateMatchingRequiredServiceImpl;
 import org.example.knockin.alarm.service.impl.AlarmServiceImpl;
+import org.example.knockin.alarm.service.impl.NotificationSettingServiceImpl;
 import java.time.LocalDateTime;
 import org.example.knockin.member.dto.BoMemberListDto;
 import org.example.knockin.member.dto.FcmDto;
@@ -14,13 +15,12 @@ import org.example.knockin.member.entity.MemberState;
 import org.example.knockin.member.entity.State;
 import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.MemberErrorCode;
-import org.example.knockin.alarm.repository.AlarmSettingRepository;
-import org.example.knockin.life.repository.MemberLifePatternRepository;
-import org.example.knockin.member.repository.BasicInformationRepository;
 import org.example.knockin.member.repository.MemberRepository;
 import org.example.knockin.member.repository.StateRepository;
+import org.example.knockin.member.service.MemberStateActiveEvent;
 import org.example.knockin.member.service.impl.MemberServiceImpl;
 import org.example.knockin.room.repository.RoomProfileRepository;
+import org.example.knockin.global.auth.dto.OAuth2UserInfo;
 import org.example.knockin.global.auth.service.Oauth2DeleteFactory;
 import org.example.knockin.global.auth.service.Oauth2DeleteService;
 import org.example.knockin.global.exception.AuthErrorCode;
@@ -33,6 +33,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
@@ -59,16 +60,13 @@ class MemberServiceImplTest {
     private Oauth2DeleteFactory oauth2DeleteFactory;
 
     @Mock
-    private MemberLifePatternRepository memberLifePatternRepository;
-
-    @Mock
-    private BasicInformationRepository basicInformationRepository;
-
-    @Mock
     private RoomProfileRepository roomProfileRepository;
 
     @Mock
-    private AlarmSettingRepository alarmSettingRepository;
+    private NotificationSettingServiceImpl notificationSettingService;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @Mock
     private AlarmServiceImpl alarmService;
@@ -84,6 +82,23 @@ class MemberServiceImplTest {
 
     @InjectMocks
     private MemberServiceImpl memberService;
+
+    @Test
+    @DisplayName("새 소셜 회원을 저장하면 발급된 회원 ID로 기본 알림 설정을 초기화한다")
+    void initializesAlarmSettingsForNewMember() {
+        Long memberId = 1L;
+        OAuth2UserInfo userInfo = mock(OAuth2UserInfo.class);
+        given(userInfo.getId()).willReturn("provider-id");
+        given(userInfo.getProviderType()).willReturn(LoginProviderType.KAKAO);
+        given(memberRepository.findMemberByProvider("provider-id", LoginProviderType.KAKAO))
+                .willReturn(Optional.empty());
+        Member savedMember = Member.builder().id(memberId).build();
+        given(memberRepository.save(any(Member.class))).willReturn(savedMember);
+
+        assertThat(memberService.getOrSave(userInfo)).isSameAs(savedMember);
+
+        verify(notificationSettingService).saveAllAlarmSettingsByMemberId(memberId);
+    }
 
     @Test
     void hardDeleteUsesOnlyLockedTargetsAndCleansAlarmsFirst() {
@@ -272,6 +287,21 @@ class MemberServiceImplTest {
         assertThat(result.getStates()).isEqualTo(MemberState.INACTIVE);
         verify(stateRepository).findByMember(member);
         verify(state).rejectState("정지사유");
+        verifyNoInteractions(eventPublisher);
+    }
+
+    @Test
+    @DisplayName("회원이 활성화되면 회원 ID를 담은 활성화 이벤트를 발행한다")
+    void publishesEventWhenMemberIsActivated() {
+        Long memberId = 1L;
+        Member member = Member.builder().id(memberId).build();
+        State state = State.builder().states(MemberState.INACTIVE).build();
+        given(stateRepository.findByMember(member)).willReturn(List.of(state));
+
+        State result = memberService.setMemberState(member, MemberState.ACTIVE, null);
+
+        assertThat(result.getStates()).isEqualTo(MemberState.ACTIVE);
+        verify(eventPublisher).publishEvent(new MemberStateActiveEvent(memberId));
     }
 
     @Test

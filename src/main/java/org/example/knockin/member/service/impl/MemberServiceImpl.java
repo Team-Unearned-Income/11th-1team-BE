@@ -1,5 +1,6 @@
 package org.example.knockin.member.service.impl;
 
+import org.example.knockin.alarm.service.impl.NotificationSettingServiceImpl;
 import org.example.knockin.mate.service.impl.RoommateMatchingRequiredServiceImpl;
 import org.example.knockin.chat.service.impl.ChattingRequiredServiceImpl;
 import lombok.RequiredArgsConstructor;
@@ -12,14 +13,9 @@ import org.example.knockin.member.dto.FcmDto;
 import org.example.knockin.member.dto.LogOutDto;
 import org.example.knockin.member.dto.MyAccountDto;
 import org.example.knockin.alarm.service.impl.AlarmServiceImpl;
-import org.example.knockin.alarm.service.impl.PushNotificationServiceImpl;
-import org.example.knockin.alarm.entity.Alarm;
-import org.example.knockin.alarm.entity.AlarmSetting;
-import org.example.knockin.alarm.entity.AlarmSettingType;
-import org.example.knockin.alarm.entity.AlarmType;
+import org.example.knockin.member.service.MemberStateActiveEvent;
 import org.example.knockin.verification.entity.LoginProviderType;
 import org.example.knockin.member.entity.Member;
-import org.example.knockin.global.entity.MemberAlarmTemplate;
 import org.example.knockin.member.entity.MemberRole;
 import org.example.knockin.member.entity.MemberState;
 import org.example.knockin.member.entity.State;
@@ -30,11 +26,8 @@ import org.example.knockin.global.exception.AuthErrorCode;
 import org.example.knockin.global.auth.service.Oauth2DeleteFactory;
 import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.MemberErrorCode;
-import org.example.knockin.alarm.repository.AlarmSettingRepository;
 import org.example.knockin.life.dto.MyPreferencesAllDto;
 import org.example.knockin.life.dto.MyProfileAllDto;
-import org.example.knockin.life.repository.MemberLifePatternRepository;
-import org.example.knockin.member.repository.BasicInformationRepository;
 import org.example.knockin.member.repository.MemberRepository;
 import org.example.knockin.member.repository.row.MatchingBasicInfoRow;
 import org.example.knockin.member.repository.row.MemberWithNameRow;
@@ -44,6 +37,7 @@ import org.example.knockin.room.entity.RoomOfferProfile;
 import org.example.knockin.room.entity.RoomProfile;
 import org.example.knockin.room.entity.RoomProfileType;
 import org.example.knockin.room.entity.RoomSeekerProfile;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,7 +47,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -64,16 +57,14 @@ import java.util.Optional;
 public class MemberServiceImpl {
     private final MemberRepository memberRepository;
     private final Oauth2DeleteFactory oauth2DeleteFactory;
-    private final MemberLifePatternRepository memberLifePatternRepository;
-    private final BasicInformationRepository basicInformationRepository;
     private final RoomProfileRepository roomProfileRepository;
     private final StateRepository stateRepository;
-    private final AlarmSettingRepository alarmSettingRepository;
     private final AlarmServiceImpl alarmService;
-    private final PushNotificationServiceImpl pushNotificationService;
     private final RoommateMatchingRequiredServiceImpl roommateMatchingRequiredService;
     private final ChattingRequiredServiceImpl chattingRequiredService;
     private final RoommateBoardService roommateBoardService;
+    private final ApplicationEventPublisher eventPublisher;
+    private final NotificationSettingServiceImpl notificationSettingService;
 
     @Transactional
     public Member getOrSave(OAuth2UserInfo oAuth2UserInfo) {
@@ -90,8 +81,7 @@ public class MemberServiceImpl {
                             .build();
 
                     Member resultMember = memberRepository.save(newMember);
-                    List<AlarmSetting> alarmSettingList = Arrays.stream(AlarmSettingType.values()).map(item -> AlarmSetting.builder().memberId(resultMember.getId()).isEnabled(true).alarmSettingType(item).build()).toList();
-                    alarmSettingRepository.saveAll(alarmSettingList);
+                    notificationSettingService.saveAllAlarmSettingsByMemberId(resultMember.getId());
                     stateRepository.save(State.builder().states(MemberState.ACTIVE).member(resultMember).build());
                     return resultMember;
                 });
@@ -246,8 +236,9 @@ public class MemberServiceImpl {
                 .build();
     }
 
+    // FIXME: 온보딩 여부의 책임을 RoomProfileServiceImpl, MemberLifeStyleServiceImpl, BasicInformationServiceImpl로 나눈다.
     public boolean isOnBoarding(Member member) {
-        return roomProfileRepository.isExsitRoomProfile(member) && memberLifePatternRepository.isExsitLifeStyle(member.getId()) && basicInformationRepository.isExsitBasicInformation(member);
+        return roomProfileRepository.isExsitRoomProfile(member);
     }
 
     private String getFullRegionName(Region regionEntity) {
@@ -280,17 +271,7 @@ public class MemberServiceImpl {
 
         if(memberState.equals(MemberState.ACTIVE)) {
             state.activeState();
-            Alarm alarm = Alarm.builder()
-                    .title(MemberAlarmTemplate.MEMBER_ACTIVE.formatTitle())
-                    .contents(MemberAlarmTemplate.MEMBER_ACTIVE.formatContents())
-                    .isRead(false)
-                    .memberId(member.getId())
-                    .expiredAt(LocalDateTime.now().plusDays(1))
-                    .type(AlarmType.DEFAULT)
-                    .build();
-
-            alarmService.sendToClient(member.getId(), MemberAlarmTemplate.MEMBER_ACTIVE.name(), alarm);
-            pushNotificationService.send(member, AlarmSettingType.NOTIFICATION, MemberAlarmTemplate.MEMBER_ACTIVE.formatTitle(), MemberAlarmTemplate.MEMBER_ACTIVE.formatContents(), MemberAlarmTemplate.MEMBER_ACTIVE.formatDeepLink());
+            eventPublisher.publishEvent(new MemberStateActiveEvent(member.getId()));
         } else {
             state.rejectState(rejectReason);
         }

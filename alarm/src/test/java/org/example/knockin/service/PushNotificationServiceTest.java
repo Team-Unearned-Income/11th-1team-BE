@@ -4,14 +4,20 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+import java.util.Optional;
 import org.example.knockin.alarm.entity.AlarmSettingType;
-import org.example.knockin.member.entity.Member;
+import org.example.knockin.alarm.port.FcmTokenReader;
 import org.example.knockin.alarm.repository.AlarmSettingRepository;
 import org.example.knockin.alarm.service.impl.FcmServiceImpl;
 import org.example.knockin.alarm.service.impl.PushNotificationServiceImpl;
+import org.example.knockin.global.entity.InquiryAlarmTemplate;
+import org.example.knockin.member.entity.Member;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -25,6 +31,9 @@ class PushNotificationServiceTest {
 
     @Mock
     private FcmServiceImpl fcmService;
+
+    @Mock
+    private FcmTokenReader fcmTokenReader;
 
     @InjectMocks
     private PushNotificationServiceImpl pushNotificationService;
@@ -115,6 +124,48 @@ class PushNotificationServiceTest {
         );
 
         // then
+        verifyNoInteractions(alarmSettingRepository, fcmService);
+    }
+
+    @Test
+    @DisplayName("회원 ID로 조회한 토큰에 알림 템플릿을 적용해 푸시를 전송한다")
+    void sendsTemplateNotificationByMemberId() {
+        Long memberId = 1L;
+        AlarmSettingType settingType = AlarmSettingType.NOTIFICATION;
+        InquiryAlarmTemplate template = InquiryAlarmTemplate.INQUIRIE_REPLY;
+        given(fcmTokenReader.readFcmTokenById(memberId)).willReturn(Optional.of("fcm-token"));
+        given(alarmSettingRepository.existsByMemberIdAndAlarmSettingTypeAndIsEnabledTrue(memberId, settingType))
+                .willReturn(true);
+
+        pushNotificationService.send(memberId, settingType, template);
+
+        verify(fcmService).send(template.formatTitle(), template.formatContents(), "fcm-token", template.formatDeepLink());
+    }
+
+    @Test
+    @DisplayName("회원 ID로 조회한 알림 설정이 비활성화되어 있으면 푸시를 전송하지 않는다")
+    void doesNotSendNotificationByMemberIdWhenDisabled() {
+        Long memberId = 1L;
+        AlarmSettingType settingType = AlarmSettingType.NOTIFICATION;
+        given(fcmTokenReader.readFcmTokenById(memberId)).willReturn(Optional.of("fcm-token"));
+        given(alarmSettingRepository.existsByMemberIdAndAlarmSettingTypeAndIsEnabledTrue(memberId, settingType))
+                .willReturn(false);
+
+        pushNotificationService.send(memberId, settingType, InquiryAlarmTemplate.INQUIRIE_REPLY);
+
+        verifyNoInteractions(fcmService);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = " ")
+    @DisplayName("회원 ID로 조회한 토큰이 없거나 공백이면 설정을 조회하거나 푸시를 전송하지 않는다")
+    void skipsNotificationByMemberIdWhenTokenHasNoText(String token) {
+        Long memberId = 1L;
+        given(fcmTokenReader.readFcmTokenById(memberId)).willReturn(Optional.ofNullable(token));
+
+        pushNotificationService.send(memberId, AlarmSettingType.NOTIFICATION, InquiryAlarmTemplate.INQUIRIE_REPLY);
+
         verifyNoInteractions(alarmSettingRepository, fcmService);
     }
 

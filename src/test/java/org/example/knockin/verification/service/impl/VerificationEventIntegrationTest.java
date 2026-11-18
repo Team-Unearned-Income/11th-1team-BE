@@ -7,8 +7,6 @@ import org.example.knockin.alarm.entity.AlarmSettingType;
 import org.example.knockin.alarm.service.impl.AlarmServiceImpl;
 import org.example.knockin.alarm.service.impl.PushNotificationServiceImpl;
 import org.example.knockin.global.entity.AuthenticateAlarmTemplate;
-import org.example.knockin.member.entity.Member;
-import org.example.knockin.member.service.impl.MemberServiceImpl;
 import org.example.knockin.verification.entity.ApproveType;
 import org.example.knockin.verification.entity.Authentication;
 import org.example.knockin.verification.entity.AuthenticationApprove;
@@ -49,7 +47,6 @@ class VerificationEventIntegrationTest {
 
     @Autowired private AuthenticationService authenticationService;
     @Autowired private AuthenticationApproveRepository authenticationApproveRepository;
-    @Autowired private MemberServiceImpl memberService;
     @Autowired private AlarmServiceImpl alarmService;
     @Autowired private PushNotificationServiceImpl pushNotificationService;
     @Autowired private ApplicationEventPublisher eventPublisher;
@@ -57,53 +54,49 @@ class VerificationEventIntegrationTest {
 
     @BeforeEach
     void resetMocks() {
-        reset(authenticationApproveRepository, memberService, alarmService, pushNotificationService);
+        reset(authenticationApproveRepository, alarmService, pushNotificationService);
     }
 
     @Test
     @DisplayName("인증 승인 트랜잭션이 커밋된 뒤에만 회원에게 알림을 전송한다")
     void sendsApprovalNotificationsOnlyAfterTransactionCommits() {
         AuthenticationApprove approve = pendingApproval();
-        Member member = Member.builder().id(10L).build();
+        Long memberId = approve.getAuthentication().getMemberId();
         given(authenticationApproveRepository.findById(approve.getId())).willReturn(Optional.of(approve));
-        given(memberService.findByIdOrThrow(member.getId())).willReturn(member);
 
         new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
             authenticationService.saveVerifications(approve.getId());
 
             assertThat(approve.getStatus()).isEqualTo(ApproveType.ACCEPTED);
-            verifyNoInteractions(memberService, alarmService, pushNotificationService);
+            verifyNoInteractions(alarmService, pushNotificationService);
         });
 
-        verify(memberService).findByIdOrThrow(member.getId());
         verify(alarmService).sendToClient(
-                eq(member.getId()), eq(AuthenticateAlarmTemplate.SAVE_VERIFICATION.name()), any(Alarm.class));
+                eq(memberId), eq(AuthenticateAlarmTemplate.SAVE_VERIFICATION.name()), any(Alarm.class));
         verify(pushNotificationService).send(
-                member, AlarmSettingType.NOTIFICATION, AuthenticateAlarmTemplate.SAVE_VERIFICATION);
+                memberId, AlarmSettingType.NOTIFICATION, AuthenticateAlarmTemplate.SAVE_VERIFICATION);
     }
 
     @Test
     @DisplayName("인증 반려 트랜잭션이 커밋된 뒤에만 반려 사유를 담은 알림을 전송한다")
     void sendsRejectionNotificationsOnlyAfterTransactionCommits() {
         AuthenticationApprove approve = pendingApproval();
-        Member member = Member.builder().id(10L).build();
+        Long memberId = approve.getAuthentication().getMemberId();
         String rejectReason = "소속을 확인할 수 없습니다.";
         given(authenticationApproveRepository.findById(approve.getId())).willReturn(Optional.of(approve));
-        given(memberService.findByIdOrThrow(member.getId())).willReturn(member);
 
         new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
             authenticationService.deleteVerifications(approve.getId(), rejectReason);
 
             assertThat(approve.getStatus()).isEqualTo(ApproveType.REJECT);
             assertThat(approve.getRejectReason()).isEqualTo(rejectReason);
-            verifyNoInteractions(memberService, alarmService, pushNotificationService);
+            verifyNoInteractions(alarmService, pushNotificationService);
         });
 
-        verify(memberService).findByIdOrThrow(member.getId());
         verify(alarmService).sendToClient(
-                eq(member.getId()), eq(AuthenticateAlarmTemplate.DELETE_VERIFICATION.name()), any(Alarm.class));
+                eq(memberId), eq(AuthenticateAlarmTemplate.DELETE_VERIFICATION.name()), any(Alarm.class));
         verify(pushNotificationService).send(
-                member, AlarmSettingType.NOTIFICATION,
+                memberId, AlarmSettingType.NOTIFICATION,
                 AuthenticateAlarmTemplate.DELETE_VERIFICATION.formatTitle(),
                 AuthenticateAlarmTemplate.DELETE_VERIFICATION.formatContents(rejectReason),
                 AuthenticateAlarmTemplate.DELETE_VERIFICATION.formatDeepLink());
@@ -121,7 +114,7 @@ class VerificationEventIntegrationTest {
         });
 
         verify(authenticationApproveRepository).findById(approve.getId());
-        verifyNoInteractions(memberService, alarmService, pushNotificationService);
+        verifyNoInteractions(alarmService, pushNotificationService);
     }
 
     @Test
@@ -136,7 +129,7 @@ class VerificationEventIntegrationTest {
         });
 
         verify(authenticationApproveRepository).findById(approve.getId());
-        verifyNoInteractions(memberService, alarmService, pushNotificationService);
+        verifyNoInteractions(alarmService, pushNotificationService);
     }
 
     @Test
@@ -145,7 +138,7 @@ class VerificationEventIntegrationTest {
         eventPublisher.publishEvent(new VerificationSaveEvent(10L));
         eventPublisher.publishEvent(new VerificationDeleteEvent(10L, "반려 사유"));
 
-        verifyNoInteractions(memberService, alarmService, pushNotificationService);
+        verifyNoInteractions(alarmService, pushNotificationService);
     }
 
     private AuthenticationApprove pendingApproval() {
@@ -193,11 +186,6 @@ class VerificationEventIntegrationTest {
         @Bean
         ResourceLoader resourceLoader() {
             return mock(ResourceLoader.class);
-        }
-
-        @Bean
-        MemberServiceImpl memberService() {
-            return mock(MemberServiceImpl.class);
         }
 
         @Bean

@@ -40,21 +40,10 @@ public class LifeStyleServiceImpl {
 
         lifePatternRepository.save(lifePattern);
 
-        List<LifePatternInformation> informationList = request.getDetails().stream()
-                .map(detailItem -> saveLifePatternInformation(lifePattern, detailItem.getValues(), detailItem.getDescription()))
-                .toList();
+         request.getDetails()
+                .forEach(detailItem -> saveLifePatternInformation(lifePattern, detailItem.getValues(), detailItem.getDescription()));
 
         return lifePattern.getId();
-    }
-
-    private LifePattern saveLifePattern(LifePattern lifePattern) {
-        return lifePatternRepository.save(lifePattern);
-    }
-
-    @Deprecated
-    @Transactional
-    public LifePatternFile saveLifePatternFile(LifePatternFile lifePatternFile) {
-        return lifePatternFileRepository.save(lifePatternFile);
     }
 
     public void saveLifePatternFile(Long lifePatternId, Long fileId) {
@@ -142,10 +131,6 @@ public class LifeStyleServiceImpl {
 
     public LifePattern findLifeStyle(Long patternId) {
         return lifePatternRepository.findById(patternId).orElseThrow(() -> new BusinessException(LifePatternErrorCode.LIFE_PATTERN_NOT_FOUNT));
-    }
-
-    public LifePatternFile findLifeStyleFile(LifePattern lifePattern) {
-        return lifePatternFileRepository.findByLifePattern(lifePattern).orElse(null);
     }
 
     public boolean existsByLifePatternId(Long lifePatternId) {
