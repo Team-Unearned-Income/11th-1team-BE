@@ -82,7 +82,6 @@ class OnBoardingServiceImplTest {
     void setUp() {
         member = Member.builder().id(memberId).build();
         lenient().when(memberService.findById(memberId)).thenReturn(Optional.of(member));
-        lenient().when(memberService.isOnBoarding(any())).thenReturn(true);
         lenient().when(memberPrivacyService.findByMember(any())).thenReturn(Collections.emptyList());
     }
  
@@ -161,6 +160,9 @@ class OnBoardingServiceImplTest {
  
         given(memberLifePatternService.saveMemberLifePatterns(memberId, request.getLifestyles()))
                 .willReturn(List.of(10L));
+        given(memberService.isOnBoarding(member)).willReturn(true);
+        given(memberLifePatternService.isExistsLifeStyle(memberId)).willReturn(true);
+        given(basicInformationService.existsMemberId(memberId)).willReturn(true);
  
         SaveProfileLifeStyleDto.Response response = onBoardingService.saveLifeStyleLogic(request, memberId);
  
@@ -168,6 +170,19 @@ class OnBoardingServiceImplTest {
         verify(memberLifePatternService).saveMemberLifePatterns(memberId, request.getLifestyles());
         verify(memberPrivacyService).save(argThat(privacy ->
                 member.equals(privacy.getMember()) && privacy.getType() == MemberPrivacyType.PUBLIC));
+    }
+
+    @Test
+    @DisplayName("기본 정보가 없으면 방 정보와 라이프스타일이 있어도 프로필을 비공개로 저장한다")
+    void savesPrivateProfileWhenBasicInformationIsMissing() {
+        given(memberService.isOnBoarding(member)).willReturn(true);
+        given(memberLifePatternService.isExistsLifeStyle(memberId)).willReturn(true);
+        given(basicInformationService.existsMemberId(memberId)).willReturn(false);
+
+        onBoardingService.saveOrUpdateState(member);
+
+        verify(memberPrivacyService).save(argThat(privacy ->
+                member.equals(privacy.getMember()) && privacy.getType() == MemberPrivacyType.PRIVATE));
     }
  
     @Test

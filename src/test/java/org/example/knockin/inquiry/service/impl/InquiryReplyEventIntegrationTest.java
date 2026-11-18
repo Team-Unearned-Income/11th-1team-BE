@@ -1,6 +1,5 @@
 package org.example.knockin.inquiry.service.impl;
 
-import java.util.Optional;
 import javax.sql.DataSource;
 import org.example.knockin.alarm.entity.Alarm;
 import org.example.knockin.alarm.entity.AlarmSettingType;
@@ -14,8 +13,6 @@ import org.example.knockin.inquiry.repository.InquiryCommentRepository;
 import org.example.knockin.inquiry.repository.InquiryRepository;
 import org.example.knockin.inquiry.service.InquiryReplyEvent;
 import org.example.knockin.inquiry.service.InquiryService;
-import org.example.knockin.member.entity.Member;
-import org.example.knockin.member.service.impl.MemberServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,7 +43,6 @@ class InquiryReplyEventIntegrationTest {
 
     @Autowired private InquiryService inquiryService;
     @Autowired private InquiryCommentRepository inquiryCommentRepository;
-    @Autowired private MemberServiceImpl memberService;
     @Autowired private AlarmServiceImpl alarmService;
     @Autowired private PushNotificationServiceImpl pushNotificationService;
     @Autowired private ApplicationEventPublisher eventPublisher;
@@ -54,29 +50,27 @@ class InquiryReplyEventIntegrationTest {
 
     @BeforeEach
     void resetMocks() {
-        reset(inquiryCommentRepository, memberService, alarmService, pushNotificationService);
+        reset(inquiryCommentRepository, alarmService, pushNotificationService);
     }
 
     @Test
     @DisplayName("답변 저장 트랜잭션이 커밋된 뒤에만 작성자에게 알림을 전송한다")
     void sendsNotificationsOnlyAfterReplyTransactionCommits() {
         InquiryComment comment = reply();
-        Member member = Member.builder().id(10L).build();
+        Long memberId = comment.getInquiry().getMemberId();
         given(inquiryCommentRepository.save(comment)).willReturn(comment);
-        given(memberService.findById(member.getId())).willReturn(Optional.of(member));
 
         new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
             assertThat(inquiryService.saveInquiryReply(comment)).isSameAs(comment);
 
             verify(inquiryCommentRepository).save(comment);
-            verifyNoInteractions(memberService, alarmService, pushNotificationService);
+            verifyNoInteractions(alarmService, pushNotificationService);
         });
 
-        verify(memberService).findById(member.getId());
         verify(alarmService).sendToClient(
-                eq(member.getId()), eq(InquiryAlarmTemplate.INQUIRIE_REPLY.name()), any(Alarm.class));
+                eq(memberId), eq(InquiryAlarmTemplate.INQUIRIE_REPLY.name()), any(Alarm.class));
         verify(pushNotificationService).send(
-                member, AlarmSettingType.NOTIFICATION, InquiryAlarmTemplate.INQUIRIE_REPLY);
+                memberId, AlarmSettingType.NOTIFICATION, InquiryAlarmTemplate.INQUIRIE_REPLY);
     }
 
     @Test
@@ -91,7 +85,7 @@ class InquiryReplyEventIntegrationTest {
         });
 
         verify(inquiryCommentRepository).save(comment);
-        verifyNoInteractions(memberService, alarmService, pushNotificationService);
+        verifyNoInteractions(alarmService, pushNotificationService);
     }
 
     @Test
@@ -99,7 +93,7 @@ class InquiryReplyEventIntegrationTest {
     void doesNotSendNotificationsWhenEventIsPublishedOutsideTransaction() {
         eventPublisher.publishEvent(new InquiryReplyEvent(10L, 100L));
 
-        verifyNoInteractions(memberService, alarmService, pushNotificationService);
+        verifyNoInteractions(alarmService, pushNotificationService);
     }
 
     private InquiryComment reply() {
@@ -142,11 +136,6 @@ class InquiryReplyEventIntegrationTest {
         @Bean
         InquiryCommentRepository inquiryCommentRepository() {
             return mock(InquiryCommentRepository.class);
-        }
-
-        @Bean
-        MemberServiceImpl memberService() {
-            return mock(MemberServiceImpl.class);
         }
 
         @Bean
