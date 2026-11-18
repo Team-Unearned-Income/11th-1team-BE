@@ -126,4 +126,8 @@ public class MemberLifePatternService {
         });
     }
 
+    @Transactional
+    public boolean isExistsLifeStyle(Long memberId) {
+        return memberLifePatternRepository.isExsitLifeStyle(memberId);
+    }
 }

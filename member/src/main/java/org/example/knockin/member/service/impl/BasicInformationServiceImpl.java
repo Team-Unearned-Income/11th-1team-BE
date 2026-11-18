@@ -52,4 +52,8 @@ public class BasicInformationServiceImpl {
         return basicInformationRepository.findChattingRoomBasicInfoRow(memberId)
                 .orElseThrow(() -> new BusinessException(MemberErrorCode.BASIC_INFO_NOT_FOUND));
     }
+
+    public boolean existsMemberId(Long memberId) {
+        return basicInformationRepository.existsByMemberId(memberId);
+    }
 }

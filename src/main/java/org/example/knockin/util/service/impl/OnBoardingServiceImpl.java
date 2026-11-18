@@ -576,7 +576,7 @@ public class OnBoardingServiceImpl {
 
     @Transactional
     public void saveOrUpdateState(Member member) {
-        MemberPrivacyType targetType = memberService.isOnBoarding(member) ? MemberPrivacyType.PUBLIC : MemberPrivacyType.PRIVATE;
+        MemberPrivacyType targetType = isOnboarding(member) ? MemberPrivacyType.PUBLIC : MemberPrivacyType.PRIVATE;
 
         List<MemberPrivacy> privacyList = memberPrivacyService.findByMember(member);
         if (!privacyList.isEmpty()) {
@@ -585,6 +585,15 @@ public class OnBoardingServiceImpl {
         else {
             memberPrivacyService.save(MemberPrivacy.builder().member(member).type(targetType).build());
         }
+    }
+
+    // FIXME
+    private boolean isOnboarding(Member member) {
+        Long memberId = member.getId();
+
+        return memberService.isOnBoarding(member)
+                & memberLifePatternService.isExistsLifeStyle(memberId)
+                & basicInformationService.existsMemberId(memberId);
     }
 
     public MyProfileAllDto.Response.UserInfo findProfileInfo(Long memberId) {

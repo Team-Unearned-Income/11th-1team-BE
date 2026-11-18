@@ -8,4 +8,6 @@ import java.util.List;
 
 public interface BasicInformationRepository extends JpaRepository<BasicInformation, Long>, BasicInformationRepositoryCustom {
     List<BasicInformation> findByMember(Member member);
+
+    boolean existsByMemberId(Long memberId);
 }
