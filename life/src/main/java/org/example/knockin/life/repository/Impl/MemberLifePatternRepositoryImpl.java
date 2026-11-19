@@ -3,6 +3,11 @@ package org.example.knockin.life.repository.Impl;
 import static org.example.knockin.life.entity.QLifePattern.lifePattern;
 import static org.example.knockin.life.entity.QLifePatternInformation.lifePatternInformation;
 import static org.example.knockin.life.entity.QMemberLifePattern.memberLifePattern;
+import static org.example.knockin.life.entity.QMemberLifePatternLog.memberLifePatternLog;
+import static org.example.knockin.life.entity.QPreferenceCondition.preferenceCondition;
+import static org.example.knockin.life.entity.QPreferenceConditionLog.preferenceConditionLog;
+import static org.example.knockin.life.entity.QPreferenceConditionWeight.preferenceConditionWeight;
+import static org.example.knockin.life.entity.QPreferenceConditionWeightLog.preferenceConditionWeightLog;
 
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.JPAExpressions;
@@ -103,5 +108,15 @@ public class MemberLifePatternRepositoryImpl implements MemberLifePatternReposit
                 )
                 .orderBy(lifePattern.sort.asc(), memberLifePattern.id.asc())
                 .fetch();
+    }
+
+    @Override
+    public void deleteByMemberIds(List<Long> memberIds) {
+        jpaQueryFactory.delete(memberLifePattern).where(memberLifePattern.memberId.in(memberIds)).execute();
+        jpaQueryFactory.delete(memberLifePatternLog).where(memberLifePatternLog.memberId.in(memberIds)).execute();
+        jpaQueryFactory.delete(preferenceCondition).where(preferenceCondition.memberId.in(memberIds)).execute();
+        jpaQueryFactory.delete(preferenceConditionLog).where(preferenceConditionLog.memberId.in(memberIds)).execute();
+        jpaQueryFactory.delete(preferenceConditionWeight).where(preferenceConditionWeight.memberId.in(memberIds)).execute();
+        jpaQueryFactory.delete(preferenceConditionWeightLog).where(preferenceConditionWeightLog.memberId.in(memberIds)).execute();
     }
 }

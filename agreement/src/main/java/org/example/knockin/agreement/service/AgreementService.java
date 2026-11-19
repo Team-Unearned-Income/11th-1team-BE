@@ -58,4 +58,6 @@ public interface AgreementService {
     MemberAgreement newMemberAgreement(Long memberId, AgreementLog agreementLog);
 
     List<MemberAgreement> findByMemberId(Long memberId);
+
+    void deleteForMembers(List<Long> memberIds);
 }

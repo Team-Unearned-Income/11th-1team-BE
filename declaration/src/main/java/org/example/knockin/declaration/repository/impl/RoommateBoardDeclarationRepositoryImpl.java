@@ -65,4 +65,10 @@ public class RoommateBoardDeclarationRepositoryImpl implements RoommateBoardDecl
                 .limit(pageable.getPageSize())
                 .fetch();
     }
+
+    @Override
+    public void deleteByMemberIds(List<Long> memberIds) {
+        jpaQueryFactory.delete(roommateBoardDeclaration)
+                .where(roommateBoardDeclaration.memberId.in(memberIds)).execute();
+    }
 }

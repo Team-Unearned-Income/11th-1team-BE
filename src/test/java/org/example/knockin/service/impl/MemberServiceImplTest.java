@@ -2,8 +2,14 @@ package org.example.knockin.service.impl;
 
 import org.example.knockin.member.dto.BoMemberDetailDto;
 import org.example.knockin.mate.service.impl.RoommateMatchingRequiredServiceImpl;
+import org.example.knockin.agreement.service.AgreementService;
 import org.example.knockin.alarm.service.impl.AlarmServiceImpl;
 import org.example.knockin.alarm.service.impl.NotificationSettingServiceImpl;
+import org.example.knockin.board.service.RoommateBoardService;
+import org.example.knockin.chat.service.impl.ChattingRequiredServiceImpl;
+import org.example.knockin.declaration.service.DeclarationService;
+import org.example.knockin.inquiry.service.InquiryService;
+import org.example.knockin.life.service.impl.MemberLifePatternService;
 import java.time.LocalDateTime;
 import org.example.knockin.member.dto.BoMemberListDto;
 import org.example.knockin.member.dto.FcmDto;
@@ -25,6 +31,7 @@ import org.example.knockin.global.auth.service.Oauth2DeleteFactory;
 import org.example.knockin.global.auth.service.Oauth2DeleteService;
 import org.example.knockin.global.exception.AuthErrorCode;
 import org.example.knockin.verification.entity.LoginProviderType;
+import org.example.knockin.verification.service.AuthenticationService;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.DisplayName;
@@ -75,10 +82,25 @@ class MemberServiceImplTest {
     private RoommateMatchingRequiredServiceImpl roommateMatchingRequiredService;
 
     @Mock
-    private org.example.knockin.chat.service.impl.ChattingRequiredServiceImpl chattingRequiredService;
+    private ChattingRequiredServiceImpl chattingRequiredService;
 
     @Mock
-    private org.example.knockin.board.service.RoommateBoardService roommateBoardService;
+    private RoommateBoardService roommateBoardService;
+
+    @Mock
+    private DeclarationService declarationService;
+
+    @Mock
+    private InquiryService inquiryService;
+
+    @Mock
+    private AuthenticationService authenticationService;
+
+    @Mock
+    private AgreementService agreementService;
+
+    @Mock
+    private MemberLifePatternService memberLifePatternService;
 
     @InjectMocks
     private MemberServiceImpl memberService;
@@ -115,7 +137,9 @@ class MemberServiceImplTest {
 
         memberService.hardDeleteMember(candidates, cutoff);
 
-        var order = inOrder(memberRepository, alarmService, roommateMatchingRequiredService, chattingRequiredService, roommateBoardService);
+        var order = inOrder(memberRepository, alarmService, roommateMatchingRequiredService, chattingRequiredService,
+                roommateBoardService, declarationService, inquiryService, authenticationService, agreementService,
+                memberLifePatternService);
         order.verify(memberRepository).findDeletionTargetIdsForUpdate(candidates, cutoff);
         order.verify(chattingRequiredService).findIdsForMembers(targets);
         order.verify(chattingRequiredService).findRoomIdsByRequestIds(requestIds);
@@ -124,7 +148,15 @@ class MemberServiceImplTest {
         order.verify(roommateMatchingRequiredService).deleteForMembers(targets, roomIds, scoreIds);
         order.verify(chattingRequiredService).deleteForMembers(targets);
         order.verify(roommateBoardService).deleteForMembers(targets);
+        order.verify(declarationService).deleteForMembers(targets);
+        order.verify(inquiryService).deleteForMembers(targets);
+        order.verify(authenticationService).deleteForMembers(targets);
+        order.verify(agreementService).deleteForMembers(targets);
+        order.verify(memberLifePatternService).deleteForMembers(targets);
         order.verify(memberRepository).deleteMembersByIds(targets);
+        verifyNoMoreInteractions(memberRepository, alarmService, roommateMatchingRequiredService, chattingRequiredService,
+                roommateBoardService, declarationService, inquiryService, authenticationService, agreementService,
+                memberLifePatternService);
     }
 
     @Test
@@ -134,7 +166,8 @@ class MemberServiceImplTest {
 
         memberService.hardDeleteMember(List.of(1L), cutoff);
 
-        verifyNoInteractions(alarmService, roommateMatchingRequiredService, chattingRequiredService, roommateBoardService);
+        verifyNoInteractions(alarmService, roommateMatchingRequiredService, chattingRequiredService, roommateBoardService,
+                declarationService, inquiryService, authenticationService, agreementService, memberLifePatternService);
         verify(memberRepository, never()).deleteMembersByIds(any());
     }
 

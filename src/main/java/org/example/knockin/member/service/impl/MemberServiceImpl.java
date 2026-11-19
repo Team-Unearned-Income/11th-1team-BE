@@ -1,6 +1,10 @@
 package org.example.knockin.member.service.impl;
 
+import org.example.knockin.agreement.service.AgreementService;
 import org.example.knockin.alarm.service.impl.NotificationSettingServiceImpl;
+import org.example.knockin.declaration.service.DeclarationService;
+import org.example.knockin.inquiry.service.InquiryService;
+import org.example.knockin.life.service.impl.MemberLifePatternService;
 import org.example.knockin.mate.service.impl.RoommateMatchingRequiredServiceImpl;
 import org.example.knockin.chat.service.impl.ChattingRequiredServiceImpl;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +41,7 @@ import org.example.knockin.room.entity.RoomOfferProfile;
 import org.example.knockin.room.entity.RoomProfile;
 import org.example.knockin.room.entity.RoomProfileType;
 import org.example.knockin.room.entity.RoomSeekerProfile;
+import org.example.knockin.verification.service.AuthenticationService;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -65,6 +70,11 @@ public class MemberServiceImpl {
     private final RoommateBoardService roommateBoardService;
     private final ApplicationEventPublisher eventPublisher;
     private final NotificationSettingServiceImpl notificationSettingService;
+    private final DeclarationService declarationService;
+    private final AuthenticationService authenticationService;
+    private final InquiryService inquiryService;
+    private final AgreementService agreementService;
+    private final MemberLifePatternService memberLifePatternService;
 
     @Transactional
     public Member getOrSave(OAuth2UserInfo oAuth2UserInfo) {
@@ -109,6 +119,7 @@ public class MemberServiceImpl {
         return DeleteUserDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
+    // FIXME: 별도의 Service로 분리 필요
     @Transactional(propagation = Propagation.MANDATORY)
     public void hardDeleteMember(List<Long> memberIds, LocalDateTime thresholdDate) {
         if (memberIds.isEmpty()) return;
@@ -123,6 +134,11 @@ public class MemberServiceImpl {
         roommateMatchingRequiredService.deleteForMembers(targetIds, chatRoomIds, chatScoreIds);
         chattingRequiredService.deleteForMembers(targetIds);
         roommateBoardService.deleteForMembers(targetIds);
+        declarationService.deleteForMembers(targetIds);
+        inquiryService.deleteForMembers(targetIds);
+        authenticationService.deleteForMembers(targetIds);
+        agreementService.deleteForMembers(targetIds);
+        memberLifePatternService.deleteForMembers(targetIds);
         memberRepository.deleteMembersByIds(targetIds);
     }
 

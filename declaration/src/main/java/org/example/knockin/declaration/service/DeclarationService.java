@@ -23,4 +23,6 @@ public interface DeclarationService {
     void reportNoAction(Long id, ReportType type);
 
     void reportSuspended(Long id, ReportType type, String reason);
+
+    void deleteForMembers(List<Long> memberIds);
 }

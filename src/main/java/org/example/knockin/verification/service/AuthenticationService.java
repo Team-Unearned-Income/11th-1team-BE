@@ -2,7 +2,6 @@ package org.example.knockin.verification.service;
 
 import java.util.List;
 import java.util.Map;
-import org.example.knockin.verification.dto.BoVerificationApproveListDto;
 import org.example.knockin.verification.dto.BoVerificationApproveListDto.Response.EmployeeAuthItem;
 import org.example.knockin.verification.dto.BoVerificationCancelListDto;
 import org.example.knockin.verification.dto.BoVerificationWaitingDetailDto;
@@ -53,4 +52,6 @@ public interface AuthenticationService {
     List<MemberAuthenticationRow> findAcceptedByMemberIds(List<Long> memberIds);
 
     MyVerificationListDto.Response findVerificationList(Pageable pageable, Long memberId);
+
+    void deleteForMembers(List<Long> memberIds);
 }

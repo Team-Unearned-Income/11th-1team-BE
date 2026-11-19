@@ -7,4 +7,6 @@ public interface MemberLifePatternRepositoryCustom {
     List<MatchingLifestyleRow> findLifestyleRowsByMemberId(Long memberId);
     boolean isExsitLifeStyle(Long memberId);
     List<MatchingLifestyleRow> findAllLifestyleByMemberIdIn(List<Long> memberIds);
+
+    void deleteByMemberIds(List<Long> memberIds);
 }

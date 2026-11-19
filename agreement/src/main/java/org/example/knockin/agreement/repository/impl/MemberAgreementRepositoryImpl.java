@@ -19,4 +19,9 @@ public class MemberAgreementRepositoryImpl implements MemberAgreementRepositoryC
     public List<MemberAgreement> findByMemberAndAgreementLogNotIn(Long memberId, List<AgreementLog> skipList) {
         return jpaQueryFactory.selectFrom(memberAgreement).where(memberAgreement.memberId.eq(memberId), memberAgreement.agreementLog.notIn(skipList)).fetch();
     }
+
+    @Override
+    public void deleteByMemberIds(List<Long> memberIds){
+        jpaQueryFactory.delete(memberAgreement).where(memberAgreement.memberId.in(memberIds)).execute();
+    }
 }

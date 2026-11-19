@@ -27,4 +27,6 @@ public interface AuthenticationRepositoryCustom {
     BoVerificationWaitingDetailDto.Response findVerifications(Long id);
 
     Optional<MyVerificationListDto.Response.AuthInfo> findVerificationList(Pageable pageable, Long memberId, AuthenticationType authenticationType);
+
+    void deleteByMemberIds(List<Long> memberIds);
 }

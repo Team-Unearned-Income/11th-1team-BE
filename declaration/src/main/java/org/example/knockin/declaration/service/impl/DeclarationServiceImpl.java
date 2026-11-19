@@ -16,6 +16,7 @@ import org.example.knockin.declaration.repository.RoommateBoardDeclarationReposi
 import org.example.knockin.declaration.repository.MemberDeclarationRepository;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
@@ -112,5 +113,12 @@ public class DeclarationServiceImpl implements DeclarationService {
             case BOARD -> roommateBoardDeclarationRepository.findById(id).orElseThrow(() -> new BusinessException(DeclarationErrorCode.DECLARATION_NOT_FOUND)).changeDeclarationType(DeclarationType.SUSPENDED, reason);
             case MEMBER -> memberDeclarationRepository.findById(id).orElseThrow(() -> new BusinessException(DeclarationErrorCode.DECLARATION_NOT_FOUND)).changeDeclarationType(DeclarationType.SUSPENDED);
         }
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void deleteForMembers(List<Long> memberIds) {
+        memberDeclarationRepository.deleteByMemberIds(memberIds);
+        roommateBoardDeclarationRepository.deleteByMemberIds(memberIds);
     }
 }

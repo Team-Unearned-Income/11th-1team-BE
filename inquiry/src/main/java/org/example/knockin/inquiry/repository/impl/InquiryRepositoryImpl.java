@@ -3,6 +3,8 @@ package org.example.knockin.inquiry.repository.impl;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.CaseBuilder;
+import com.querydsl.jpa.JPAExpressions;
+import com.querydsl.jpa.JPQLSubQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.inquiry.dto.BoInquiryDetailDto;
@@ -14,6 +16,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import static org.example.knockin.inquiry.entity.QInquiry.inquiry;
 import static org.example.knockin.member.entity.QBasicInformation.basicInformation;
@@ -123,5 +127,15 @@ public class InquiryRepositoryImpl implements InquiryRepositoryCustom {
 
     private BooleanExpression searchType(Long typeId) {
         return typeId != null ? inquiry.inquiryCategory.id.eq(typeId) : null;
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void deleteByMemberIds(List<Long> memberIds) {
+        JPQLSubQuery<Long> inquiryIds = JPAExpressions.select(inquiry.id).from(inquiry)
+                .where(inquiry.memberId.in(memberIds));
+        jpaQueryFactory.delete(inquiryComment)
+                .where(inquiryComment.memberId.in(memberIds).or(inquiryComment.inquiry.id.in(inquiryIds))).execute();
+        jpaQueryFactory.delete(inquiry).where(inquiry.memberId.in(memberIds)).execute();
     }
 }
