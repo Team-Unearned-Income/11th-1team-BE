@@ -138,7 +138,7 @@ public class MemberServiceImpl {
         inquiryService.deleteForMembers(targetIds);
         authenticationService.deleteForMembers(targetIds);
         agreementService.deleteForMembers(targetIds);
-        memberLifePatternService.deleteForMembers(memberIds);
+        memberLifePatternService.deleteForMembers(targetIds);
         memberRepository.deleteMembersByIds(targetIds);
     }
 
