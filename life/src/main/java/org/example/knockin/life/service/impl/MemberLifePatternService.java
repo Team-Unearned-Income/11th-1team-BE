@@ -17,6 +17,7 @@ import org.example.knockin.life.repository.MemberLifePatternLogRepository;
 import org.example.knockin.life.repository.MemberLifePatternRepository;
 import org.example.knockin.life.repository.row.MatchingLifestyleRow;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -129,5 +130,10 @@ public class MemberLifePatternService {
     @Transactional
     public boolean isExistsLifeStyle(Long memberId) {
         return memberLifePatternRepository.isExsitLifeStyle(memberId);
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void deleteForMembers(List<Long> memberIds) {
+        memberLifePatternRepository.deleteByMemberIds(memberIds);
     }
 }

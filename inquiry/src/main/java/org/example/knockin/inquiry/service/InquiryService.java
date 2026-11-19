@@ -30,4 +30,6 @@ public interface InquiryService {
     List<InquiryItem> findBackOfficeInquirieList(Pageable pageable, BoInquiryListDto.Request request);
 
     BoInquiryDetailDto.Response.InquiryDetail findBackOfficeInquirie(Long id);
+
+    void deleteForMembers(List<Long> memberIds);
 }

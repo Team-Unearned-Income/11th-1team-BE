@@ -27,6 +27,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
 
@@ -197,5 +198,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .studentAuth(studentAuth)
                 .employeeAuth(employeeAuth)
                 .build();
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void deleteForMembers(List<Long> memberIds) {
+        authenticationRepository.deleteByMemberIds(memberIds);
     }
 }

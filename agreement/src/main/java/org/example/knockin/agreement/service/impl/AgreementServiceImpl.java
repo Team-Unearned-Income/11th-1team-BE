@@ -25,6 +25,7 @@ import org.example.knockin.agreement.repository.AgreementRepository;
 import org.example.knockin.agreement.repository.AgreementTypeRepository;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -248,4 +249,9 @@ public class AgreementServiceImpl implements AgreementService {
         return memberAgreementRepository.findByMemberId(memberId);
     }
 
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void deleteForMembers(List<Long> memberIds) {
+        memberAgreementRepository.deleteByMemberIds(memberIds);
+    }
 }

@@ -9,4 +9,6 @@ import java.util.List;
 public interface RoommateBoardDeclarationRepositoryCustom {
     List<BoReportWaitListDto.Response.ReportInfo> findReportWaitList(Pageable pageable);
     List<BoReportDoneListDto.Response.ReportInfo> findReportDoneList(Pageable pageable);
+
+    void deleteByMemberIds(List<Long> memberIds);
 }

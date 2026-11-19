@@ -65,4 +65,10 @@ public class MemberDeclarationRepositoryImpl implements MemberDeclarationReposit
                 .limit(pageable.getPageSize())
                 .fetch();
     }
+
+    @Override
+    public void deleteByMemberIds(List<Long> memberIds) {
+        jpaQueryFactory.delete(memberDeclaration)
+                .where(memberDeclaration.reporterId.in(memberIds).or(memberDeclaration.reportedId.in(memberIds))).execute();
+    }
 }

@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface MemberAgreementRepositoryCustom {
     List<MemberAgreement> findByMemberAndAgreementLogNotIn(Long memberId, List<AgreementLog> skipList);
+
+    void deleteByMemberIds(List<Long> memberIds);
 }

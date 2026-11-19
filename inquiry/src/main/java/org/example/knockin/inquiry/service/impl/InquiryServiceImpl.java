@@ -20,6 +20,7 @@ import org.example.knockin.inquiry.service.InquiryService;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -91,5 +92,11 @@ public class InquiryServiceImpl implements InquiryService {
         BoInquiryDetailDto.Response.InquiryDetail inquiryDetail = inquiryRepository.findBackOfficeInquirie(id);
         inquiryDetail.setReply(inquiryRepository.findBackOfficeInquirieReply(id));
         return inquiryDetail;
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void deleteForMembers(List<Long> memberIds) {
+        inquiryRepository.deleteByMemberIds(memberIds);
     }
 }

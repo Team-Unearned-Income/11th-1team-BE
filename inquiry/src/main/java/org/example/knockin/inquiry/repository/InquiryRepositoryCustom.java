@@ -14,4 +14,6 @@ public interface InquiryRepositoryCustom {
     List<BoInquiryListDto.Response.InquiryItem> findBackOfficeInquirieList(Pageable pageable, BoInquiryListDto.Request request);
     BoInquiryDetailDto.Response.InquiryDetail findBackOfficeInquirie(Long id);
     List<BoInquiryDetailDto.Response.InquiryDetail.Reply> findBackOfficeInquirieReply(Long id);
+
+    void deleteByMemberIds(List<Long> memberIds);
 }

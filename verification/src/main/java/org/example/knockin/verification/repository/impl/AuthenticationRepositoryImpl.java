@@ -6,6 +6,8 @@ import static org.example.knockin.verification.entity.QAuthenticationApprove.aut
 import static org.example.knockin.member.entity.QBasicInformation.basicInformation;
 
 import com.querydsl.core.types.Projections;
+import com.querydsl.jpa.JPAExpressions;
+import com.querydsl.jpa.JPQLSubQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
 import java.util.Optional;
@@ -147,5 +149,13 @@ public class AuthenticationRepositoryImpl implements AuthenticationRepositoryCus
                 )
                 .orderBy(authentication.createdAt.desc())
                 .fetchFirst());
+    }
+
+    @Override
+    public void deleteByMemberIds(List<Long> memberIds) {
+        JPQLSubQuery<Long> authenticationIds = JPAExpressions.select(authentication.id).from(authentication)
+                .where(authentication.memberId.in(memberIds));
+        jpaQueryFactory.delete(authenticationApprove).where(authenticationApprove.authentication.id.in(authenticationIds)).execute();
+        jpaQueryFactory.delete(authentication).where(authentication.memberId.in(memberIds)).execute();
     }
 }
