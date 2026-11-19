@@ -84,20 +84,12 @@ class CalendarServiceImplTest {
     private ExcludeRoommateCalendarRepository excludeRoommateCalendarRepository;
 
     @InjectMocks
+    private MemberServiceImpl memberService;
+
     private CalendarServiceImpl calendarService;
 
     @BeforeEach
     void setUp() {
-        MemberServiceImpl memberService = new MemberServiceImpl(
-                memberRepository,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null, null);
         calendarService = new CalendarServiceImpl(
                 new RoommateCalendarCategoryServiceImpl(roommateCalendarCategoryRepository),
                 new RoommateCalendarServiceImpl(roommateCalendarRepository),

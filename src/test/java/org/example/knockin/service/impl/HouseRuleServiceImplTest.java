@@ -44,14 +44,13 @@ class HouseRuleServiceImplTest {
     private RoommateHouseRuleRepository roommateHouseRuleRepository;
 
     @InjectMocks
+    private MemberServiceImpl memberService;
+
     private HouseRuleServiceImpl houseRuleService;
 
     @BeforeEach
     void setUp() {
-        houseRuleService = new HouseRuleServiceImpl(
-                roommateHouseRuleRepository,
-                new MemberServiceImpl(memberRepository, null, null, null, null, null, null, null, null, null)
-        );
+        houseRuleService = new HouseRuleServiceImpl(roommateHouseRuleRepository, memberService);
     }
 
     @Test

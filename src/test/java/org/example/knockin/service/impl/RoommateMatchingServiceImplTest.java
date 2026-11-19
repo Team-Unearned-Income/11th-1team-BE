@@ -103,20 +103,12 @@ class RoommateMatchingServiceImplTest {
     private RoommateScoreService roommateScoreService;
 
     @InjectMocks
+    private MemberServiceImpl memberService;
+
     private RoommateMatchingServiceImpl roommateMatchingService;
 
     @BeforeEach
     void setUp() {
-        MemberServiceImpl memberService = new MemberServiceImpl(
-                memberRepository,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null, null);
         MemberLifePatternService memberLifePatternService = new MemberLifePatternService(memberLifePatternRepository, null, null, null);
         PreferenceConditionServiceImpl preferenceConditionService = new PreferenceConditionServiceImpl(
                 null,
