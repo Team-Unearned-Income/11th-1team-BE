@@ -1,7 +1,6 @@
 package org.example.knockin.global.entity;
 
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.mate.entity.RoommateRequiredStatus;
 
 @RequiredArgsConstructor
 public enum RoommateRequiredMessageTemplate implements AlarmMessageTemplate {
@@ -24,14 +23,5 @@ public enum RoommateRequiredMessageTemplate implements AlarmMessageTemplate {
 
     public String formatDeepLink(Object... args) {
         return String.format(this.deepLink, args);
-    }
-
-    public static RoommateRequiredMessageTemplate of(RoommateRequiredStatus status) {
-        return switch (status) {
-            case PENDING -> RoommateRequiredMessageTemplate.PENDING;
-            case ACCEPTED -> RoommateRequiredMessageTemplate.ACCEPTED;
-            case REJECTED -> RoommateRequiredMessageTemplate.REJECTED;
-            case CANCELED, EXPIRED -> throw new IllegalArgumentException("지원하지 않는 룸메이트 매칭 상태값입니다.");
-        };
     }
 }

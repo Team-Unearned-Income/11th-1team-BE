@@ -2,7 +2,7 @@ package org.example.knockin.service.impl;
  
 import org.example.knockin.board.dto.MyBoardListDto;
 import org.example.knockin.agreement.service.impl.AgreementServiceImpl;
-import org.example.knockin.mate.service.impl.MetaServiceImpl;
+import org.example.knockin.meta.service.impl.MetaServiceImpl;
 import org.example.knockin.member.dto.ModifyProfileBasicDto;
 import org.example.knockin.member.dto.ModifyProfileAllDto;
 import org.example.knockin.member.dto.ProfileVisibilityDto;

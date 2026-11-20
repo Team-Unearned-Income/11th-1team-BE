@@ -33,8 +33,8 @@ public class AlarmServiceImpl {
     private final AlarmRepository alarmRepository;
 
     @Transactional(propagation = Propagation.MANDATORY)
-    public void deleteForMembers(List<Long> memberIds, List<Long> chatRequestIds, List<Long> chatRoomIds) {
-        alarmRepository.deleteForMembers(memberIds, chatRequestIds, chatRoomIds);
+    public void deleteForMembers(List<Long> memberIds, List<Long> chatRequestIds, List<Long> matchingRequestIds, List<Long> calendarIds) {
+        alarmRepository.deleteForMembers(memberIds, chatRequestIds, matchingRequestIds, calendarIds);
     }
 
     public SseEmitter subscribe(Long memberId) {

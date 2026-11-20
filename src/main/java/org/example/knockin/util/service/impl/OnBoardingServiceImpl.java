@@ -3,7 +3,7 @@ package org.example.knockin.util.service.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.knockin.agreement.service.AgreementService;
-import org.example.knockin.mate.service.impl.MetaServiceImpl;
+import org.example.knockin.meta.service.impl.MetaServiceImpl;
 import org.example.knockin.verification.dto.MyVerificationListDto;
 import org.example.knockin.verification.service.impl.AuthenticationServiceImpl;
 import org.example.knockin.board.dto.MyBoardListDto;
