@@ -8,6 +8,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface RoommateMatchingRequiredRepositoryCustom {
+    List<Long> findMatchingRequestIdsForMembers(List<Long> memberIds, List<Long> chatRoomIds);
+
+    List<Long> findCalendarIdsForMembers(List<Long> memberIds, List<Long> matchingRequestIds);
+
     void deleteForMembers(List<Long> memberIds, List<Long> chatRoomIds, List<Long> chatScoreIds);
 
     Optional<RoommateMatchingRequired> findLatest(Long chattingRoomId);

@@ -1,6 +1,5 @@
 package org.example.knockin.alarm.repository.impl;
 
-import com.querydsl.jpa.JPQLSubQuery;
 import org.example.knockin.alarm.repository.AlarmRepositoryCustom;
 
 import static org.example.knockin.alarm.entity.QAlarm.alarm;
@@ -9,9 +8,6 @@ import static org.example.knockin.alarm.entity.QChattingRequiredAlarm.chattingRe
 import static org.example.knockin.alarm.entity.QNotificationAlarm.notificationAlarm;
 import static org.example.knockin.alarm.entity.QRoommateCalendarAlarm.roommateCalendarAlarm;
 import static org.example.knockin.alarm.entity.QRoommateMatchingRequiredAlarm.roommateMatchingRequiredAlarm;
-import static org.example.knockin.mate.entity.QMyRoommate.myRoommate;
-import static org.example.knockin.mate.entity.QRoommateCalendar.roommateCalendar;
-import static org.example.knockin.mate.entity.QRoommateMatchingRequired.roommateMatchingRequired;
 
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -25,14 +21,8 @@ public class AlarmRepositoryImpl implements AlarmRepositoryCustom {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public void deleteForMembers(List<Long> memberIds, List<Long> chatRequestIds, List<Long> chatRoomIds) {
+    public void deleteForMembers(List<Long> memberIds, List<Long> chatRequestIds, List<Long> matchingRequestIds, List<Long> calendarIds) {
         if (memberIds.isEmpty()) return;
-
-        JPQLSubQuery<Long> matchingRequestIds = JPAExpressions.select(roommateMatchingRequired.id).from(roommateMatchingRequired)
-                .where(roommateMatchingRequired.requester.id.in(memberIds).or(roommateMatchingRequired.requestee.id.in(memberIds)).or(roommateMatchingRequired.chattingRoomId.in(chatRoomIds)));
-
-        JPQLSubQuery<Long> calendarIds = JPAExpressions.select(roommateCalendar.id).from(roommateCalendar)
-                .join(roommateCalendar.myRoommate, myRoommate).where(myRoommate.roommateMatchingRequired.id.in(matchingRequestIds).or(roommateCalendar.member.id.in(memberIds)));
 
         List<Long> alarmIds = queryFactory.select(alarm.id).from(alarm)
                 .where(alarm.memberId.in(memberIds).or(alarm.id.in(JPAExpressions.select(chattingRequiredAlarm.id).from(chattingRequiredAlarm)

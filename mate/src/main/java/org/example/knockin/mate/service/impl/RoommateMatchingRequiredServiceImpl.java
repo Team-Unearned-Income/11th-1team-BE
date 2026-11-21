@@ -3,6 +3,8 @@ package org.example.knockin.mate.service.impl;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.example.knockin.mate.event.RoommateDeletionIdsQueryEvent;
+import org.springframework.context.event.EventListener;
 import org.example.knockin.mate.dto.RoommateRequestDto.RoommateMatchingRequiredInfo;
 import org.example.knockin.member.entity.Member;
 import org.example.knockin.mate.entity.RoommateMatchingRequired;
@@ -21,6 +23,16 @@ import org.springframework.transaction.annotation.Propagation;
 public class RoommateMatchingRequiredServiceImpl {
 
     private final RoommateMatchingRequiredRepository roommateMatchingRequiredRepository;
+
+    @EventListener
+    @Transactional(readOnly = true, propagation = Propagation.MANDATORY)
+    public void handle(RoommateDeletionIdsQueryEvent event) {
+        List<Long> matchingRequestIds = roommateMatchingRequiredRepository
+                .findMatchingRequestIdsForMembers(event.getMemberIds(), event.getChatRoomIds());
+        List<Long> calendarIds = roommateMatchingRequiredRepository
+                .findCalendarIdsForMembers(event.getMemberIds(), matchingRequestIds);
+        event.complete(matchingRequestIds, calendarIds);
+    }
 
     @Transactional(propagation = Propagation.MANDATORY)
     public void deleteForMembers(List<Long> memberIds, List<Long> chatRoomIds, List<Long> chatScoreIds) {

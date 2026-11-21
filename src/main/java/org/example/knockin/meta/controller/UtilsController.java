@@ -16,7 +16,7 @@ import org.example.knockin.room.dto.MetaRoomTypesDto;
 import org.example.knockin.meta.service.impl.AppVersionServiceImpl;
 import org.example.knockin.meta.service.impl.AuthEmailServiceImpl;
 import org.example.knockin.meta.service.impl.FaqServiceImpl;
-import org.example.knockin.mate.service.impl.MetaServiceImpl;
+import org.example.knockin.meta.service.impl.MetaServiceImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;

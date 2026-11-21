@@ -38,9 +38,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.example.knockin.mate.event.RoommateDeletionIdsQueryEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
@@ -134,17 +135,27 @@ class MemberServiceImplTest {
         given(chattingRequiredService.findIdsForMembers(targets)).willReturn(requestIds);
         given(chattingRequiredService.findRoomIdsByRequestIds(requestIds)).willReturn(roomIds);
         given(chattingRequiredService.findScoreIdsByRequestIds(requestIds)).willReturn(scoreIds);
+        List<Long> matchingRequestIds = List.of(40L, 41L);
+        List<Long> calendarIds = List.of(50L, 51L);
+        doAnswer(invocation -> {
+            RoommateDeletionIdsQueryEvent event = invocation.getArgument(0);
+            assertThat(event.getMemberIds()).isEqualTo(targets);
+            assertThat(event.getChatRoomIds()).isEqualTo(roomIds);
+            event.complete(matchingRequestIds, calendarIds);
+            return null;
+        }).when(eventPublisher).publishEvent(any(RoommateDeletionIdsQueryEvent.class));
 
         memberService.hardDeleteMember(candidates, cutoff);
 
-        var order = inOrder(memberRepository, alarmService, roommateMatchingRequiredService, chattingRequiredService,
+        var order = inOrder(memberRepository, eventPublisher, alarmService, roommateMatchingRequiredService, chattingRequiredService,
                 roommateBoardService, declarationService, inquiryService, authenticationService, agreementService,
                 memberLifePatternService);
         order.verify(memberRepository).findDeletionTargetIdsForUpdate(candidates, cutoff);
         order.verify(chattingRequiredService).findIdsForMembers(targets);
         order.verify(chattingRequiredService).findRoomIdsByRequestIds(requestIds);
         order.verify(chattingRequiredService).findScoreIdsByRequestIds(requestIds);
-        order.verify(alarmService).deleteForMembers(targets, requestIds, roomIds);
+        order.verify(eventPublisher).publishEvent(any(RoommateDeletionIdsQueryEvent.class));
+        order.verify(alarmService).deleteForMembers(targets, requestIds, matchingRequestIds, calendarIds);
         order.verify(roommateMatchingRequiredService).deleteForMembers(targets, roomIds, scoreIds);
         order.verify(chattingRequiredService).deleteForMembers(targets);
         order.verify(roommateBoardService).deleteForMembers(targets);
@@ -154,7 +165,7 @@ class MemberServiceImplTest {
         order.verify(agreementService).deleteForMembers(targets);
         order.verify(memberLifePatternService).deleteForMembers(targets);
         order.verify(memberRepository).deleteMembersByIds(targets);
-        verifyNoMoreInteractions(memberRepository, alarmService, roommateMatchingRequiredService, chattingRequiredService,
+        verifyNoMoreInteractions(memberRepository, eventPublisher, alarmService, roommateMatchingRequiredService, chattingRequiredService,
                 roommateBoardService, declarationService, inquiryService, authenticationService, agreementService,
                 memberLifePatternService);
     }
@@ -166,7 +177,7 @@ class MemberServiceImplTest {
 
         memberService.hardDeleteMember(List.of(1L), cutoff);
 
-        verifyNoInteractions(alarmService, roommateMatchingRequiredService, chattingRequiredService, roommateBoardService,
+        verifyNoInteractions(eventPublisher, alarmService, roommateMatchingRequiredService, chattingRequiredService, roommateBoardService,
                 declarationService, inquiryService, authenticationService, agreementService, memberLifePatternService);
         verify(memberRepository, never()).deleteMembersByIds(any());
     }
@@ -176,7 +187,8 @@ class MemberServiceImplTest {
         var cutoff = LocalDateTime.of(2026, 11, 8, 0, 0);
         var targets = List.of(1L);
         given(memberRepository.findDeletionTargetIdsForUpdate(targets, cutoff)).willReturn(targets);
-        doThrow(new IllegalStateException("cleanup failed")).when(alarmService).deleteForMembers(targets, List.of(), List.of());
+        completeEmptyDeletionIds();
+        doThrow(new IllegalStateException("cleanup failed")).when(alarmService).deleteForMembers(targets, List.of(), List.of(), List.of());
 
         assertThatThrownBy(() -> memberService.hardDeleteMember(targets, cutoff))
                 .isInstanceOf(IllegalStateException.class);
@@ -189,12 +201,47 @@ class MemberServiceImplTest {
         LocalDateTime cutoff = LocalDateTime.of(2026, 11, 8, 0, 0);
         List<Long> targets = List.of(1L);
         given(memberRepository.findDeletionTargetIdsForUpdate(targets, cutoff)).willReturn(targets);
+        completeEmptyDeletionIds();
         doThrow(new IllegalStateException("cleanup failed")).when(roommateMatchingRequiredService).deleteForMembers(targets, List.of(), List.of());
 
         assertThatThrownBy(() -> memberService.hardDeleteMember(targets, cutoff))
                 .isInstanceOf(IllegalStateException.class);
 
         verify(memberRepository, never()).deleteMembersByIds(any());
+    }
+
+    @Test
+    void hardDeleteStopsBeforeAnyDeletionWhenNoListenerResponds() {
+        LocalDateTime cutoff = LocalDateTime.of(2026, 11, 8, 0, 0);
+        given(memberRepository.findDeletionTargetIdsForUpdate(List.of(1L), cutoff)).willReturn(List.of(1L));
+
+        assertThatThrownBy(() -> memberService.hardDeleteMember(List.of(1L), cutoff))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("not handled synchronously");
+        verifyNoInteractions(alarmService, roommateMatchingRequiredService, roommateBoardService);
+        verify(chattingRequiredService, never()).deleteForMembers(any());
+        verify(memberRepository, never()).deleteMembersByIds(any());
+    }
+
+    @Test
+    void hardDeleteStopsBeforeAnyDeletionWhenIdQueryFails() {
+        LocalDateTime cutoff = LocalDateTime.of(2026, 11, 8, 0, 0);
+        given(memberRepository.findDeletionTargetIdsForUpdate(List.of(1L), cutoff)).willReturn(List.of(1L));
+        IllegalStateException failure = new IllegalStateException("ID query failed");
+        doThrow(failure).when(eventPublisher).publishEvent(any(RoommateDeletionIdsQueryEvent.class));
+
+        assertThatThrownBy(() -> memberService.hardDeleteMember(List.of(1L), cutoff)).isSameAs(failure);
+        verifyNoInteractions(alarmService, roommateMatchingRequiredService, roommateBoardService);
+        verify(chattingRequiredService, never()).deleteForMembers(any());
+        verify(memberRepository, never()).deleteMembersByIds(any());
+    }
+
+    private void completeEmptyDeletionIds() {
+        doAnswer(invocation -> {
+            RoommateDeletionIdsQueryEvent event = invocation.getArgument(0);
+            event.complete(List.of(), List.of());
+            return null;
+        }).when(eventPublisher).publishEvent(any(RoommateDeletionIdsQueryEvent.class));
     }
 
     @ParameterizedTest

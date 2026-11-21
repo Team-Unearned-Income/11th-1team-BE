@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.example.knockin.alarm.entity.AlarmType;
 import org.example.knockin.member.entity.Member;
-import org.example.knockin.mate.entity.RoommateMatchingRequired;
 import org.example.knockin.alarm.entity.RoommateMatchingRequiredAlarm;
 import org.springframework.stereotype.Service;
 
@@ -16,14 +15,14 @@ public class RoommateMatchingRequiredAlarmServiceImpl {
     @Value("${policy.request-alarm.expire-days}")
     private int requestAlarmExpireDays;
 
-    public void send(Member receiver, String title, String contents, RoommateMatchingRequired required) {
+    public void send(Member receiver, String title, String contents, Long requiredId) {
         RoommateMatchingRequiredAlarm alarm = RoommateMatchingRequiredAlarm.builder()
                 .memberId(receiver.getId())
                 .title(title)
                 .contents(contents)
                 .expiredAt(LocalDateTime.now().plusDays(requestAlarmExpireDays))
                 .type(AlarmType.ROOM_MATCHING)
-                .roommateMatchingRequiredId(required.getId())
+                .roommateMatchingRequiredId(requiredId)
                 .build();
 
         alarmService.sendToClient(receiver.getId(), AlarmType.ROOM_MATCHING.name(), alarm);

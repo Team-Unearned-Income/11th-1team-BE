@@ -2,6 +2,8 @@ package org.example.knockin.mate.repository.impl;
 
 import com.querydsl.core.types.Projections;
 import static org.example.knockin.mate.entity.QRoommateScore.roommateScore;
+import static org.example.knockin.mate.entity.QMyRoommate.myRoommate;
+import static org.example.knockin.mate.entity.QRoommateCalendar.roommateCalendar;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
 import java.util.Optional;
@@ -20,6 +22,32 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class RoommateMatchingRequiredRepositoryImpl implements RoommateMatchingRequiredRepositoryCustom {
     private final JPAQueryFactory jpaQueryFactory;
+
+    @Override
+    public List<Long> findMatchingRequestIdsForMembers(List<Long> memberIds, List<Long> chatRoomIds) {
+        if (memberIds.isEmpty() && chatRoomIds.isEmpty()) return List.of();
+
+        return jpaQueryFactory
+                .select(roommateMatchingRequired.id)
+                .from(roommateMatchingRequired)
+                .where(roommateMatchingRequired.requester.id.in(memberIds)
+                        .or(roommateMatchingRequired.requestee.id.in(memberIds))
+                        .or(roommateMatchingRequired.chattingRoomId.in(chatRoomIds)))
+                .fetch();
+    }
+
+    @Override
+    public List<Long> findCalendarIdsForMembers(List<Long> memberIds, List<Long> matchingRequestIds) {
+        if (memberIds.isEmpty() && matchingRequestIds.isEmpty()) return List.of();
+
+        return jpaQueryFactory
+                .select(roommateCalendar.id)
+                .from(roommateCalendar)
+                .join(roommateCalendar.myRoommate, myRoommate)
+                .where(myRoommate.roommateMatchingRequired.id.in(matchingRequestIds)
+                        .or(roommateCalendar.member.id.in(memberIds)))
+                .fetch();
+    }
 
     @Override
     public void deleteForMembers(List<Long> memberIds, List<Long> chatRoomIds, List<Long> chatScoreIds) {

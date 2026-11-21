@@ -21,6 +21,7 @@ import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.IntStream;
@@ -61,6 +62,16 @@ import org.example.knockin.verification.entity.LoginProviderType;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationEventPublisher;
+import org.example.knockin.mate.event.RoommateDeletionIdsQueryEvent;
+import org.example.knockin.alarm.service.impl.AlarmServiceImpl;
+import org.example.knockin.alarm.entity.RoommateMatchingRequiredAlarm;
+import org.example.knockin.alarm.entity.RoommateCalendarAlarm;
+import org.example.knockin.mate.entity.MyRoommate;
+import org.example.knockin.mate.entity.RoommateMatchingRequired;
+import org.example.knockin.mate.entity.RoommateRequiredStatus;
+import org.example.knockin.mate.entity.RoommateCalendar;
+import org.example.knockin.mate.entity.RoommateCalendarCategory;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.batch.core.BatchStatus;
@@ -98,6 +109,8 @@ class MemberDeleteBatchIntegrationTest {
     @Autowired MemberServiceImpl memberService;
     @Autowired PlatformTransactionManager transactionManager;
     @Autowired EntityManager entityManager;
+    @Autowired ApplicationEventPublisher eventPublisher;
+    @Autowired AlarmServiceImpl alarmService;
 
     @BeforeEach
     void resetEligibility() {
@@ -299,6 +312,89 @@ class MemberDeleteBatchIntegrationTest {
             assertThat(entityManager.find(ChatRoomMessage.class, ownerMessage.getId())).isNull();
             assertThat(entityManager.find(ChatRoomFile.class, attachment.getId())).isNull();
             assertThat(entityManager.find(ChatRoomMessage.class, survivingMessage.getId())).isNotNull();
+        });
+    }
+
+    @Test
+    void deletionIdEventPreservesSelectionAndDeletesOnlyRelatedAlarms() {
+        new TransactionTemplate(transactionManager).executeWithoutResult(transaction -> {
+            Long unrelatedRoomId = first(ChattingRoom.class).getId();
+            Member target = entityManager.find(Member.class, member(false, null));
+            Member firstSurvivor = entityManager.find(Member.class, member(false, null));
+            Member secondSurvivor = entityManager.find(Member.class, member(false, null));
+            ChattingRequired chatRequest = ChattingRequired.builder()
+                    .requesterId(firstSurvivor.getId()).requesteeId(secondSurvivor.getId())
+                    .status(ChattingRequiredStatus.ACCEPTED).build();
+            entityManager.persist(chatRequest);
+            ChattingRoom selectedRoom = ChattingRoom.builder().chattingRequired(chatRequest).build();
+            entityManager.persist(selectedRoom);
+            assertThat(unrelatedRoomId).isNotEqualTo(selectedRoom.getId());
+
+            List<RoommateMatchingRequired> requests = List.of(
+                    RoommateMatchingRequired.builder().requester(target).requestee(firstSurvivor)
+                            .chattingRoomId(unrelatedRoomId).status(RoommateRequiredStatus.ACCEPTED).build(),
+                    RoommateMatchingRequired.builder().requester(firstSurvivor).requestee(target)
+                            .chattingRoomId(unrelatedRoomId).status(RoommateRequiredStatus.ACCEPTED).build(),
+                    RoommateMatchingRequired.builder().requester(firstSurvivor).requestee(secondSurvivor)
+                            .chattingRoomId(selectedRoom.getId()).status(RoommateRequiredStatus.ACCEPTED).build(),
+                    RoommateMatchingRequired.builder().requester(firstSurvivor).requestee(secondSurvivor)
+                            .chattingRoomId(unrelatedRoomId).status(RoommateRequiredStatus.ACCEPTED).build());
+            RoommateCalendarCategory category = RoommateCalendarCategory.builder().name("삭제 검증").build();
+            entityManager.persist(category);
+            List<Long> selectedCalendarIds = new ArrayList<>();
+            List<Long> selectedAlarmIds = new ArrayList<>();
+            List<Long> preservedAlarmIds = new ArrayList<>();
+            LocalDateTime start = LocalDateTime.of(2026, 11, 17, 10, 0);
+            for (int index = 0; index < requests.size(); index++) {
+                RoommateMatchingRequired request = requests.get(index);
+                entityManager.persist(request);
+                MyRoommate roommate = MyRoommate.builder().roommateMatchingRequired(request).build();
+                entityManager.persist(roommate);
+                RoommateMatchingRequiredAlarm requestAlarm = RoommateMatchingRequiredAlarm.builder()
+                        .memberId(secondSurvivor.getId()).roommateMatchingRequiredId(request.getId())
+                        .title("요청 알림").contents("내용").isRead(false)
+                        .expiredAt(start.plusDays(1)).type(AlarmType.ROOM_MATCHING).build();
+                entityManager.persist(requestAlarm);
+                (index < 3 ? selectedAlarmIds : preservedAlarmIds).add(requestAlarm.getId());
+
+                List<Member> calendarOwners = index < 3 ? List.of(secondSurvivor) : List.of(target, secondSurvivor);
+                for (Member owner : calendarOwners) {
+                    RoommateCalendar calendar = RoommateCalendar.builder().myRoommate(roommate).member(owner)
+                            .roommateCalendarCategory(category).title("일정").startDate(start).endDate(start.plusHours(1)).build();
+                    entityManager.persist(calendar);
+                    RoommateCalendarAlarm calendarAlarm = RoommateCalendarAlarm.builder()
+                            .memberId(secondSurvivor.getId()).roommateCalendarId(calendar.getId())
+                            .title("일정 알림").contents("내용").isRead(false)
+                            .expiredAt(start.plusDays(1)).type(AlarmType.ROOMMATE_CALENDAR).build();
+                    entityManager.persist(calendarAlarm);
+                    if (index < 3 || owner == target) {
+                        selectedCalendarIds.add(calendar.getId());
+                        selectedAlarmIds.add(calendarAlarm.getId());
+                    } else {
+                        preservedAlarmIds.add(calendarAlarm.getId());
+                    }
+                }
+            }
+            entityManager.flush();
+
+            RoommateDeletionIdsQueryEvent event = new RoommateDeletionIdsQueryEvent(
+                    List.of(target.getId()), List.of(selectedRoom.getId()));
+            eventPublisher.publishEvent(event);
+            assertThat(event.getMatchingRequestIds()).containsExactlyInAnyOrder(
+                    requests.get(0).getId(), requests.get(1).getId(), requests.get(2).getId());
+            assertThat(event.getCalendarIds()).containsExactlyInAnyOrderElementsOf(selectedCalendarIds);
+
+            RoommateDeletionIdsQueryEvent empty = new RoommateDeletionIdsQueryEvent(List.of(), List.of());
+            eventPublisher.publishEvent(empty);
+            assertThat(empty.getMatchingRequestIds()).isEmpty();
+            assertThat(empty.getCalendarIds()).isEmpty();
+
+            alarmService.deleteForMembers(List.of(target.getId()), List.of(), event.getMatchingRequestIds(), event.getCalendarIds());
+            entityManager.clear();
+            selectedAlarmIds.forEach(id -> assertThat(entityManager.find(Alarm.class, id)).isNull());
+            preservedAlarmIds.forEach(id -> assertThat(entityManager.find(Alarm.class, id)).isNotNull());
+            requests.forEach(request -> assertThat(entityManager.find(RoommateMatchingRequired.class, request.getId())).isNotNull());
+            transaction.setRollbackOnly();
         });
     }
 
