@@ -1,7 +1,6 @@
 package org.example.knockin.room.service.impl;
 
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.member.entity.Member;
 import org.example.knockin.room.entity.RoomOfferProfile;
 import org.example.knockin.room.entity.RoomProfile;
 import org.example.knockin.room.entity.RoomSeekerProfile;
@@ -26,8 +25,8 @@ public class RoomProfileServiceImpl {
         return roomProfileRepository.save(roomSeekerProfile);
     }
 
-    public List<RoomProfile> findByMember(Member member) {
-        return roomProfileRepository.findByMember(member);
+    public List<RoomProfile> findByMemberId(Long memberId) {
+        return roomProfileRepository.findByMemberId(memberId);
     }
 
     @Transactional

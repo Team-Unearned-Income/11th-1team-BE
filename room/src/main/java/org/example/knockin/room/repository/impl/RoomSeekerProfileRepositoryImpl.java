@@ -32,7 +32,7 @@ public class RoomSeekerProfileRepositoryImpl implements RoomSeekerProfileReposit
         return jpaQueryFactory
                 .select(Projections.constructor(
                         MatchingSeekerProfileRow.class,
-                        roomSeekerProfile.member.id,
+                        roomSeekerProfile.memberId,
                         roomSeekerProfile.minDeposit,
                         roomSeekerProfile.maxDeposit,
                         roomSeekerProfile.minMonthlyRent,
@@ -40,12 +40,12 @@ public class RoomSeekerProfileRepositoryImpl implements RoomSeekerProfileReposit
                 ))
                 .from(roomSeekerProfile)
                 .where(
-                        roomSeekerProfile.member.id.in(memberIds),
+                        roomSeekerProfile.memberId.in(memberIds),
                         roomSeekerProfile.id.eq(
                                 JPAExpressions
                                         .select(latestRoomProfile.id.max())
                                         .from(latestRoomProfile)
-                                        .where(latestRoomProfile.member.id.eq(roomSeekerProfile.member.id))
+                                        .where(latestRoomProfile.memberId.eq(roomSeekerProfile.memberId))
                         )
                 )
                 .fetch();
@@ -65,23 +65,23 @@ public class RoomSeekerProfileRepositoryImpl implements RoomSeekerProfileReposit
         return jpaQueryFactory
                 .select(Projections.constructor(
                         MatchingSeekerRegionRow.class,
-                        roomSeekerProfile.member.id,
+                        roomSeekerProfile.memberId,
                         seekerRegion.name,
                         parentRegion.name,
                         grandParentRegion.name
                 ))
                 .from(roomSeekerProfileRegion)
                 .join(roomSeekerProfileRegion.roomSeekerProfile, roomSeekerProfile)
-                .join(roomSeekerProfileRegion.region, seekerRegion)
+                .join(seekerRegion).on(roomSeekerProfileRegion.regionId.eq(seekerRegion.id))
                 .leftJoin(seekerRegion.parent, parentRegion)
                 .leftJoin(parentRegion.parent, grandParentRegion)
                 .where(
-                        roomSeekerProfile.member.id.in(memberIds),
+                        roomSeekerProfile.memberId.in(memberIds),
                         roomSeekerProfile.id.eq(
                                 JPAExpressions
                                         .select(latestRoomProfile.id.max())
                                         .from(latestRoomProfile)
-                                        .where(latestRoomProfile.member.id.eq(roomSeekerProfile.member.id))
+                                        .where(latestRoomProfile.memberId.eq(roomSeekerProfile.memberId))
                         )
                 )
                 .fetch();
@@ -98,19 +98,19 @@ public class RoomSeekerProfileRepositoryImpl implements RoomSeekerProfileReposit
         return jpaQueryFactory
                 .select(Projections.constructor(
                         MatchingSeekerRoomTypeRow.class,
-                        roomSeekerProfile.member.id,
+                        roomSeekerProfile.memberId,
                         roomType.name
                 ))
                 .from(seekerRoomType)
                 .join(seekerRoomType.roomSeekerProfile, roomSeekerProfile)
                 .join(seekerRoomType.roomType, roomType)
                 .where(
-                        roomSeekerProfile.member.id.in(memberIds),
+                        roomSeekerProfile.memberId.in(memberIds),
                         roomSeekerProfile.id.eq(
                                 JPAExpressions
                                         .select(latestRoomProfile.id.max())
                                         .from(latestRoomProfile)
-                                        .where(latestRoomProfile.member.id.eq(roomSeekerProfile.member.id))
+                                        .where(latestRoomProfile.memberId.eq(roomSeekerProfile.memberId))
                         )
                 )
                 .fetch();

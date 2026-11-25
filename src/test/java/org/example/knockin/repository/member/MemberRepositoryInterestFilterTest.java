@@ -177,8 +177,8 @@ class MemberRepositoryInterestFilterTest {
                 .email(providerId + "@example.com")
                 .build());
         entityManager.persist(RoomOfferProfile.builder()
-                .member(member)
-                .region(region)
+                .memberId(member.getId())
+                .regionId(region.getId())
                 .deposit(1_000)
                 .monthlyRent(50)
                 .isComeableAtNegotiable(false)

@@ -279,7 +279,7 @@ class OnBoardingServiceImplTest {
         BasicInformation basicInformation = mock(BasicInformation.class);
         RoomSeekerProfile roomProfile = mock(RoomSeekerProfile.class);
         given(basicInformationService.findByMember(member)).willReturn(List.of(basicInformation));
-        given(roomProfileService.findByMember(member)).willReturn(List.of(roomProfile));
+        given(roomProfileService.findByMemberId(member.getId())).willReturn(List.of(roomProfile));
         given(roomProfile.getType()).willReturn(RoomProfileType.SEEKER);
 
         ModifyProfileAllDto.Response response = onBoardingService.modifyAll(request, memberId);
@@ -361,7 +361,7 @@ class OnBoardingServiceImplTest {
  
         RoomOfferProfile oldProfile = mock(RoomOfferProfile.class);
         given(oldProfile.getType()).willReturn(RoomProfileType.OFFER);
-        given(roomProfileService.findByMember(member)).willReturn(List.of(oldProfile));
+        given(roomProfileService.findByMemberId(member.getId())).willReturn(List.of(oldProfile));
         given(roomProfileService.save(any(RoomSeekerProfile.class))).willReturn(mock(RoomSeekerProfile.class));
         given(metaService.findByRegions(any())).willReturn(List.of(mock(Region.class)));
         given(metaService.findByRoomTypes(any())).willReturn(List.of(mock(RoomType.class)));

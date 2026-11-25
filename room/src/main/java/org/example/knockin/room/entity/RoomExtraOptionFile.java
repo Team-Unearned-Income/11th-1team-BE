@@ -2,7 +2,6 @@ package org.example.knockin.room.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.example.knockin.meta.entity.File;
 
 @Getter
 @Entity
@@ -20,11 +19,10 @@ public class RoomExtraOptionFile {
     @JoinColumn(name = "room_extra_option_id", nullable = false)
     private RoomExtraOption roomExtraOption;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "file_id", nullable = false)
-    private File file;
+    @Column(name = "file_id", nullable = false)
+    private Long fileId;
 
-    public void modifyFile(File file) {
-        this.file = file;
+    public void modifyFile(Long fileId) {
+        this.fileId = fileId;
     }
 }

@@ -31,7 +31,7 @@ public class RoomTypeRepositoryImpl implements RoomTypeRepositoryCustom {
                     file.savedFileName.as("image")
                 )).from(roomType)
                 .leftJoin(roomTypeFile).on(roomTypeFile.roomType.eq(roomType))
-                .leftJoin(file).on(roomTypeFile.file.eq(file))
+                .leftJoin(file).on(roomTypeFile.fileId.eq(file.id))
                 .where(roomType.isDeleted.eq(isDeleted)).fetch();
     }
 }

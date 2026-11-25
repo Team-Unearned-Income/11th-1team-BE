@@ -624,21 +624,21 @@ public class SeedDataConfig implements CommandLineRunner {
 
         basicInformationFileRepository.save(BasicInformationFile.builder().basicInformation(user1Info).fileId(profilePic.getId()).build());
 
-        roomTypeFileRepository.save(RoomTypeFile.builder().roomType(oneRoom).file(roomTypePic).build());
-        roomExtraOptionFileRepository.save(RoomExtraOptionFile.builder().roomExtraOption(fullOption).file(extraOptionPic).build());
+        roomTypeFileRepository.save(RoomTypeFile.builder().roomType(oneRoom).fileId(roomTypePic.getId()).build());
+        roomExtraOptionFileRepository.save(RoomExtraOptionFile.builder().roomExtraOption(fullOption).fileId(extraOptionPic.getId()).build());
         lifePatternFileRepository.save(LifePatternFile.builder().lifePattern(bedtime).fileId(lifePatternPic.getId()).build());
 
         // 10. 방 프로필 (RoomOfferProfile, RoomSeekerProfile, OfferRoomType, SeekerRoomType, SeekerProfileRegion)
         RoomOfferProfile offerProfile = RoomOfferProfile.builder()
-                .member(user1)
-                .region(seoul)
+                .memberId(user1.getId())
+                .regionId(seoul.getId())
                 .deposit(500)
                 .monthlyRent(50)
                 .comeableAt(LocalDateTime.now().plusDays(7))
                 .isComeableAtNegotiable(true)
                 .build();
         RoomSeekerProfile seekerProfile = RoomSeekerProfile.builder()
-                .member(user2)
+                .memberId(user2.getId())
                 .minDeposit(100)
                 .maxDeposit(1000)
                 .minMonthlyRent(30)
@@ -651,7 +651,7 @@ public class SeedDataConfig implements CommandLineRunner {
 
         offerRoomTypeRepository.save(OfferRoomType.builder().roomOfferProfile(offerProfile).roomType(oneRoom).build());
         seekerRoomTypeRepository.save(SeekerRoomType.builder().roomSeekerProfile(seekerProfile).roomType(oneRoom).build());
-        roomSeekerProfileRegionRepository.save(RoomSeekerProfileRegion.builder().roomSeekerProfile(seekerProfile).region(seoul).build());
+        roomSeekerProfileRegionRepository.save(RoomSeekerProfileRegion.builder().roomSeekerProfile(seekerProfile).regionId(seoul.getId()).build());
 
         // 11. 인기 검색어 덤프 (Search)
         Search search1 = Search.builder().member(user1).keyword("강남역").build();
@@ -1246,18 +1246,18 @@ public class SeedDataConfig implements CommandLineRunner {
             basicInformationFiles.add(BasicInformationFile.builder().basicInformation(info).fileId(profileFile.getId()).build());
 
             RoomOfferProfile offerProfile = RoomOfferProfile.builder()
-                    .member(member).region(region).deposit(300 + i % 20 * 50)
+                    .memberId(member.getId()).regionId(region.getId()).deposit(300 + i % 20 * 50)
                     .monthlyRent(30 + i % 10 * 5).comeableAt(LocalDateTime.now().plusDays(i % 90 + 1))
                     .isComeableAtNegotiable(i % 2 == 0).build();
             offerProfiles.add(offerProfile);
             RoomSeekerProfile seekerProfile = RoomSeekerProfile.builder()
-                    .member(seekerMember).minDeposit(100).maxDeposit(1000).minMonthlyRent(30).maxMonthlyRent(80)
+                    .memberId(seekerMember.getId()).minDeposit(100).maxDeposit(1000).minMonthlyRent(30).maxMonthlyRent(80)
                     .comeableAt(LocalDateTime.now().plusDays(i % 90 + 1))
                     .isComeableAtNegotiable(i % 2 == 0).build();
             seekerProfiles.add(seekerProfile);
             offerRoomTypes.add(OfferRoomType.builder().roomOfferProfile(offerProfile).roomType(roomType).build());
             seekerRoomTypes.add(SeekerRoomType.builder().roomSeekerProfile(seekerProfile).roomType(roomType).build());
-            seekerProfileRegions.add(RoomSeekerProfileRegion.builder().roomSeekerProfile(seekerProfile).region(region).build());
+            seekerProfileRegions.add(RoomSeekerProfileRegion.builder().roomSeekerProfile(seekerProfile).regionId(region.getId()).build());
 
             memberLifePatterns.add(MemberLifePattern.builder().memberId(member.getId()).lifePatternInformation(patternInformation).build());
             preferenceConditions.add(PreferenceCondition.builder().memberId(member.getId()).lifePatternInformation(patternInformation).build());
@@ -1440,8 +1440,8 @@ public class SeedDataConfig implements CommandLineRunner {
         List<LifePatternFile> lifePatternFiles = new ArrayList<>(recordCount);
         for (int i = 0; i < recordCount; i++) {
             File file = files.get(i);
-            roomTypeFiles.add(RoomTypeFile.builder().roomType(roomTypes.get(i)).file(file).build());
-            roomExtraOptionFiles.add(RoomExtraOptionFile.builder().roomExtraOption(roomExtraOptions.get(i)).file(file).build());
+            roomTypeFiles.add(RoomTypeFile.builder().roomType(roomTypes.get(i)).fileId(file.getId()).build());
+            roomExtraOptionFiles.add(RoomExtraOptionFile.builder().roomExtraOption(roomExtraOptions.get(i)).fileId(file.getId()).build());
             lifePatternFiles.add(LifePatternFile.builder().lifePattern(lifePatterns.get(i)).fileId(file.getId()).build());
         }
         roomTypeFileRepository.saveAll(roomTypeFiles);

@@ -6,7 +6,6 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.example.knockin.room.dto.ModifyProfileRoomInfoDto;
 
-import org.example.knockin.meta.entity.Region;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -18,9 +17,8 @@ import org.hibernate.annotations.OnDeleteAction;
 @DiscriminatorValue(RoomProfileType.Values.OFFER)
 @OnDelete(action = OnDeleteAction.CASCADE)
 public class RoomOfferProfile extends RoomProfile {
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "region_id", nullable = false)
-    private Region region;
+    @Column(name = "region_id", nullable = false)
+    private Long regionId;
 
     @Column(name = "deposit", nullable = false)
     private Integer deposit;
@@ -28,10 +26,10 @@ public class RoomOfferProfile extends RoomProfile {
     @Column(name = "monthly_rent", nullable = false)
     private Integer monthlyRent;
 
-    public void updateOffer(ModifyProfileRoomInfoDto.Request request, Region region) {
+    public void updateOffer(ModifyProfileRoomInfoDto.Request request, Long regionId) {
         this.deposit = request.getDeposit();
         this.monthlyRent = request.getMounthRent();
-        this.region = region;
+        this.regionId = regionId;
         this.updateCommonInfo(request.isComeableAtNegotiable(), request.getComeEnableAt());
     }
 }

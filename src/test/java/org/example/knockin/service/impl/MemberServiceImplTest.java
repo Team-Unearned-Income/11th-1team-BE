@@ -26,6 +26,10 @@ import org.example.knockin.member.repository.StateRepository;
 import org.example.knockin.member.service.MemberStateActiveEvent;
 import org.example.knockin.member.service.impl.MemberServiceImpl;
 import org.example.knockin.room.repository.RoomProfileRepository;
+import org.example.knockin.meta.repository.RegionRepository;
+import org.example.knockin.meta.entity.Region;
+import org.example.knockin.life.dto.MyProfileAllDto;
+import org.example.knockin.room.entity.RoomOfferProfile;
 import org.example.knockin.global.auth.dto.OAuth2UserInfo;
 import org.example.knockin.global.auth.service.Oauth2DeleteFactory;
 import org.example.knockin.global.auth.service.Oauth2DeleteService;
@@ -103,8 +107,31 @@ class MemberServiceImplTest {
     @Mock
     private MemberLifePatternService memberLifePatternService;
 
+    @Mock
+    private RegionRepository regionRepository;
+
     @InjectMocks
     private MemberServiceImpl memberService;
+
+    @Test
+    void resolvesOfferRegionFromItsId() {
+        Member member = Member.builder().id(1L).build();
+        Region city = Region.builder().id(10L).name("서울").build();
+        Region district = Region.builder().id(11L).name("강남구").parent(city).build();
+        RoomOfferProfile offer = RoomOfferProfile.builder().memberId(1L).regionId(11L)
+                .deposit(500).monthlyRent(50).build();
+        given(memberRepository.findByProfile(member)).willReturn(new MyProfileAllDto.Response.UserInfo());
+        given(memberRepository.findByRoomProfile(member)).willReturn(Optional.of(offer));
+        given(regionRepository.findById(11L)).willReturn(Optional.of(district));
+
+        MyProfileAllDto.Response response = memberService.findProfileAll(member);
+
+        assertThat(response.getRegion()).singleElement().satisfies(region -> {
+            assertThat(region.getRegionId()).isEqualTo(11L);
+            assertThat(region.getRegion()).isEqualTo("서울 강남구");
+        });
+        assertThat(response.getDeposit()).isEqualTo(500);
+    }
 
     @Test
     @DisplayName("새 소셜 회원을 저장하면 발급된 회원 ID로 기본 알림 설정을 초기화한다")
@@ -149,7 +176,7 @@ class MemberServiceImplTest {
 
         var order = inOrder(memberRepository, eventPublisher, alarmService, roommateMatchingRequiredService, chattingRequiredService,
                 roommateBoardService, declarationService, inquiryService, authenticationService, agreementService,
-                memberLifePatternService);
+                memberLifePatternService, roomProfileRepository);
         order.verify(memberRepository).findDeletionTargetIdsForUpdate(candidates, cutoff);
         order.verify(chattingRequiredService).findIdsForMembers(targets);
         order.verify(chattingRequiredService).findRoomIdsByRequestIds(requestIds);
@@ -164,10 +191,11 @@ class MemberServiceImplTest {
         order.verify(authenticationService).deleteForMembers(targets);
         order.verify(agreementService).deleteForMembers(targets);
         order.verify(memberLifePatternService).deleteForMembers(targets);
+        order.verify(roomProfileRepository).deleteForMembers(targets);
         order.verify(memberRepository).deleteMembersByIds(targets);
         verifyNoMoreInteractions(memberRepository, eventPublisher, alarmService, roommateMatchingRequiredService, chattingRequiredService,
                 roommateBoardService, declarationService, inquiryService, authenticationService, agreementService,
-                memberLifePatternService);
+                memberLifePatternService, roomProfileRepository);
     }
 
     @Test
@@ -178,7 +206,7 @@ class MemberServiceImplTest {
         memberService.hardDeleteMember(List.of(1L), cutoff);
 
         verifyNoInteractions(eventPublisher, alarmService, roommateMatchingRequiredService, chattingRequiredService, roommateBoardService,
-                declarationService, inquiryService, authenticationService, agreementService, memberLifePatternService);
+                declarationService, inquiryService, authenticationService, agreementService, memberLifePatternService, roomProfileRepository);
         verify(memberRepository, never()).deleteMembersByIds(any());
     }
 

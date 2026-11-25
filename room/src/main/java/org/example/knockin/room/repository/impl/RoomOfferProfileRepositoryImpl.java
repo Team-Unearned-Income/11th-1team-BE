@@ -37,7 +37,7 @@ public class RoomOfferProfileRepositoryImpl implements RoomOfferProfileRepositor
         return jpaQueryFactory
                 .select(Projections.constructor(
                         MatchingOfferProfileRow.class,
-                        roomOfferProfile.member.id,
+                        roomOfferProfile.memberId,
                         roomOfferProfile.deposit,
                         roomOfferProfile.monthlyRent,
                         offerRegion.name,
@@ -46,7 +46,7 @@ public class RoomOfferProfileRepositoryImpl implements RoomOfferProfileRepositor
                         roomType.name
                 ))
                 .from(roomOfferProfile)
-                .join(roomOfferProfile.region, offerRegion)
+                .join(offerRegion).on(roomOfferProfile.regionId.eq(offerRegion.id))
                 .leftJoin(offerRegion.parent, parentRegion)
                 .leftJoin(parentRegion.parent, grandParentRegion)
                 .join(offerRoomType)
@@ -61,12 +61,12 @@ public class RoomOfferProfileRepositoryImpl implements RoomOfferProfileRepositor
                 )
                 .join(offerRoomType.roomType, roomType)
                 .where(
-                        roomOfferProfile.member.id.in(memberIds),
+                        roomOfferProfile.memberId.in(memberIds),
                         roomOfferProfile.id.eq(
                                 JPAExpressions
                                         .select(latestRoomProfile.id.max())
                                         .from(latestRoomProfile)
-                                        .where(latestRoomProfile.member.id.eq(roomOfferProfile.member.id))
+                                        .where(latestRoomProfile.memberId.eq(roomOfferProfile.memberId))
                         )
                 )
                 .fetch();
