@@ -1,4 +1,4 @@
-package org.example.knockin.service.impl;
+package org.example.knockin.room.service.impl;
  
 import org.example.knockin.room.entity.RoomSeekerProfile;
 import org.example.knockin.room.entity.RoomSeekerProfileRegion;

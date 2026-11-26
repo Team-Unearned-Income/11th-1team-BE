@@ -1,7 +1,8 @@
 package org.example.knockin.room.repository;
 
-import org.example.knockin.member.entity.Member;
+import java.util.List;
 
 public interface RoomProfileRepositoryCustom {
-    boolean isExsitRoomProfile(Member member);
+    boolean isExsitRoomProfile(Long memberId);
+    void deleteForMembers(List<Long> memberIds);
 }

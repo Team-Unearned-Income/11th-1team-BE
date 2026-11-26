@@ -91,7 +91,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                                         .exists())
                                 .and(JPAExpressions.selectOne()
                                         .from(roomProfile)
-                                        .where(roomProfile.member.eq(member))
+                                        .where(roomProfile.memberId.eq(member.id))
                                         .exists())
                                 .as("basicInfo"),
                         JPAExpressions.selectOne()
@@ -161,7 +161,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
     public Optional<RoomProfile> findByRoomProfile(Member memberEntity) {
         return Optional.ofNullable(jpaQueryFactory
                 .selectFrom(roomProfile)
-                .where(roomProfile.member.eq(memberEntity))
+                .where(roomProfile.memberId.eq(memberEntity.getId()))
                 .orderBy(roomProfile.createdAt.desc())
                 .fetchFirst());
     }
@@ -199,7 +199,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
         return jpaQueryFactory
                 .select(region)
                 .from(roomSeekerProfileRegion)
-                .join(roomSeekerProfileRegion.region, region)
+                .join(region).on(roomSeekerProfileRegion.regionId.eq(region.id))
                 .where(roomSeekerProfileRegion.roomSeekerProfile.eq(seeker))
                 .fetch();
     }
@@ -290,7 +290,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                         JPAExpressions
                                 .select(roomProfile.id.max())
                                 .from(roomProfile)
-                                .where(roomProfile.member.id.eq(member.id))
+                                .where(roomProfile.memberId.eq(member.id))
                 ))
                 .leftJoin(basicInformationFile)
                 .on(basicInformationFile.id.eq(
@@ -355,7 +355,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                         JPAExpressions
                                 .select(roomProfile.id.max())
                                 .from(roomProfile)
-                                .where(roomProfile.member.id.eq(member.id))
+                                .where(roomProfile.memberId.eq(member.id))
                 ))
                 .leftJoin(basicInformationFile)
                 .on(basicInformationFile.id.eq(

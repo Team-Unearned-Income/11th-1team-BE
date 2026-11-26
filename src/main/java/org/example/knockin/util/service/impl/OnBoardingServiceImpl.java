@@ -135,7 +135,7 @@ public class OnBoardingServiceImpl {
 
     @Transactional
     public RoomProfile saveRoomInfo(SaveProfileRoomInfoDto.Request request, Member member) {
-        List<RoomProfile> existing = roomProfileService.findByMember(member);
+        List<RoomProfile> existing = roomProfileService.findByMemberId(member.getId());
         if (!existing.isEmpty()) {
             ModifyProfileRoomInfoDto.Request modifyRequest = ModifyProfileRoomInfoDto.Request.builder()
                     .type(request.getType())
@@ -151,7 +151,7 @@ public class OnBoardingServiceImpl {
                     .isComeableAtNegotiable(request.isComeableAtNegotiable())
                     .build();
             modifyRoomInfo(modifyRequest, member);
-            return roomProfileService.findByMember(member).getFirst();
+            return roomProfileService.findByMemberId(member.getId()).getFirst();
         }
         RoomProfile roomProfile = null;
 
@@ -162,8 +162,8 @@ public class OnBoardingServiceImpl {
                 Region region = metaService.findByRegionId(request.getRegion().getFirst()).orElseThrow(() -> new BusinessException(
                         MetaErrorCode.REGION_NOT_FOUND));
                 RoomOfferProfile roomOfferProfile = roomProfileService.save(RoomOfferProfile.builder()
-                        .member(member)
-                        .region(region)
+                        .memberId(member.getId())
+                        .regionId(region.getId())
                         .deposit(request.getDeposit())
                         .monthlyRent(request.getMounthRent())
                         .isComeableAtNegotiable(request.isComeableAtNegotiable())
@@ -180,7 +180,7 @@ public class OnBoardingServiceImpl {
                 List<RoomSeekerProfileRegion> roomSeekerProfileRegionList = new ArrayList<>();
 
                 RoomSeekerProfile roomSeekerProfile = roomProfileService.save(RoomSeekerProfile.builder()
-                        .member(member)
+                        .memberId(member.getId())
                         .minDeposit(request.getMinDeposit())
                         .maxDeposit(request.getMaxDeposit())
                         .minMonthlyRent(request.getMinMounthRent())
@@ -191,7 +191,7 @@ public class OnBoardingServiceImpl {
 
                 metaService.findByRegions(request.getRegion()).forEach(item -> {
                     roomSeekerProfileRegionList.add(
-                            RoomSeekerProfileRegion.builder().roomSeekerProfile(roomSeekerProfile).region(item).build());
+                            RoomSeekerProfileRegion.builder().roomSeekerProfile(roomSeekerProfile).regionId(item.getId()).build());
                 });
                 roomSeekerProfileRegionService.saveAll(roomSeekerProfileRegionList);
 
@@ -302,7 +302,7 @@ public class OnBoardingServiceImpl {
 
     @Transactional
     public void modifyRoomInfo(ModifyProfileRoomInfoDto.Request request, Member member) {
-        RoomProfile roomProfile = roomProfileService.findByMember(member).getFirst();
+        RoomProfile roomProfile = roomProfileService.findByMemberId(member.getId()).getFirst();
         RoomProfileType targetType = request.getType();
 
         if (roomProfile.getType() != targetType) {
@@ -317,7 +317,7 @@ public class OnBoardingServiceImpl {
 
             if (targetType == RoomProfileType.SEEKER) {
                 RoomSeekerProfile newSeekerProfile = roomProfileService.save(RoomSeekerProfile.builder()
-                        .member(member)
+                        .memberId(member.getId())
                         .minDeposit(request.getMinDeposit())
                         .maxDeposit(request.getMaxDeposit())
                         .minMonthlyRent(request.getMinMounthRent())
@@ -326,7 +326,7 @@ public class OnBoardingServiceImpl {
                         .comeableAt(request.getComeEnableAt())
                         .build());
 
-                List<RoomSeekerProfileRegion> seekerRegions = metaService.findByRegions(request.getRegion()).stream().map(region -> RoomSeekerProfileRegion.builder().roomSeekerProfile(newSeekerProfile).region(region).build()).toList();
+                List<RoomSeekerProfileRegion> seekerRegions = metaService.findByRegions(request.getRegion()).stream().map(region -> RoomSeekerProfileRegion.builder().roomSeekerProfile(newSeekerProfile).regionId(region.getId()).build()).toList();
                 roomSeekerProfileRegionService.saveAll(seekerRegions);
 
                 List<SeekerRoomType> seekerRoomTypes = metaService.findByRoomTypes(request.getRoomProfile()).stream().map(roomType -> SeekerRoomType.builder().roomSeekerProfile(newSeekerProfile).roomType(roomType).build()).toList();
@@ -336,8 +336,8 @@ public class OnBoardingServiceImpl {
                         .orElseThrow(() -> new BusinessException(MetaErrorCode.REGION_NOT_FOUND));
 
                 RoomOfferProfile newOfferProfile = roomProfileService.save(RoomOfferProfile.builder()
-                        .member(member)
-                        .region(region)
+                        .memberId(member.getId())
+                        .regionId(region.getId())
                         .deposit(request.getDeposit())
                         .monthlyRent(request.getMounthRent())
                         .isComeableAtNegotiable(request.isComeableAtNegotiable())
@@ -353,7 +353,7 @@ public class OnBoardingServiceImpl {
             if (roomProfile instanceof RoomOfferProfile roomOfferProfile) {
                 Region region = metaService.findByRegionId(request.getRegion().getFirst()).orElseThrow(() -> new BusinessException(MetaErrorCode.REGION_NOT_FOUND));
 
-                roomOfferProfile.updateOffer(request, region);
+                roomOfferProfile.updateOffer(request, region.getId());
                 roomTypeService.deleteByRoomOfferProfile(roomOfferProfile);
 
                 List<OfferRoomType> offerRoomTypeList = roomTypeList.stream().map(item -> OfferRoomType.builder().roomType(item).roomOfferProfile(roomOfferProfile).build()).toList();
@@ -369,7 +369,7 @@ public class OnBoardingServiceImpl {
 
                 roomSeekerProfileRegionService.deleteByRoomSeekerProfile(seekerProfile);
 
-                List<RoomSeekerProfileRegion> roomSeekerProfileRegionList = regionList.stream().map(item -> RoomSeekerProfileRegion.builder().roomSeekerProfile(seekerProfile).region(item).build()).toList();
+                List<RoomSeekerProfileRegion> roomSeekerProfileRegionList = regionList.stream().map(item -> RoomSeekerProfileRegion.builder().roomSeekerProfile(seekerProfile).regionId(item.getId()).build()).toList();
                 roomSeekerProfileRegionService.saveAll(roomSeekerProfileRegionList);
             } else {
                 throw new BusinessException(OnBoardErrorCode.ONBOARD_ROOM_INFO_VAILDATION_FAIL);

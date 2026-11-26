@@ -25,7 +25,7 @@ public class RoomExtraOptionRepositoryImpl implements RoomExtraOptionRepositoryC
                 file.savedFileName.as("image")
                 )).from(roomExtraOption)
                 .leftJoin(roomExtraOptionFile).on(roomExtraOptionFile.roomExtraOption.eq(roomExtraOption))
-                .leftJoin(file).on(roomExtraOptionFile.file.eq(file))
+                .leftJoin(file).on(roomExtraOptionFile.fileId.eq(file.id))
                 .where(roomExtraOption.isDeleted.eq(isDeleted)).fetch();
     }
 }

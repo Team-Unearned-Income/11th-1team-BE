@@ -1081,7 +1081,7 @@ class RoommateBoardRepositoryTest {
     private RoomTypeFile persistRoomTypeFile(RoomType roomType, File file) {
         RoomTypeFile roomTypeFile = RoomTypeFile.builder()
                 .roomType(roomType)
-                .file(file)
+                .fileId(file.getId())
                 .build();
         entityManager.persist(roomTypeFile);
         return roomTypeFile;
@@ -1090,7 +1090,7 @@ class RoommateBoardRepositoryTest {
     private RoomExtraOptionFile persistRoomExtraOptionFile(RoomExtraOption roomExtraOption, File file) {
         RoomExtraOptionFile roomExtraOptionFile = RoomExtraOptionFile.builder()
                 .roomExtraOption(roomExtraOption)
-                .file(file)
+                .fileId(file.getId())
                 .build();
         entityManager.persist(roomExtraOptionFile);
         return roomExtraOptionFile;

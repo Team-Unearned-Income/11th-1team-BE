@@ -1,4 +1,4 @@
-package org.example.knockin.service.impl;
+package org.example.knockin.room.service.impl;
 
 import org.example.knockin.room.entity.RoomType;
 import org.example.knockin.global.exception.BusinessException;

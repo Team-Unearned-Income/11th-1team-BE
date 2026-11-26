@@ -10,7 +10,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.*;
-import org.example.knockin.meta.entity.Region;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -26,9 +25,8 @@ public class RoomSeekerProfileRegion {
     @Column(name = "id")
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "region_id", nullable = false)
-    private Region region;
+    @Column(name = "region_id", nullable = false)
+    private Long regionId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_seeker_profile_id", nullable = false)

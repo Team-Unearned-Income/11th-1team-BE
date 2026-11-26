@@ -384,7 +384,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                                 .from(latestRoomTypeFile)
                                 .where(latestRoomTypeFile.roomType.eq(roomType))
                 ))
-                .leftJoin(selectedRoomTypeFile.file, roomTypeImageFile)
+                .leftJoin(roomTypeImageFile).on(selectedRoomTypeFile.fileId.eq(roomTypeImageFile.id))
                 .on(roomTypeImageFile.isDeleted.isFalse())
                 .join(boardRegion).on(roommateBoard.regionId.eq(boardRegion.id))
                 .leftJoin(boardRegion.parent, parentRegion)

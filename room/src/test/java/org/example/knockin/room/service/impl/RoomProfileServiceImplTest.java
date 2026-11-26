@@ -1,6 +1,5 @@
-package org.example.knockin.service.impl;
+package org.example.knockin.room.service.impl;
  
-import org.example.knockin.member.entity.Member;
 import org.example.knockin.room.entity.RoomOfferProfile;
 import org.example.knockin.room.entity.RoomProfile;
 import org.example.knockin.room.entity.RoomSeekerProfile;
@@ -56,14 +55,14 @@ class RoomProfileServiceImplTest {
     @Test
     @DisplayName("회원별 방 프로필 조회 테스트")
     void findByMemberTest() {
-        Member member = mock(Member.class);
+        Long memberId = 1L;
         RoomProfile profile = mock(RoomProfile.class);
-        given(roomProfileRepository.findByMember(member)).willReturn(List.of(profile));
+        given(roomProfileRepository.findByMemberId(memberId)).willReturn(List.of(profile));
  
-        List<RoomProfile> result = roomProfileService.findByMember(member);
+        List<RoomProfile> result = roomProfileService.findByMemberId(memberId);
  
         assertThat(result).hasSize(1);
-        verify(roomProfileRepository).findByMember(member);
+        verify(roomProfileRepository).findByMemberId(memberId);
     }
  
     @Test

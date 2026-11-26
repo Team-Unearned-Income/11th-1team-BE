@@ -42,7 +42,7 @@ public class RoommateBoardOptionRepositoryImpl implements RoommateBoardOptionRep
                                 .from(latestOptionFile)
                                 .where(latestOptionFile.roomExtraOption.eq(roomExtraOption))
                 ))
-                .leftJoin(selectedOptionFile.file, optionImageFile)
+                .leftJoin(optionImageFile).on(selectedOptionFile.fileId.eq(optionImageFile.id))
                 .on(optionImageFile.isDeleted.isFalse())
                 .where(
                         roommateBoardOption.roommateBoard.id.eq(boardId),

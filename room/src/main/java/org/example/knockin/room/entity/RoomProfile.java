@@ -5,13 +5,10 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
-import org.example.knockin.member.entity.Member;
 import org.example.knockin.global.entity.CreatedAtEntity;
 
 import java.time.LocalDateTime;
 
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
 @Getter
 @Entity
@@ -26,9 +23,8 @@ public class RoomProfile extends CreatedAtEntity {
     @Column(name = "id")
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", nullable = false, unique = true)
-    @OnDelete(action = OnDeleteAction.CASCADE) private Member member;
+    @Column(name = "member_id", nullable = false, unique = true)
+    private Long memberId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type", length = 20, insertable = false, updatable = false)

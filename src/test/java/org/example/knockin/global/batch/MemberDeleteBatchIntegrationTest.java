@@ -92,6 +92,8 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles("test")
 class MemberDeleteBatchIntegrationTest {
     private static final List<String> EXTERNAL_REFERENCE_TABLES = List.of(
+            "room_profile", "room_offer_profile", "room_seeker_profile",
+            "offer_room_type", "seeker_room_type", "room_seeker_profile_region",
             "roommate_board", "roommate_board_interest", "roommate_board_file", "roommate_board_option",
             "member_declaration", "roommate_board_declaration", "inquiry", "inquiry_comment",
             "authentication", "authentication_approve", "member_agreement", "member_life_pattern",

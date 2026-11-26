@@ -28,6 +28,7 @@ import org.example.knockin.member.entity.State;
 import org.example.knockin.meta.dto.AuthResponse;
 import org.example.knockin.global.auth.dto.OAuth2UserInfo;
 import org.example.knockin.meta.entity.Region;
+import org.example.knockin.meta.repository.RegionRepository;
 import org.example.knockin.global.exception.AuthErrorCode;
 import org.example.knockin.global.auth.service.Oauth2DeleteFactory;
 import org.example.knockin.global.exception.BusinessException;
@@ -76,6 +77,7 @@ public class MemberServiceImpl {
     private final InquiryService inquiryService;
     private final AgreementService agreementService;
     private final MemberLifePatternService memberLifePatternService;
+    private final RegionRepository regionRepository;
 
     @Transactional
     public Member getOrSave(OAuth2UserInfo oAuth2UserInfo) {
@@ -142,6 +144,7 @@ public class MemberServiceImpl {
         authenticationService.deleteForMembers(targetIds);
         agreementService.deleteForMembers(targetIds);
         memberLifePatternService.deleteForMembers(targetIds);
+        roomProfileRepository.deleteForMembers(targetIds);
         memberRepository.deleteMembersByIds(targetIds);
     }
 
@@ -207,10 +210,11 @@ public class MemberServiceImpl {
                 deposit = offer.getDeposit();
                 mounthRent = offer.getMonthlyRent();
 
-                if (offer.getRegion() != null) {
+                if (offer.getRegionId() != null) {
+                    Region offerRegion = regionRepository.findById(offer.getRegionId()).orElse(null);
                     MyProfileAllDto.Response.Region regDto = new MyProfileAllDto.Response.Region();
-                    regDto.setRegionId(offer.getRegion().getId());
-                    regDto.setRegion(getFullRegionName(offer.getRegion()));
+                    regDto.setRegionId(offer.getRegionId());
+                    regDto.setRegion(getFullRegionName(offerRegion));
                     regions.add(regDto);
                 }
 
@@ -257,7 +261,7 @@ public class MemberServiceImpl {
 
     // FIXME: 온보딩 여부의 책임을 RoomProfileServiceImpl, MemberLifeStyleServiceImpl, BasicInformationServiceImpl로 나눈다.
     public boolean isOnBoarding(Member member) {
-        return roomProfileRepository.isExsitRoomProfile(member);
+        return roomProfileRepository.isExsitRoomProfile(member.getId());
     }
 
     private String getFullRegionName(Region regionEntity) {

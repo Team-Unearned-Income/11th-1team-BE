@@ -68,6 +68,12 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import org.example.knockin.meta.service.FileService;
+import org.example.knockin.meta.repository.FileRepository;
+import org.example.knockin.meta.entity.File;
+import org.example.knockin.room.entity.RoomTypeFile;
+import org.example.knockin.room.entity.RoomExtraOptionFile;
+import org.example.knockin.room.entity.RoomExtraOption;
+import org.example.knockin.room.service.impl.RoomExtraOptionServiceImpl;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -98,6 +104,9 @@ class BackOfficeServiceImplTest {
     private RoomTypeServiceImpl roomTypeService;
 
     @Mock
+    private RoomExtraOptionServiceImpl roomExtraOptionService;
+
+    @Mock
     private LifeStyleServiceImpl lifeStyleService;
 
     @Mock
@@ -117,6 +126,9 @@ class BackOfficeServiceImplTest {
 
     @Mock
     private RoommateBoardServiceImpl roommateBoardService;
+
+    @Mock
+    private FileRepository fileRepository;
 
     @InjectMocks
     private BackOfficeServiceImpl backOfficeService;
@@ -323,6 +335,10 @@ class BackOfficeServiceImplTest {
         RoomType roomType = RoomType.builder().id(roomTypeId).name("원룸").build();
 
         given(roomTypeService.findRoomType(roomTypeId)).willReturn(roomType);
+        given(roomTypeService.findRoomTypeFile(roomType))
+                .willReturn(RoomTypeFile.builder().roomType(roomType).fileId(100L).build());
+        given(fileRepository.findById(100L))
+                .willReturn(Optional.of(File.builder().id(100L).savedFileName("room.png").build()));
 
         // when
         BoRoomTypeDetailDto.Response response = backOfficeService.findRoomType(roomTypeId);
@@ -331,6 +347,7 @@ class BackOfficeServiceImplTest {
         assertThat(response).isNotNull();
         assertThat(response.getId()).isEqualTo(roomTypeId);
         assertThat(response.getName()).isEqualTo("원룸");
+        assertThat(response.getImage()).isEqualTo("room.png");
     }
 
     @Test
@@ -1141,5 +1158,16 @@ class BackOfficeServiceImplTest {
         assertThat(response).isNotNull();
         assertThat(response.getUpdatedAt()).isNotNull();
         verify(agreementService).deleteTermType(termTypeId);
+    }
+    @Test
+    void findsRoomExtraOptionImageByFileId() {
+        RoomExtraOption option = RoomExtraOption.builder().id(1L).name("풀옵션").build();
+        given(roomExtraOptionService.findRoomAddOptions(1L)).willReturn(option);
+        given(roomExtraOptionService.findRoomExtraOptionFile(option))
+                .willReturn(RoomExtraOptionFile.builder().roomExtraOption(option).fileId(200L).build());
+        given(fileRepository.findById(200L))
+                .willReturn(Optional.of(File.builder().id(200L).savedFileName("option.png").build()));
+
+        assertThat(backOfficeService.findRoomAddOptions(1L).getImage()).isEqualTo("option.png");
     }
 }

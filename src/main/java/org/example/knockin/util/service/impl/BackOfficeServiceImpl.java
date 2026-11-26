@@ -36,6 +36,7 @@ import org.example.knockin.declaration.service.DeclarationService;
 import org.example.knockin.alarm.entity.Notification;
 import org.example.knockin.member.service.impl.MemberServiceImpl;
 import org.example.knockin.meta.entity.File;
+import org.example.knockin.meta.repository.FileRepository;
 import org.example.knockin.meta.entity.FileType;
 import org.example.knockin.inquiry.dto.BoInquiryDetailDto;
 import org.example.knockin.inquiry.dto.BoInquiryListDto;
@@ -89,6 +90,7 @@ public class BackOfficeServiceImpl {
     private final RoommateBoardServiceImpl roommateBoardService;
     private final RoomExtraOptionServiceImpl roomExtraOptionService;
     private final FileService fileService;
+    private final FileRepository fileRepository;
 
     @Transactional
     public BoTermsDto.Response saveTerms(BoTermsDto.Request request) {
@@ -129,7 +131,7 @@ public class BackOfficeServiceImpl {
             RoomType roomType = roomTypeService.saveRoomType(RoomType.builder().name(request.getName()).build());
             if (file != null && !file.isEmpty()) {
                 File fileEntity = fileService.save(file, FileType.ETC);
-                roomTypeService.saveRoomTypeFile(RoomTypeFile.builder().roomType(roomType).file(fileEntity).build());
+                roomTypeService.saveRoomTypeFile(RoomTypeFile.builder().roomType(roomType).fileId(fileEntity.getId()).build());
             }
             return BoRoomTypeDto.Response.builder().updatedAt(LocalDateTime.now()).build();
         } catch (IOException e) {
@@ -153,10 +155,10 @@ public class BackOfficeServiceImpl {
                 File fileEntity = fileService.save(file, FileType.ETC);
                 RoomTypeFile roomTypeFile = roomTypeService.findRoomTypeFile(roomType);
                 if(roomTypeFile != null) {
-                    roomTypeFile.modifyFile(fileEntity);
+                    roomTypeFile.modifyFile(fileEntity.getId());
                 } else {
                     roomTypeService.saveRoomTypeFile(RoomTypeFile.builder()
-                            .file(fileEntity)
+                            .fileId(fileEntity.getId())
                             .roomType(roomType)
                             .build());
                 }
@@ -177,7 +179,8 @@ public class BackOfficeServiceImpl {
     public BoRoomTypeDetailDto.Response findRoomType(Long roomTypeId) {
         RoomType roomType = roomTypeService.findRoomType(roomTypeId);
         RoomTypeFile roomTypeFile = roomTypeService.findRoomTypeFile(roomType);
-        String image = (roomTypeFile != null && roomTypeFile.getFile() != null) ? roomTypeFile.getFile().getSavedFileName() : null;
+        String image = (roomTypeFile != null && roomTypeFile.getFileId() != null)
+                ? fileRepository.findById(roomTypeFile.getFileId()).map(File::getSavedFileName).orElse(null) : null;
         return BoRoomTypeDetailDto.Response.builder().id(roomType.getId()).name(roomType.getName()).image(image).build();
     }
 
@@ -416,7 +419,7 @@ public class BackOfficeServiceImpl {
             RoomExtraOption roomExtraOption = roomExtraOptionService.saveRoomExtraOption(RoomExtraOption.builder().name(request.getName()).build());
             if (file != null && !file.isEmpty()) {
                 File fileEntity = fileService.save(file, FileType.ETC);
-                roomExtraOptionService.saveRoomExtraOptionFile(RoomExtraOptionFile.builder().roomExtraOption(roomExtraOption).file(fileEntity).build());
+                roomExtraOptionService.saveRoomExtraOptionFile(RoomExtraOptionFile.builder().roomExtraOption(roomExtraOption).fileId(fileEntity.getId()).build());
             }
             return BoRoomAddOptionDto.Response.builder().updatedAt(LocalDateTime.now()).build();
         } catch (IOException e) {
@@ -440,10 +443,10 @@ public class BackOfficeServiceImpl {
                 File fileEntity = fileService.save(file, FileType.ETC);
                 RoomExtraOptionFile roomExtraOptionFile = roomExtraOptionService.findRoomExtraOptionFile(roomExtraOption);
                 if(roomExtraOptionFile != null) {
-                    roomExtraOptionFile.modifyFile(fileEntity);
+                    roomExtraOptionFile.modifyFile(fileEntity.getId());
                 } else {
                     roomExtraOptionService.saveRoomExtraOptionFile(RoomExtraOptionFile.builder()
-                            .file(fileEntity)
+                            .fileId(fileEntity.getId())
                             .roomExtraOption(roomExtraOption)
                             .build());
                 }
@@ -464,7 +467,8 @@ public class BackOfficeServiceImpl {
     public BoRoomAddOptionDetailDto.Response findRoomAddOptions(Long id) {
         RoomExtraOption roomExtraOption = roomExtraOptionService.findRoomAddOptions(id);
         RoomExtraOptionFile roomExtraOptionFile = roomExtraOptionService.findRoomExtraOptionFile(roomExtraOption);
-        String image = (roomExtraOptionFile != null && roomExtraOptionFile.getFile() != null) ? roomExtraOptionFile.getFile().getSavedFileName() : null;
+        String image = (roomExtraOptionFile != null && roomExtraOptionFile.getFileId() != null)
+                ? fileRepository.findById(roomExtraOptionFile.getFileId()).map(File::getSavedFileName).orElse(null) : null;
         return BoRoomAddOptionDetailDto.Response.builder().id(roomExtraOption.getId()).name(roomExtraOption.getName()).image(image).build();
     }
 }
